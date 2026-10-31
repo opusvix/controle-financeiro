@@ -17,3 +17,4 @@ __pycache__/
 node_modules/
 dist/
 importacao_*.txt
+*.tsbuildinfo
