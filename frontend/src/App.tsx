@@ -1,0 +1,36 @@
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import Cadastros from "./telas/Cadastros";
+import Cartoes from "./telas/Cartoes";
+import Configuracoes from "./telas/Configuracoes";
+import Contas from "./telas/Contas";
+import Dashboard from "./telas/Dashboard";
+import Transacoes from "./telas/Transacoes";
+
+const MENU = [
+  ["/", "Dashboard"], ["/contas", "Contas"], ["/transacoes", "Transações"],
+  ["/cartoes", "Cartões de crédito"], ["/cadastros", "Cadastros"], ["/configuracoes", "Configurações"],
+] as const;
+
+export default function App() {
+  return (
+    <div className="app">
+      <nav className="menu">
+        <div className="marca">Controle<br />Financeiro</div>
+        {MENU.map(([rota, nome]) => (
+          <NavLink key={rota} to={rota} end={rota === "/"}>{nome}</NavLink>
+        ))}
+      </nav>
+      <main>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/contas" element={<Contas />} />
+          <Route path="/transacoes" element={<Transacoes />} />
+          <Route path="/cartoes" element={<Cartoes />} />
+          <Route path="/cadastros" element={<Cadastros />} />
+          <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}

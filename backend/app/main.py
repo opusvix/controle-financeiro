@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import config as config_mod
 from . import db, seed
@@ -39,4 +41,21 @@ def criar_app(cfg: config_mod.Config | None = None, banco: str | None = None) ->
     app = FastAPI(title="Controle Financeiro", lifespan=ciclo)
     for r in (cadastros.router, movimento.router, sistema.router):
         app.include_router(r)
+    _servir_telas(app)
     return app
+
+
+def _servir_telas(app: FastAPI) -> None:
+    """Entrega as telas já compiladas (frontend/dist), se existirem."""
+    dist = config_mod.RAIZ / "frontend" / "dist"
+    if not (dist / "index.html").exists():
+        return
+    app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @app.get("/{caminho:path}", include_in_schema=False)
+    def telas(caminho: str):
+        # Qualquer rota que não seja /api abre o app (o React cuida da navegação).
+        arquivo = (dist / caminho).resolve()
+        if caminho and arquivo.is_file() and dist.resolve() in arquivo.parents:
+            return FileResponse(arquivo)
+        return FileResponse(dist / "index.html")

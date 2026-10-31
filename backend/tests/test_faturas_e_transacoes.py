@@ -64,8 +64,11 @@ def test_despesa_cartao_parcelada_e_pagamento_nao_contam_em_dobro(con):
 
     criar(con, NovaTransacao("pagamento_fatura", "Fatura BB", 33335, date(2026, 10, 10),
                              conta_id=c6, cartao_id=bb, fatura_competencia="2026-10"))
+    datas = [r[0] for r in con.execute("SELECT data FROM transacao WHERE tipo = 'despesa_cartao' ORDER BY parcela")]
+    assert datas == ["2026-10-02", "2026-11-02", "2026-12-02"]
     out = painel.resumo(con, "2026-10")
-    assert out["despesas"] == 100001                     # a compra, uma vez só
+    assert out["despesas"] == 33335                      # só a 1ª parcela em outubro
+    assert painel.resumo(con, "2026-11")["despesas"] == 33333
     cartao = out["cartoes"][0]
     assert cartao["fatura_situacao"] == "paga"
     assert cartao["limite_disponivel"] == 2227900 - (100001 - 33335)
