@@ -1,0 +1,18 @@
+# Dados e segredos: nunca vão para o GitHub
+.env
+data/
+BackUp/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
