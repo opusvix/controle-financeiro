@@ -125,9 +125,11 @@ def criar(con: sqlite3.Connection, n: NovaTransacao) -> list[int]:
                 data_parcela = faturas.somar_meses(n.data, i)
                 fatura_id = faturas.obter_ou_criar_fatura(con, n.cartao_id, data_parcela)
                 descricao = base["descricao"] + (f" ({i + 1}/{n.parcelas})" if grupo else "")
+                # Cada parcela é datada no seu mês (como no extrato do cartão): a despesa
+                # de uma compra parcelada se distribui pelos meses das parcelas.
                 ids.append(_inserir(
                     con, tipo="despesa_cartao", valor_centavos=valor,
-                    data=n.data.isoformat(), cartao_id=n.cartao_id, fatura_id=fatura_id,
+                    data=data_parcela.isoformat(), cartao_id=n.cartao_id, fatura_id=fatura_id,
                     parcela=i + 1 if grupo else None, total_parcelas=n.parcelas if grupo else None,
                     grupo_parcelas=grupo, **{**base, "descricao": descricao},
                 ))

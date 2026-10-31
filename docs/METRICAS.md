@@ -22,3 +22,10 @@ card "Despesas" (R$ 5.906,77) e o gráfico "Despesas por categoria"
 Compra **no dia do fechamento ou depois** vai para a fatura seguinte. O
 vencimento é o primeiro dia de vencimento depois do fechamento. Dia 31 em
 meses mais curtos vira o último dia do mês.
+
+## Compras parceladas
+
+Cada parcela é lançada no mês dela (1ª no mês da compra, 2ª no mês seguinte…),
+como aparece no extrato do cartão. Assim "Despesas do mês" de novembro inclui a
+2ª parcela de uma compra de outubro. Os centavos que sobram da divisão ficam na
+1ª parcela (R$ 1.000,01 em 3x = 333,35 + 333,33 + 333,33).
