@@ -1,0 +1,61 @@
+{
+  "_leia_me": "Mapa Mobills -> app. Chave 'Categoria|Subcategoria' (use * para qualquer subcategoria). Valor 'Mãe > Filha' ou 'Mãe'. O que não estiver aqui é criado com o mesmo nome do Mobills. 'categorias_viram_tag': a categoria do Mobills vira tag e a subcategoria vira a categoria.",
+  "categorias_viram_tag": [
+    "CERCO FELINO", "LAZER - JAMPA 2026", "Empreendimentos", "PJ Maurício", "AUGEDIVA", "Marcenaria"
+  ],
+  "despesa": {
+    "Supermercado|Quilão": "Alimentação > Hortifruti",
+    "Supermercado|Açougue": "Alimentação > Carnes",
+    "Supermercado|*": "Alimentação > Mercado",
+    "Perim|*": "Alimentação > Mercado",
+    "*|Quilão": "Alimentação > Hortifruti",
+    "*|Perim": "Alimentação > Mercado",
+    "*|SUPERMERCADO": "Alimentação > Mercado",
+    "*|ALIMENTAÇÃO": "Alimentação",
+    "Restaurante|*": "Alimentação > Restaurante e lanche",
+    "Lanches|*": "Alimentação > Restaurante e lanche",
+    "Saúde|Farmácia": "Saúde > Farmácia",
+    "Saúde|Unimed": "Saúde > Plano de saúde",
+    "Farmácia|*": "Saúde > Farmácia",
+    "*|Farmácia": "Saúde > Farmácia",
+    "Transporte|Combustível": "Transporte > Combustível",
+    "Transporte|Estacionamento": "Transporte > Estacionamento",
+    "Transporte|Mecânico": "Transporte > Manutenção do veículo",
+    "Transporte|IPVA": "Transporte > Impostos do veículo",
+    "*|Combustível": "Transporte > Combustível",
+    "*|Estacionamento": "Transporte > Estacionamento",
+    "*|Mecânico": "Transporte > Manutenção do veículo",
+    "MECÂNICO|*": "Transporte > Manutenção do veículo",
+    "IPVA|*": "Transporte > Impostos do veículo",
+    "*|IPVA": "Transporte > Impostos do veículo",
+    "Taxa de Licenciamento anual|*": "Transporte > Impostos do veículo",
+    "Uber|*": "Transporte",
+    "Veículos|*": "Transporte",
+    "*|Energia": "Casa > Energia, água e gás",
+    "*|Água": "Casa > Energia, água e gás",
+    "*|Internet": "Casa > Internet e telefone",
+    "*|Celular Dados": "Casa > Internet e telefone",
+    "Jardinagem|*": "Casa > Manutenção",
+    "ANIMAIS|*": "Animais",
+    "Impostos e Taxas|*": "Taxas e serviços",
+    "*|Taxas Governamentais": "Taxas e serviços",
+    "*|Taxas Bancárias": "Taxas e serviços > Tarifas bancárias",
+    "DETRAN|*": "Taxas e serviços > DETRAN",
+    "Outros|*": "Outras despesas"
+  },
+  "receita": {
+    "Investimento|*": "Rendimentos",
+    "Investimentos|*": "Rendimentos",
+    "Reembolsos|*": "Reembolsos",
+    "Salário|*": "Salário",
+    "Reajuste|*": "Outras receitas",
+    "Outros|*": "Outras receitas"
+  },
+  "contas_investimento": ["Invest", "Sofisa"],
+  "instituicoes": {
+    "C6": "C6 Bank", "Itaú": "Itaú", "Bco Brasil": "Banco do Brasil", "BB ": "Banco do Brasil",
+    "Nubank": "Nubank", "Mercado Pago": "Mercado Pago", "Sofisa": "Banco Sofisa",
+    "PIC PAY": "PicPay", "CEF": "Caixa Econômica Federal"
+  },
+  "tag_ignorar": "ignorar transação"
+}

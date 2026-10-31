@@ -15,6 +15,7 @@ export default function Contas() {
   const painel = useDados(() => api.painel(hojeISO().slice(0, 7)));
   const inst = useDados(api.instituicoes);
   const [editando, setEditando] = useState<Partial<Conta> | null>(null);
+  const [reajustando, setReajustando] = useState<Conta | null>(null);
   const saldo = (id: number) => painel.dados?.contas.find((c) => c.id === id);
 
   return (
@@ -37,6 +38,7 @@ export default function Contas() {
         {contas.dados?.map((c) => (
           <div key={c.id} className={`cartao-painel ${c.ativa ? "" : "inativa"}`}>
             <header><i style={{ background: c.cor }} /><strong>{c.nome}</strong>
+              <button className="link" onClick={() => setReajustando(c)}>Reajustar saldo</button>
               <button className="link" onClick={() => setEditando(c)}>Editar</button></header>
             <small>{TIPOS[c.tipo]}{c.compoe_saldo_disponivel ? "" : " · fora do saldo disponível"}</small>
             <dl>
@@ -51,7 +53,45 @@ export default function Contas() {
           aoFechar={() => setEditando(null)}
           aoSalvar={() => { setEditando(null); contas.recarregar(); painel.recarregar(); }} />
       )}
+      {reajustando && (
+        <FormReajuste conta={reajustando} saldoAtual={saldo(reajustando.id)?.saldo_atual ?? 0}
+          aoFechar={() => setReajustando(null)}
+          aoSalvar={() => { setReajustando(null); painel.recarregar(); }} />
+      )}
     </>
+  );
+}
+
+function FormReajuste({ conta, saldoAtual, aoFechar, aoSalvar }: {
+  conta: Conta; saldoAtual: number; aoFechar: () => void; aoSalvar: () => void;
+}) {
+  const [txt, setTxt] = useState((saldoAtual / 100).toFixed(2).replace(".", ","));
+  const [data, setData] = useState(hojeISO());
+  const [erro, setErro] = useState<string | null>(null);
+  const negativo = txt.trim().startsWith("-");
+  const cent = paraCentavos(txt.replace("-", ""));
+  const desejado = cent === null ? null : negativo ? -cent : cent;
+
+  async function salvar() {
+    if (desejado === null) return setErro("Valor inválido. Use, por exemplo, 1.234,56");
+    try { await api.reajustarSaldo(conta.id, desejado, data); aoSalvar(); }
+    catch (e) { setErro((e as Error).message); }
+  }
+
+  return (
+    <Modal titulo={`Reajustar saldo: ${conta.nome}`} aoFechar={aoFechar}>
+      <div className="form">
+        <p>Informe o saldo que aparece no banco. O app lança um <b>ajuste</b> com a diferença,
+          que não conta como receita nem despesa.</p>
+        <div className="duas">
+          <label>Saldo correto (R$)<input value={txt} onChange={(e) => setTxt(e.target.value)} inputMode="decimal" autoFocus /></label>
+          <label>Na data<input type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
+        </div>
+        {desejado !== null && <p>Saldo no app hoje: {reais(saldoAtual)} · ajuste de {reais(desejado - saldoAtual)}</p>}
+        {erro && <p className="erro">{erro}</p>}
+        <footer><button onClick={aoFechar}>Cancelar</button><button className="primario" onClick={salvar}>Reajustar</button></footer>
+      </div>
+    </Modal>
   );
 }
 

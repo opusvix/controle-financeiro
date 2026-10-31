@@ -71,7 +71,7 @@ export default function Cadastros() {
             <button className="primario" onClick={criarTag}>Adicionar</button>
           </div>
           <h3 className="espaco">Importar e exportar</h3>
-          <p className="vazio">Importação do Excel do Mobills: próxima etapa.</p>
+          <p className="vazio">Importação do Mobills: rode <code>scripts\importar_mobills.bat ARQUIVO.xlsx</code> (simula primeiro e pede confirmação).</p>
         </div>
       </section>
     </>
