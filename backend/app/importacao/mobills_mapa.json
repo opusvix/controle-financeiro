@@ -1,7 +1,12 @@
 {
   "_leia_me": "Mapa Mobills -> app. Chave 'Categoria|Subcategoria' (use * para qualquer subcategoria). Valor 'Mãe > Filha' ou 'Mãe'. O que não estiver aqui é criado com o mesmo nome do Mobills. 'categorias_viram_tag': a categoria do Mobills vira tag e a subcategoria vira a categoria.",
   "categorias_viram_tag": [
-    "CERCO FELINO", "LAZER - JAMPA 2026", "Empreendimentos", "PJ Maurício", "AUGEDIVA", "Marcenaria"
+    "CERCO FELINO",
+    "LAZER - JAMPA 2026",
+    "Empreendimentos",
+    "PJ Maurício",
+    "AUGEDIVA",
+    "Marcenaria"
   ],
   "despesa": {
     "Supermercado|Quilão": "Alimentação > Hortifruti",
@@ -41,7 +46,11 @@
     "*|Taxas Governamentais": "Taxas e serviços",
     "*|Taxas Bancárias": "Taxas e serviços > Tarifas bancárias",
     "DETRAN|*": "Taxas e serviços > DETRAN",
-    "Outros|*": "Outras despesas"
+    "Outros|*": "Outras despesas",
+    "*|IPTU": "Casa > Impostos da casa",
+    "*|Taxa de Lixo": "Casa > Impostos da casa",
+    "Pessoal|*": "Pessoal",
+    "Reajuste|*": "Outras despesas"
   },
   "receita": {
     "Investimento|*": "Rendimentos",
@@ -49,13 +58,26 @@
     "Reembolsos|*": "Reembolsos",
     "Salário|*": "Salário",
     "Reajuste|*": "Outras receitas",
-    "Outros|*": "Outras receitas"
+    "Outros|*": "Outras receitas",
+    "Saúde|*": "Reembolsos",
+    "Farmácia|*": "Reembolsos",
+    "ANIMAIS|*": "Reembolsos",
+    "Aposentadoria|*": "Aposentadoria"
   },
-  "contas_investimento": ["Invest", "Sofisa"],
+  "contas_investimento": [
+    "Invest",
+    "Sofisa"
+  ],
   "instituicoes": {
-    "C6": "C6 Bank", "Itaú": "Itaú", "Bco Brasil": "Banco do Brasil", "BB ": "Banco do Brasil",
-    "Nubank": "Nubank", "Mercado Pago": "Mercado Pago", "Sofisa": "Banco Sofisa",
-    "PIC PAY": "PicPay", "CEF": "Caixa Econômica Federal"
+    "C6": "C6 Bank",
+    "Itaú": "Itaú",
+    "Bco Brasil": "Banco do Brasil",
+    "BB ": "Banco do Brasil",
+    "Nubank": "Nubank",
+    "Mercado Pago": "Mercado Pago",
+    "Sofisa": "Banco Sofisa",
+    "PIC PAY": "PicPay",
+    "CEF": "Caixa Econômica Federal"
   },
   "tag_ignorar": "ignorar transação"
 }

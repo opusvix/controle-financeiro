@@ -246,7 +246,8 @@ class Cadastros:
 
     def _procurar(self, tipo: str, cat: str, sub: str) -> str | None:
         regras = {k.lower(): v for k, v in self.mapa.get(tipo, {}).items()}
-        for chave in (f"{cat}|{sub}", f"{cat}|*", f"*|{sub}"):
+        # A subcategoria é mais específica: "Impostos e Taxas/IPVA" segue a regra do IPVA.
+        for chave in (f"{cat}|{sub}", f"*|{sub}", f"{cat}|*"):
             if chave.lower() in regras:
                 return regras[chave.lower()]
         return None
