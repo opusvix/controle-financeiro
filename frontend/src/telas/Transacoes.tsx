@@ -46,6 +46,8 @@ export default function Transacoes() {
   for (const t of lista.dados ?? []) if (agrupar && noCartao(t) && t.cartao_id)
     grupos.set(t.cartao_id, [...(grupos.get(t.cartao_id) ?? []), t]);
   const vistos = new Set<number>();
+  // A fatura que vence no mês pode ter compras do mês anterior (feitas antes do fechamento).
+  const fatura = (id: number) => painel.dados?.cartoes.find((c) => c.id === id)?.fatura_total;
   const recarregar = () => { lista.recarregar(); painel.recarregar(); };
 
   async function apagar(t: Transacao) {
@@ -118,8 +120,10 @@ export default function Transacoes() {
                   <td><span className="seta">{aberto ? "▾" : "▸"}</span></td>
                   <td>{dataBR(grupo[grupo.length - 1].data)} a {dataBR(grupo[0].data)}</td>
                   <td><strong>💳 {t.cartao}</strong> <small>· {grupo.length} lançamento{grupo.length > 1 ? "s" : ""}</small></td>
-                  <td>Compras no cartão</td>
-                  <td><Link to={`/cartoes/${t.cartao_id}?mes=${mes}`} onClick={(e) => e.stopPropagation()}>Ver fatura</Link></td>
+                  <td>Compras do mês<small className="dica-linha">pela data da compra</small></td>
+                  <td><Link to={`/cartoes/${t.cartao_id}?mes=${mes}`} onClick={(e) => e.stopPropagation()}>
+                    Fatura do mês{fatura(t.cartao_id!) !== undefined && `: ${reais(fatura(t.cartao_id!)!)}`}</Link>
+                    <small className="dica-linha">vence no mês; pode ter compras do mês anterior</small></td>
                   <td className={`num ${total > 0 ? "pos" : "neg"}`}><strong>{reais(total)}</strong></td>
                   <td />
                 </tr>
