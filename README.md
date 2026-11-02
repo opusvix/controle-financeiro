@@ -13,8 +13,10 @@ Plano completo: [Plano — App de Controle Financeiro Pessoal](https://claude.ai
 1. Copie `.env.example` para `.env` e ajuste se precisar.
 2. Dê dois cliques em `scripts\iniciar.bat`.
    Na primeira vez ele instala as dependências (1 a 2 minutos).
-3. O navegador abre em `http://127.0.0.1:8000/docs` (as telas chegam na próxima etapa;
-   por enquanto essa página permite testar o servidor).
+3. Dê dois cliques em `scripts\criar_atalho.bat`: cria o atalho **Controle Financeiro**
+   na Área de Trabalho, com ícone. O atalho liga o app escondido (sem janela preta)
+   e abre o navegador em `http://127.0.0.1:8000/`.
+4. Para desligar: `scripts\parar.bat`. O `atualizar.bat` já desliga sozinho antes de atualizar.
 
 O servidor só escuta no próprio PC (`127.0.0.1`); ninguém da rede acessa os dados.
 
