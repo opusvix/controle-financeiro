@@ -136,3 +136,6 @@ a.botao:hover { background: var(--painel-2); }
 .tabela tfoot td { font-weight: 500; }
 .tabela td.acoes { white-space: nowrap; }
 .tabela td.acoes .link + .link { margin-left: 10px; }
+.acoes-fatura { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.form .abas { flex-wrap: wrap; }
+.selo-credito { font-size: 11px; text-transform: uppercase; background: #84cc1633; color: #a3e635; border-radius: 6px; padding: 2px 6px; margin-right: 8px; }

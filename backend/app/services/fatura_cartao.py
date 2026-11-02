@@ -48,13 +48,16 @@ def detalhe(con: sqlite3.Connection, cartao_id: int, competencia: str) -> dict:
             WHERE t.fatura_id = ? ORDER BY t.data, t.id
         """
         for r in con.execute(sql, (f["id"],)):
-            (lancamentos if r["tipo"] == "despesa_cartao" else pagamentos).append(dict(r))
+            (pagamentos if r["tipo"] == "pagamento_fatura" else lancamentos).append(dict(r))
 
-    total = sum(t["valor_centavos"] for t in lancamentos)
+    def sinal(t):   # crédito (estorno, cashback) diminui a fatura
+        return -t["valor_centavos"] if t["tipo"] == "credito_cartao" else t["valor_centavos"]
+
+    total = sum(sinal(t) for t in lancamentos)
     pago = sum(t["valor_centavos"] for t in pagamentos)
-    conferido = sum(t["valor_centavos"] for t in lancamentos if t["conferido"])
+    conferido = sum(sinal(t) for t in lancamentos if t["conferido"])
     hoje = date.today().isoformat()
-    situacao = ("sem lançamentos" if total == 0 else "paga" if pago >= total
+    situacao = ("sem lançamentos" if not lancamentos else "paga" if total <= 0 else "paga" if pago >= total
                 else "aberta" if hoje < fechamento else "fechada")
     banco = f["valor_banco_centavos"] if f else None
     return {

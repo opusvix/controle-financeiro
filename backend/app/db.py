@@ -25,9 +25,15 @@ def migrar(con: sqlite3.Connection) -> list[str]:
     )
     feitas = {r[0] for r in con.execute("SELECT nome FROM _migracao")}
     aplicadas = []
-    for arquivo in sorted(PASTA_MIGRACOES.glob("*.sql")):
-        if arquivo.name in feitas:
-            continue
+    pendentes = [a for a in sorted(PASTA_MIGRACOES.glob("*.sql")) if a.name not in feitas]
+    arquivo_banco = con.execute("PRAGMA database_list").fetchone()[2]
+    if pendentes and feitas and arquivo_banco:
+        # Cópia de segurança antes de mexer na estrutura de um banco que já tem dados.
+        copia = Path(arquivo_banco).with_name(
+            f"{Path(arquivo_banco).stem}.antes-{pendentes[0].stem}.db")
+        if not copia.exists():
+            con.execute("VACUUM INTO ?", (str(copia),))
+    for arquivo in pendentes:
         con.executescript(arquivo.read_text(encoding="utf-8"))
         con.execute("INSERT INTO _migracao (nome) VALUES (?)", (arquivo.name,))
         aplicadas.append(arquivo.name)

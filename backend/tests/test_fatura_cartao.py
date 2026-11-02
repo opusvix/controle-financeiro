@@ -86,3 +86,40 @@ def test_trocar_conta_por_cartao_e_volta(cliente):
     assert nov["total"] == 2917
     r = cliente.patch(f"/api/transacoes/{t['id']}", json={"conta_id": conta}).json()
     assert r["tipo"] == "despesa" and r["cartao_id"] is None and r["fatura_id"] is None
+
+
+def test_lancar_direto_na_fatura(cliente):
+    _, cartao = _base(cliente)
+    # Anuidade cobrada em 05/11 (depois do fechamento), mas o banco pôs na fatura de novembro.
+    cliente.post("/api/transacoes", json={"tipo": "despesa_cartao", "descricao": "Anuidade",
+        "valor_centavos": 2000, "data": "2026-11-05", "cartao_id": cartao,
+        "fatura_competencia": "2026-11"})
+    nov = cliente.get(f"/api/cartoes/{cartao}/fatura", params={"competencia": "2026-11"}).json()
+    assert [t["descricao"] for t in nov["lancamentos"]] == ["Anuidade"]
+
+
+def test_credito_na_fatura_abate_total_e_despesa(cliente):
+    _, cartao = _base(cliente)
+    cat = next(x["id"] for x in cliente.get("/api/categorias").json() if x["nome"] == "Mercado")
+    cliente.post("/api/transacoes", json={"tipo": "despesa_cartao", "descricao": "Mercado",
+        "valor_centavos": 10000, "data": "2026-10-21", "cartao_id": cartao, "categoria_id": cat})
+    r = cliente.post("/api/transacoes", json={"tipo": "credito_cartao", "descricao": "Estorno Mercado",
+        "valor_centavos": 2500, "data": "2026-10-25", "cartao_id": cartao, "categoria_id": cat})
+    assert r.status_code == 201
+    f = cliente.get(f"/api/cartoes/{cartao}/fatura", params={"competencia": "2026-11"}).json()
+    assert f["total"] == 7500 and len(f["lancamentos"]) == 2
+    painel = cliente.get("/api/dashboard", params={"competencia": "2026-10"}).json()
+    assert painel["despesas"] == 7500
+    assert painel["despesas_por_categoria"][0]["total"] == 7500
+    assert painel["cartoes"][0]["limite_disponivel"] == 500000 - 7500
+    # Pode ser movido de fatura como uma compra.
+    cliente.patch(f"/api/transacoes/{r.json()[0]['id']}", json={"fatura_competencia": "2026-12"})
+    f = cliente.get(f"/api/cartoes/{cartao}/fatura", params={"competencia": "2026-11"}).json()
+    assert f["total"] == 10000
+
+
+def test_credito_exige_cartao(cliente):
+    conta, _ = _base(cliente)
+    r = cliente.post("/api/transacoes", json={"tipo": "credito_cartao", "descricao": "x",
+        "valor_centavos": 100, "data": "2026-10-25", "conta_id": conta})
+    assert r.status_code == 422

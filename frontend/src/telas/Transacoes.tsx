@@ -8,19 +8,20 @@ import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
 import { dataBR, hojeISO, mesAtual, paraCentavos, reais } from "../formato";
 
-type Tipo = "despesa" | "receita" | "despesa_cartao" | "transferencia" | "pagamento_fatura";
+type Tipo = "despesa" | "receita" | "despesa_cartao" | "credito_cartao" | "transferencia" | "pagamento_fatura";
 
 const TIPOS: { tipo: Tipo; nome: string; cor: string }[] = [
   { tipo: "despesa", nome: "Despesa", cor: "#ef4444" },
   { tipo: "receita", nome: "Receita", cor: "#22c55e" },
   { tipo: "despesa_cartao", nome: "Despesa no cartão", cor: "#14b8a6" },
+  { tipo: "credito_cartao", nome: "Crédito na fatura (estorno)", cor: "#84cc16" },
   { tipo: "transferencia", nome: "Transferência", cor: "#3b82f6" },
   { tipo: "pagamento_fatura", nome: "Pagamento de fatura", cor: "#8b5cf6" },
 ];
 
 /** Sinal do valor na lista: o que entra é +, o que sai é −. */
 function efeito(t: Transacao) {
-  if (t.tipo === "receita" || (t.tipo === "transferencia" && t.entrada)) return 1;
+  if (t.tipo === "receita" || t.tipo === "credito_cartao" || (t.tipo === "transferencia" && t.entrada)) return 1;
   if (t.tipo === "ajuste") return t.ajuste_negativo ? -1 : 1;
   return -1;
 }
@@ -105,9 +106,10 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
   const muda = (campo: string, valor: unknown) => setF({ ...f, [campo]: valor });
   const info = TIPOS.find((t) => t.tipo === tipo)!;
   const tipoCategoria = tipo === "receita" ? "receita" : "despesa";
-  const usaCategoria = tipo === "despesa" || tipo === "receita" || tipo === "despesa_cartao";
-  const usaCartao = tipo === "despesa_cartao" || tipo === "pagamento_fatura";
-  const usaConta = tipo !== "despesa_cartao";
+  const noCartao = tipo === "despesa_cartao" || tipo === "credito_cartao";
+  const usaCategoria = tipo === "despesa" || tipo === "receita" || noCartao;
+  const usaCartao = noCartao || tipo === "pagamento_fatura";
+  const usaConta = !noCartao;
 
   async function salvar(continuar: boolean) {
     const valor = paraCentavos(f.valor);
