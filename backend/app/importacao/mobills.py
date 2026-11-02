@@ -276,6 +276,7 @@ class Relatorio:
     por_tipo: Counter = field(default_factory=Counter)
     ignoradas_relatorio: int = 0
     parceladas: int = 0
+    convertidas: list[str] = field(default_factory=list)
     de_para: Counter = field(default_factory=Counter)   # (tipo, 'Cat/Sub', caminho, tag) -> qtd
     criados: dict = field(default_factory=dict)
     avisos: list[str] = field(default_factory=list)
@@ -289,6 +290,51 @@ def _gravar_origem(con: sqlite3.Connection, ids: list[int], origem_id: str) -> N
                     (ORIGEM, origem_id + suf, tid))
 
 
+def _conversoes(mapa: dict) -> dict[tuple, dict]:
+    """Regras linha a linha: (data, conta, centavos com sinal) -> o que a linha vira."""
+    regras = {}
+    for r in mapa.get("conversoes", []):
+        chave = (r["data"], r["conta"].lower(), round(float(r["valor"]) * 100))
+        regras[chave] = r
+    return regras
+
+
+def _converter(con: sqlite3.Connection, cad: "Cadastros", ln: Linha, regra: dict,
+               ignorar: bool) -> tuple[str, list[int]]:
+    """Aplica uma regra de conversão. Devolve (tipo criado, ids)."""
+    vira = regra["vira"]
+    if vira == "pular":
+        return "pulada", []
+    saindo = ln.valor_centavos < 0
+    if vira == "ajuste":
+        ids = svc.criar(con, NovaTransacao(
+            tipo="ajuste", descricao=ln.descricao, valor_centavos=abs(ln.valor_centavos),
+            data=ln.data, conta_id=cad.conta(ln.conta), ajuste_negativo=saindo,
+            observacao=regra.get("obs")))
+        _gravar_origem(con, ids, ln.origem_id)
+        return "ajuste", ids
+    if vira != "transferencia":
+        raise ValueError(f"Conversão desconhecida: {vira}")
+    transferido = round(float(regra.get("valor_transferido", abs(ln.valor_centavos) / 100)) * 100)
+    conta, destino = cad.conta(ln.conta), cad.conta(regra["destino"])
+    ids = svc.criar(con, NovaTransacao(
+        tipo="transferencia", descricao=ln.descricao, valor_centavos=transferido, data=ln.data,
+        conta_id=conta if saindo else destino, conta_destino_id=destino if saindo else conta,
+        ignorar=ignorar, observacao=regra.get("obs")))
+    _gravar_origem(con, ids, ln.origem_id)
+    diferenca = abs(ln.valor_centavos) - transferido
+    if diferenca > 0:
+        # Ex.: resgate de 33.338,22 que chegou 33.116,20: a diferença é o IR retido.
+        cat = cad._categoria("despesa", regra.get("diferenca_categoria", "Outras despesas"))
+        dif = svc.criar(con, NovaTransacao(
+            tipo="despesa", descricao=f"{ln.descricao} (diferença)", valor_centavos=diferenca,
+            data=ln.data, conta_id=conta, categoria_id=cat))
+        con.execute("UPDATE transacao SET origem = ?, origem_id = ? WHERE id = ?",
+                    (ORIGEM, ln.origem_id + ":dif", dif[0]))
+        ids += dif
+    return "transferencia", ids
+
+
 def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relatorio:
     rel = Relatorio(linhas_lidas=len(linhas))
     if not linhas:
@@ -299,6 +345,8 @@ def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relato
     tag_ignorar = mapa.get("tag_ignorar", "ignorar transação").lower()
     existentes = {r[0] for r in con.execute(
         "SELECT origem_id FROM transacao WHERE origem = ?", (ORIGEM,))}
+    conversoes = _conversoes(mapa)
+    reajuste_desde = mapa.get("reajuste_vira_ajuste_a_partir_de")
 
     for ln in linhas:
         if ln.origem_id in existentes or f"{ln.origem_id}:saida" in existentes:
@@ -306,6 +354,21 @@ def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relato
             continue
         ignorar = any(t.lower() == tag_ignorar for t in ln.tags)
         nomes_tags = [t for t in ln.tags if t.lower() != tag_ignorar]
+        regra = conversoes.get((ln.data.isoformat(), ln.conta.lower(), ln.valor_centavos)) \
+            if ln.aba == "mov" else None
+        if regra is None and reajuste_desde and ln.aba == "mov" \
+                and (ln.categoria or "").lower() == "reajuste" \
+                and ln.data.isoformat() >= reajuste_desde:
+            regra = {"vira": "ajuste"}
+        if regra is not None:
+            tipo_criado, _ = _converter(con, cad, ln, regra, ignorar)
+            con.commit()
+            rel.convertidas.append(f"{ln.data:%d/%m/%Y} {_reais(ln.valor_centavos):>14}  "
+                                   f"{ln.conta} | {ln.descricao} -> {tipo_criado}"
+                                   + (f" para {regra['destino']}" if regra.get("destino") else ""))
+            rel.importadas += int(tipo_criado != "pulada")
+            rel.por_tipo[tipo_criado] += 1
+            continue
         if ln.aba == "transf":
             n = NovaTransacao(tipo="transferencia", descricao=ln.descricao,
                               valor_centavos=ln.valor_centavos, data=ln.data,
@@ -366,6 +429,9 @@ def texto_relatorio(con: sqlite3.Connection, rel: Relatorio, simulacao: bool) ->
             "Por tipo: " + ", ".join(f"{k} {v}" for k, v in rel.por_tipo.most_common()),
             f"Marcadas 'ignorar' (fora dos relatórios): {rel.ignoradas_relatorio}",
             f"Com parcela identificada (n/m): {rel.parceladas}", ""]
+    if rel.convertidas:
+        out.append(f"CONVERTIDAS por regra ({len(rel.convertidas)}):")
+        out += ["  " + c for c in rel.convertidas] + [""]
     for k, v in rel.criados.items():
         out.append(f"Novos(as) {k} ({len(v)}): " + "; ".join(v))
     out += ["", "DE-PARA DE CATEGORIAS (qtd | tipo | Mobills -> app | tag)"]

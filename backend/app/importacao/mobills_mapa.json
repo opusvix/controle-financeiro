@@ -66,7 +66,8 @@
   },
   "contas_investimento": [
     "Invest",
-    "Sofisa"
+    "Sofisa",
+    "Cofrinhos"
   ],
   "instituicoes": {
     "C6": "C6 Bank",
@@ -79,5 +80,143 @@
     "PIC PAY": "PicPay",
     "CEF": "Caixa Econômica Federal"
   },
-  "tag_ignorar": "ignorar transação"
+  "tag_ignorar": "ignorar transação",
+  "_leia_me_conversoes": "Regras linha a linha, achadas por data + conta + valor (negativo = saída). vira: transferencia (com destino; valor_transferido opcional, a diferença vira despesa em diferenca_categoria), ajuste (mexe no saldo, fora dos relatórios) ou pular (a outra perna de uma transferência).",
+  "reajuste_vira_ajuste_a_partir_de": "2026-11-01",
+  "conversoes": [
+    {
+      "data": "2024-11-05",
+      "conta": "C6 Invest - CDB 6 Meses - 106%",
+      "valor": -1334.8,
+      "vira": "transferencia",
+      "destino": "1 - C6 Bank 1118",
+      "obs": "Resgate no vencimento"
+    },
+    {
+      "data": "2024-11-05",
+      "conta": "1 - C6 Bank 1118",
+      "valor": 1334.8,
+      "vira": "pular",
+      "obs": "Outra perna do resgate"
+    },
+    {
+      "data": "2025-01-28",
+      "conta": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "valor": -33338.22,
+      "vira": "transferencia",
+      "destino": "1 - C6 Bank 1118",
+      "valor_transferido": 33116.2,
+      "diferenca_categoria": "Taxas e serviços > Impostos sobre investimentos",
+      "obs": "Resgate: chegaram 33.116,20; a diferença é IR"
+    },
+    {
+      "data": "2025-01-28",
+      "conta": "1 - C6 Bank 1118",
+      "valor": 33116.2,
+      "vira": "pular",
+      "obs": "Outra perna do resgate"
+    },
+    {
+      "data": "2025-01-30",
+      "conta": "1 - C6 Bank 1118",
+      "valor": -15000.0,
+      "vira": "transferencia",
+      "destino": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "obs": "Aplicação em CDB"
+    },
+    {
+      "data": "2025-01-30",
+      "conta": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "valor": 15000.0,
+      "vira": "pular",
+      "obs": "Outra perna da aplicação"
+    },
+    {
+      "data": "2025-11-25",
+      "conta": "1 - C6 Bank 1118",
+      "valor": -1414.0,
+      "vira": "transferencia",
+      "destino": "C6 Invest - CDB +COMODIDADE",
+      "obs": "Aplicação: o CDB +COMODIDADE rende a partir daqui e foi resgatado por 1.486,98 (1.414 + rendimentos)"
+    },
+    {
+      "data": "2026-06-24",
+      "conta": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "valor": -1000.87,
+      "vira": "transferencia",
+      "destino": "1 - C6 Bank 1118",
+      "obs": "Resgate antecipado"
+    },
+    {
+      "data": "2026-06-24",
+      "conta": "1 - C6 Bank 1118",
+      "valor": 1000.87,
+      "vira": "pular",
+      "obs": "Outra perna do resgate"
+    },
+    {
+      "data": "2026-08-25",
+      "conta": "2 - Itaú",
+      "valor": -1000.0,
+      "vira": "transferencia",
+      "destino": "2 - Itaú Cofrinhos",
+      "obs": "Aplicação no Cofrinho"
+    },
+    {
+      "data": "2026-08-11",
+      "conta": "Sofisa Invest - Apto RJ - 113% - 2028",
+      "valor": -1437.29,
+      "vira": "ajuste",
+      "obs": "Resgate do fundo para o caixa da própria Sofisa; saída para o C6 está nas transferências"
+    },
+    {
+      "data": "2026-08-11",
+      "conta": "Sofisa Invest - Apto RJ - 113% - 2028",
+      "valor": -1437.12,
+      "vira": "ajuste",
+      "obs": "Idem"
+    },
+    {
+      "data": "2026-07-04",
+      "conta": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "valor": -2655.57,
+      "vira": "ajuste",
+      "obs": "Resgate sem a entrada correspondente no Mobills"
+    },
+    {
+      "data": "2026-09-05",
+      "conta": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "valor": -183.51,
+      "vira": "ajuste",
+      "obs": "Ajuste de saldo"
+    },
+    {
+      "data": "2025-11-30",
+      "conta": "C6 Invest - CDB 102% CDI - 01/FEV/28",
+      "valor": -1063.75,
+      "vira": "ajuste",
+      "obs": "Ajuste de investimento"
+    },
+    {
+      "data": "2024-12-21",
+      "conta": "C6 Invest - CDB 6 Meses - 106%",
+      "valor": -1336.12,
+      "vira": "ajuste",
+      "obs": "Encerramento da conta"
+    },
+    {
+      "data": "2025-05-26",
+      "conta": "1 - C6 Bank 1118",
+      "valor": -1338.0,
+      "vira": "ajuste",
+      "obs": "A CONFIRMAR: para qual investimento foi?"
+    },
+    {
+      "data": "2025-06-01",
+      "conta": "4 - Bco Brasil JU 3756",
+      "valor": -840.0,
+      "vira": "ajuste",
+      "obs": "A CONFIRMAR: Pix para Jussara é investimento?"
+    }
+  ]
 }

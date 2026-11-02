@@ -99,3 +99,39 @@ def test_api_reajuste(cliente):
     r = cliente.post(f"/api/contas/{conta['id']}/reajuste", json={"saldo_centavos": -500, "data": "2026-10-31"})
     assert r.status_code == 201 and r.json()["diferenca"] == -500
     assert cliente.post("/api/contas/999/reajuste", json={"saldo_centavos": 1}).status_code == 404
+
+
+def test_conversoes_viram_transferencia_ajuste_e_pulam_a_outra_perna(con, planilha):
+    mapa = mobills.carregar_mapa()
+    mapa["conversoes"] = [
+        {"data": "2026-10-06", "conta": "C6 Invest - CDB 102% CDI", "valor": 10.5, "vira": "ajuste"},
+        {"data": "2026-10-02", "conta": "1 - C6 Bank 1118", "valor": -123.45, "vira": "transferencia",
+         "destino": "C6 Invest - CDB 102% CDI", "valor_transferido": 120.00,
+         "diferenca_categoria": "Taxas e serviços > IR"},
+        {"data": "2026-10-03", "conta": "1 - C6 Bank 1118", "valor": -50.1, "vira": "pular"},
+    ]
+    rel, texto = mobills.executar(con, planilha, mapa)
+    assert rel.por_tipo["ajuste"] == 1 and rel.por_tipo["pulada"] == 1
+    # As duas linhas PERIM idênticas casam com a regra: viram 2 transferências + 2 diferenças.
+    assert rel.por_tipo["transferencia"] == 3
+    dif = con.execute("SELECT valor_centavos, c.nome FROM transacao t JOIN categoria c "
+                      "ON c.id = t.categoria_id WHERE descricao LIKE '%(diferença)'").fetchall()
+    assert [tuple(d) for d in dif] == [(345, "IR"), (345, "IR")]
+    assert "CONVERTIDAS" in texto
+    # Reimportar não duplica nada.
+    rel2, _ = mobills.executar(con, planilha, mapa)
+    assert rel2.importadas == 0
+
+
+def test_reajuste_futuro_vira_ajuste(con, tmp_path):
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Receitas e Despesas"
+    ws.append(["Data", "Descrição", "Valor", "Conta", "Situação", "Categoria", "Subcategoria", "Tags"])
+    ws.append(["01/05/2025", "Acerto antigo", 10.0, "X", "Paga", "Reajuste", None, ""])
+    ws.append(["05/11/2026", "Acerto novo", -7.0, "X", "Paga", "Reajuste", None, ""])
+    arq = tmp_path / "r.xlsx"
+    wb.save(arq)
+    rel, _ = mobills.executar(con, arq)
+    assert rel.por_tipo == {"receita": 1, "ajuste": 1}
