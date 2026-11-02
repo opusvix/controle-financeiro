@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, type Transacao } from "../api";
 import EditarTransacao from "../componentes/EditarTransacao";
 import SeletorCategoria from "../componentes/SeletorCategoria";
@@ -35,6 +36,16 @@ export default function Transacoes() {
   const [escolhendo, setEscolhendo] = useState(false);
   const [editando, setEditando] = useState<Transacao | null>(null);
   const [pagando, setPagando] = useState<Transacao | null>(null);
+  const [agrupar, setAgrupar] = useState(true);
+  const [abertos, setAbertos] = useState<number[]>([]);
+  const alternar = (id: number) => setAbertos(abertos.includes(id) ? abertos.filter((x) => x !== id) : [...abertos, id]);
+
+  // Compras e créditos de cartão viram uma linha por cartão (total do mês), que abre com os itens.
+  const noCartao = (t: Transacao) => t.tipo === "despesa_cartao" || t.tipo === "credito_cartao";
+  const grupos = new Map<number, Transacao[]>();
+  for (const t of lista.dados ?? []) if (agrupar && noCartao(t) && t.cartao_id)
+    grupos.set(t.cartao_id, [...(grupos.get(t.cartao_id) ?? []), t]);
+  const vistos = new Set<number>();
   const recarregar = () => { lista.recarregar(); painel.recarregar(); };
 
   async function apagar(t: Transacao) {
@@ -46,6 +57,23 @@ export default function Transacoes() {
     await api.apagarTransacao(t.id, proximas);
     recarregar();
   }
+
+  const linha = (t: Transacao, filho = false) => (
+    <tr key={t.id} className={filho ? "filho" : undefined}>
+              <td>{t.pago ? <span className="ok" title="Paga">✓</span>
+                : (t.tipo === "despesa" || t.tipo === "receita")
+                  ? <button className="pagar" onClick={() => setPagando(t)}>{t.tipo === "receita" ? "Receber" : "Pagar"}</button>
+                  : <span className="pendente" title="Pendente">!</span>}</td>
+              <td>{dataBR(t.data)}</td>
+              <td>{t.descricao}{t.recorrencia_id && <span className="repete" title="Repete todo mês"> ↻</span>}
+                {t.tags && <small className="tags"> {t.tags}</small>}</td>
+              <td>{t.categoria ?? (t.itens ? `${t.itens} itens` : TIPOS.find((x) => x.tipo === t.tipo)?.nome ?? "—")}</td>
+              <td>{t.conta ?? t.cartao}</td>
+              <td className={`num ${efeito(t) > 0 ? "pos" : "neg"}`}>{reais(efeito(t) * t.valor_centavos)}</td>
+              <td className="acoes"><button className="link" onClick={() => setEditando(t)}>Editar</button>
+                <button className="link" onClick={() => apagar(t)} aria-label="Apagar">Apagar</button></td>
+    </tr>
+  );
 
   return (
     <>
@@ -70,27 +98,35 @@ export default function Transacoes() {
           <Kpi titulo="Balanço do mês" valor={painel.dados.receitas - painel.dados.despesas} cor="#14b8a6" />
         </section>
       )}
+      <label className="chave agrupar"><input type="checkbox" checked={agrupar} onChange={(e) => setAgrupar(e.target.checked)} />
+        Agrupar compras de cartão por cartão</label>
       <table className="tabela">
         <thead><tr><th>Situação</th><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta / cartão</th>
           <th className="num">Valor</th><th /></tr></thead>
         <tbody>
           {lista.dados?.length === 0 && <tr><td colSpan={7} className="vazio">Nenhuma transação neste mês.</td></tr>}
-          {lista.dados?.map((t) => (
-            <tr key={t.id}>
-              <td>{t.pago ? <span className="ok" title="Paga">✓</span>
-                : (t.tipo === "despesa" || t.tipo === "receita")
-                  ? <button className="pagar" onClick={() => setPagando(t)}>{t.tipo === "receita" ? "Receber" : "Pagar"}</button>
-                  : <span className="pendente" title="Pendente">!</span>}</td>
-              <td>{dataBR(t.data)}</td>
-              <td>{t.descricao}{t.recorrencia_id && <span className="repete" title="Repete todo mês"> ↻</span>}
-                {t.tags && <small className="tags"> {t.tags}</small>}</td>
-              <td>{t.categoria ?? (t.itens ? `${t.itens} itens` : TIPOS.find((x) => x.tipo === t.tipo)?.nome ?? "—")}</td>
-              <td>{t.conta ?? t.cartao}</td>
-              <td className={`num ${efeito(t) > 0 ? "pos" : "neg"}`}>{reais(efeito(t) * t.valor_centavos)}</td>
-              <td className="acoes"><button className="link" onClick={() => setEditando(t)}>Editar</button>
-                <button className="link" onClick={() => apagar(t)} aria-label="Apagar">Apagar</button></td>
-            </tr>
-          ))}
+          {lista.dados?.map((t) => {
+            const grupo = agrupar && noCartao(t) && t.cartao_id ? grupos.get(t.cartao_id) : undefined;
+            if (!grupo) return linha(t);
+            if (vistos.has(t.cartao_id!)) return null;
+            vistos.add(t.cartao_id!);
+            const total = grupo.reduce((s, x) => s + efeito(x) * x.valor_centavos, 0);
+            const aberto = abertos.includes(t.cartao_id!);
+            return (
+              <Fragment key={`cartao-${t.cartao_id}`}>
+                <tr className="grupo-cartao" onClick={() => alternar(t.cartao_id!)}>
+                  <td><span className="seta">{aberto ? "▾" : "▸"}</span></td>
+                  <td>{dataBR(grupo[grupo.length - 1].data)} a {dataBR(grupo[0].data)}</td>
+                  <td><strong>💳 {t.cartao}</strong> <small>· {grupo.length} lançamento{grupo.length > 1 ? "s" : ""}</small></td>
+                  <td>Compras no cartão</td>
+                  <td><Link to={`/cartoes/${t.cartao_id}?mes=${mes}`} onClick={(e) => e.stopPropagation()}>Ver fatura</Link></td>
+                  <td className={`num ${total > 0 ? "pos" : "neg"}`}><strong>{reais(total)}</strong></td>
+                  <td />
+                </tr>
+                {aberto && grupo.map((x) => linha(x, true))}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
       {editando && <EditarTransacao transacao={editando} aoFechar={() => setEditando(null)}

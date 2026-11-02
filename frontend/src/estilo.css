@@ -154,3 +154,13 @@ button.pagar { background: var(--roxo); color: #fff; border: none; border-radius
 .modo-cupom .dica { margin: 4px 0 0; }
 .modo-cupom label.chave { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 14px; }
 .modo-cupom label.chave input { width: auto; margin: 0; }
+
+/* Transações: compras de cartão agrupadas por cartão */
+.agrupar { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0 0 10px; color: var(--suave); font-size: 14px; }
+.agrupar input { width: auto; margin: 0; }
+.tabela tr.grupo-cartao { cursor: pointer; background: var(--painel-2); }
+.tabela tr.grupo-cartao small { color: var(--suave); }
+.tabela tr.grupo-cartao .seta { color: var(--roxo); font-weight: 700; }
+.tabela tr.filho td { font-size: 13px; }
+.tabela tr.filho td:nth-child(3) { padding-left: 32px; }
+.tabela tr.grupo-cartao a { color: var(--roxo); }
