@@ -21,6 +21,11 @@ export type Transacao = {
   cartao: string | null; tags: string | null; itens: number; entrada: number;
   ajuste_negativo: number; parcela: number | null; total_parcelas: number | null;
   categoria_id: number | null; observacao: string | null; conferido: number;
+  recorrencia_id: string | null;
+};
+export type APagar = {
+  id: number; tipo: "receita" | "despesa"; descricao: string; valor_centavos: number; data: string;
+  conta_id: number | null; conta: string | null; categoria: string | null; recorrencia_id: string | null;
 };
 export type LancamentoFatura = {
   id: number; tipo: string; descricao: string; valor_centavos: number; data: string;
@@ -136,6 +141,8 @@ export const api = {
     chamar<Fatura>(`/api/cartoes/${cartao}/fatura?competencia=${comp}`),
   valorBanco: (cartao: number, comp: string, valor_centavos: number | null) =>
     chamar<Fatura>(`/api/cartoes/${cartao}/fatura/${comp}/valor-banco`, enviar("PUT", { valor_centavos })),
-  apagarTransacao: (id: number) => chamar<void>(`/api/transacoes/${id}`, { method: "DELETE" }),
+  apagarTransacao: (id: number, proximas = false) =>
+    chamar<void>(`/api/transacoes/${id}${proximas ? "?proximas=true" : ""}`, { method: "DELETE" }),
+  aPagar: (dias = 30) => chamar<APagar[]>(`/api/a-pagar?dias=${dias}`),
   backup: () => chamar<{ arquivo: string; copiado_drive: boolean }>("/api/backup", { method: "POST" }),
 };
