@@ -4,6 +4,7 @@ import { api, type Fatura as TFatura, type LancamentoFatura } from "../api";
 import EditarTransacao from "../componentes/EditarTransacao";
 import Kpi from "../componentes/Kpi";
 import Modal from "../componentes/Modal";
+import SeletorCategoria from "../componentes/SeletorCategoria";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
 import { dataBR, hojeISO, mesAtual, paraCentavos, reais } from "../formato";
@@ -17,6 +18,7 @@ export default function Fatura() {
   const fatura = useDados(() => api.fatura(id, mes), [id, mes]);
   const [editando, setEditando] = useState<LancamentoFatura | null>(null);
   const [pagando, setPagando] = useState(false);
+  const [lancando, setLancando] = useState(false);
   const f = fatura.dados;
 
   async function marcar(t: LancamentoFatura) {
@@ -52,6 +54,9 @@ export default function Fatura() {
               valor={f.conferido} cor="#8b5cf6" />
           </section>
           <ConferenciaBanco key={`${f.cartao.id}-${f.competencia}`} fatura={f} aoMudar={fatura.recarregar} />
+          <div className="acoes-fatura">
+            <button onClick={() => setLancando(true)}>+ Lançar nesta fatura</button>
+          </div>
           <table className="tabela">
             <thead><tr><th title="Conferido com o extrato">✓</th><th>Data</th><th>Descrição</th><th>Categoria</th>
               <th className="num">Valor</th><th /></tr></thead>
@@ -93,6 +98,8 @@ export default function Fatura() {
         <EditarTransacao transacao={{ ...editando, cartao_id: f.cartao.id }} competenciaFatura={f.competencia}
           aoFechar={() => setEditando(null)} aoSalvar={() => { setEditando(null); fatura.recarregar(); }} />
       )}
+      {lancando && f && <LancarNaFatura fatura={f} aoFechar={() => setLancando(false)}
+        aoSalvar={(continuar) => { if (!continuar) setLancando(false); fatura.recarregar(); }} />}
       {pagando && f && <PagarFatura fatura={f} aoFechar={() => setPagando(false)}
         aoSalvar={() => { setPagando(false); fatura.recarregar(); }} />}
     </>
@@ -162,6 +169,81 @@ function PagarFatura({ fatura: f, aoFechar, aoSalvar }: { fatura: TFatura; aoFec
           no dia em que foram feitas, por isso ele não entra como despesa de novo.</p>
         {erro && <p className="erro">{erro}</p>}
         <footer><button onClick={aoFechar}>Cancelar</button><button className="primario" onClick={salvar}>Registrar pagamento</button></footer>
+      </div>
+    </Modal>
+  );
+}
+
+const MODELOS = [
+  { id: "compra", nome: "Compra esquecida", descricao: "", categoria: null },
+  { id: "tarifa", nome: "Anuidade / tarifa", descricao: "Anuidade", categoria: "Tarifas bancárias" },
+  { id: "juros", nome: "Juros / IOF / multa", descricao: "Juros e IOF", categoria: "Tarifas bancárias" },
+] as const;
+
+/**
+ * Lança direto nesta fatura o que apareceu no extrato do banco e faltava no app.
+ * Já entra como conferido, porque veio do próprio extrato.
+ */
+function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
+  fatura: TFatura; aoFechar: () => void; aoSalvar: (continuar: boolean) => void;
+}) {
+  const categorias = useDados(api.categorias).dados ?? [];
+  const falta = f.diferenca_banco !== null && f.diferenca_banco < 0 ? -f.diferenca_banco : 0;
+  const vespera = (() => {   // compra precisa cair antes do fechamento
+    const d = new Date(f.data_fechamento + "T12:00:00"); d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [modelo, setModelo] = useState<(typeof MODELOS)[number]["id"]>("compra");
+  const [descricao, setDescricao] = useState("");
+  const [valor, setValor] = useState(falta ? (falta / 100).toFixed(2).replace(".", ",") : "");
+  const [data, setData] = useState(hojeISO() < f.data_fechamento ? hojeISO() : vespera);
+  const [categoria, setCategoria] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  function escolher(id: (typeof MODELOS)[number]["id"]) {
+    const m = MODELOS.find((x) => x.id === id)!;
+    setModelo(id); setDescricao(m.descricao);
+    const cat = m.categoria && categorias.find((c) => c.nome === m.categoria);
+    setCategoria(cat ? String(cat.id) : "");
+  }
+
+  async function salvar(continuar: boolean) {
+    const v = paraCentavos(valor);
+    if (!v) return setErro("Valor inválido.");
+    if (!descricao.trim()) return setErro("Informe a descrição.");
+    try {
+      const [t] = await api.criarTransacao({ tipo: "despesa_cartao", descricao, valor_centavos: v, data,
+        cartao_id: f.cartao.id, fatura_competencia: f.competencia,
+        categoria_id: categoria ? Number(categoria) : null });
+      await api.editarTransacao(t.id, { conferido: true });
+      setErro(null);
+      if (continuar) { setDescricao(""); setValor(""); }
+      aoSalvar(continuar);
+    } catch (e) { setErro((e as Error).message); }
+  }
+
+  return (
+    <Modal titulo={`Lançar na fatura de ${dataBR(f.data_vencimento).slice(3)}`} aoFechar={aoFechar}>
+      <div className="form">
+        <div className="abas">{MODELOS.map((m) => (
+          <button key={m.id} className={modelo === m.id ? "sel" : ""} onClick={() => escolher(m.id)}>{m.nome}</button>
+        ))}</div>
+        <label>Descrição<input value={descricao} onChange={(e) => setDescricao(e.target.value)} autoFocus
+          placeholder={modelo === "compra" ? "Como aparece no extrato" : ""} /></label>
+        <div className="duas">
+          <label>Valor (R$)<input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" /></label>
+          <label>Data<input type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
+        </div>
+        {falta > 0 && <p className="dica">O valor já vem com a diferença para o banco ({reais(falta)}). Ajuste se
+          for só parte dela.</p>}
+        <SeletorCategoria categorias={categorias.filter((c) => c.tipo === "despesa")} valor={categoria}
+          aoMudar={setCategoria} />
+        <p className="dica">Entra nesta fatura mesmo que a data seja depois do fechamento, e já fica marcado
+          como conferido.</p>
+        {erro && <p className="erro">{erro}</p>}
+        <footer><button onClick={aoFechar}>Cancelar</button>
+          <button onClick={() => salvar(true)}>Salvar e lançar outro</button>
+          <button className="primario" onClick={() => salvar(false)}>Salvar</button></footer>
       </div>
     </Modal>
   );

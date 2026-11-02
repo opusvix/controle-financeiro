@@ -136,3 +136,5 @@ a.botao:hover { background: var(--painel-2); }
 .tabela tfoot td { font-weight: 500; }
 .tabela td.acoes { white-space: nowrap; }
 .tabela td.acoes .link + .link { margin-left: 10px; }
+.acoes-fatura { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.form .abas { flex-wrap: wrap; }

@@ -123,7 +123,12 @@ def criar(con: sqlite3.Connection, n: NovaTransacao) -> list[int]:
                 # Centavos que sobram da divisão vão na 1ª parcela, como fazem os bancos.
                 valor = parcela_base + (resto if i == 0 else 0)
                 data_parcela = faturas.somar_meses(n.data, i)
-                fatura_id = faturas.obter_ou_criar_fatura(con, n.cartao_id, data_parcela)
+                if n.fatura_competencia and i == 0:
+                    # Lançado direto numa fatura (ex.: tarifa ou compra esquecida na conferência).
+                    from .fatura_cartao import fatura_por_competencia
+                    fatura_id = fatura_por_competencia(con, n.cartao_id, n.fatura_competencia)
+                else:
+                    fatura_id = faturas.obter_ou_criar_fatura(con, n.cartao_id, data_parcela)
                 descricao = base["descricao"] + (f" ({i + 1}/{n.parcelas})" if grupo else "")
                 # Cada parcela é datada no seu mês (como no extrato do cartão): a despesa
                 # de uma compra parcelada se distribui pelos meses das parcelas.

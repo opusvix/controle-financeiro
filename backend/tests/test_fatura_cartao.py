@@ -86,3 +86,13 @@ def test_trocar_conta_por_cartao_e_volta(cliente):
     assert nov["total"] == 2917
     r = cliente.patch(f"/api/transacoes/{t['id']}", json={"conta_id": conta}).json()
     assert r["tipo"] == "despesa" and r["cartao_id"] is None and r["fatura_id"] is None
+
+
+def test_lancar_direto_na_fatura(cliente):
+    _, cartao = _base(cliente)
+    # Anuidade cobrada em 05/11 (depois do fechamento), mas o banco pôs na fatura de novembro.
+    cliente.post("/api/transacoes", json={"tipo": "despesa_cartao", "descricao": "Anuidade",
+        "valor_centavos": 2000, "data": "2026-11-05", "cartao_id": cartao,
+        "fatura_competencia": "2026-11"})
+    nov = cliente.get(f"/api/cartoes/{cartao}/fatura", params={"competencia": "2026-11"}).json()
+    assert [t["descricao"] for t in nov["lancamentos"]] == ["Anuidade"]
