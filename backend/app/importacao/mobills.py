@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import uuid
 import json
 import re
 import sqlite3
@@ -51,6 +52,7 @@ class Linha:
     subcategoria: str | None = None
     tags: list[str] = field(default_factory=list)
     origem_id: str = ""
+    pago: bool = True           # "Situação" = Pendente -> a pagar/receber
 
 
 def _texto(v) -> str:
@@ -132,6 +134,7 @@ def ler(arquivo: Path) -> tuple[list[Linha], list[str]]:
             categoria=_texto(pega(r, "categoria")) or None,
             subcategoria=_texto(pega(r, "subcategoria")) or None,
             tags=_tags(pega(r, "tags")),
+            pago=_texto(pega(r, "situação")).lower() != "pendente",
         ))
 
     if ABA_TRANSFERENCIAS in wb.sheetnames:
@@ -276,6 +279,8 @@ class Relatorio:
     por_tipo: Counter = field(default_factory=Counter)
     ignoradas_relatorio: int = 0
     parceladas: int = 0
+    pendentes: int = 0          # importadas como "a pagar/receber" (Situação = Pendente)
+    recorrencias: int = 0       # contas que se repetem, ligadas como no "Repete todo mês"
     convertidas: list[str] = field(default_factory=list)
     anteriores_ao_corte: int = 0
     de_para: Counter = field(default_factory=Counter)   # (tipo, 'Cat/Sub', caminho, tag) -> qtd
@@ -344,6 +349,23 @@ def _converter(con: sqlite3.Connection, cad: "Cadastros", ln: Linha, regra: dict
     return "transferencia", ids
 
 
+def _agrupar_recorrencias(con: sqlite3.Connection, ids: list[int]) -> int:
+    """Lançamentos futuros iguais (mesma descrição sem "(n/m)", conta e tipo) viram uma
+    conta que se repete: dá para reajustar ou cancelar os próximos meses de uma vez."""
+    grupos: dict[tuple, list[int]] = {}
+    for i in ids:
+        t = con.execute("SELECT tipo, descricao, conta_id FROM transacao WHERE id = ?", (i,)).fetchone()
+        base = RE_PARCELA.sub("", t["descricao"]).strip().lower()
+        grupos.setdefault((t["tipo"], base, t["conta_id"]), []).append(i)
+    n = 0
+    for membros in grupos.values():
+        if len(membros) > 1:
+            rec = uuid.uuid4().hex
+            con.executemany("UPDATE transacao SET recorrencia_id = ? WHERE id = ?", [(rec, i) for i in membros])
+            n += 1
+    return n
+
+
 def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relatorio:
     rel = Relatorio(linhas_lidas=len(linhas))
     corte = mapa.get("importar_a_partir_de")
@@ -364,6 +386,7 @@ def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relato
     conversoes = _conversoes(mapa)
     reajuste_desde = mapa.get("reajuste_vira_ajuste_a_partir_de")
 
+    pendentes_ids: list[int] = []
     for ln in linhas:
         if ln.origem_id in existentes or f"{ln.origem_id}:saida" in existentes:
             rel.ja_existiam += 1
@@ -400,7 +423,7 @@ def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relato
             n = NovaTransacao(tipo=tipo, descricao=ln.descricao,
                               valor_centavos=abs(ln.valor_centavos), data=ln.data,
                               conta_id=cad.conta(ln.conta), categoria_id=cat_id,
-                              ignorar=ignorar)
+                              ignorar=ignorar, pago=ln.pago)
         n.tags = list(dict.fromkeys(cad.tag(t) for t in nomes_tags))
         ids = svc.criar(con, n)
         with con:
@@ -413,6 +436,10 @@ def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relato
         rel.importadas += 1
         rel.por_tipo[n.tipo] += 1
         rel.ignoradas_relatorio += int(ignorar)
+        if not ln.pago and n.tipo in ("despesa", "receita"):
+            rel.pendentes += 1
+            pendentes_ids.append(ids[0])
+    rel.recorrencias = _agrupar_recorrencias(con, pendentes_ids)
     con.commit()
     rel.criados = {k: sorted(set(v)) for k, v in cad.criados.items()}
     return rel
@@ -445,7 +472,9 @@ def texto_relatorio(con: sqlite3.Connection, rel: Relatorio, simulacao: bool) ->
             f"Anteriores ao corte (não importadas): {rel.anteriores_ao_corte}",
             "Por tipo: " + ", ".join(f"{k} {v}" for k, v in rel.por_tipo.most_common()),
             f"Marcadas 'ignorar' (fora dos relatórios): {rel.ignoradas_relatorio}",
-            f"Com parcela identificada (n/m): {rel.parceladas}", ""]
+            f"Com parcela identificada (n/m): {rel.parceladas}",
+            f"A pagar/receber (Situação = Pendente): {rel.pendentes}  |  "
+            f"contas que se repetem agrupadas: {rel.recorrencias}", ""]
     if rel.convertidas:
         out.append(f"CONVERTIDAS por regra ({len(rel.convertidas)}):")
         out += ["  " + c for c in rel.convertidas] + [""]
