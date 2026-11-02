@@ -45,7 +45,48 @@ export default function Transacoes() {
   const grupos = new Map<number, Transacao[]>();
   for (const t of lista.dados ?? []) if (agrupar && noCartao(t) && t.cartao_id)
     grupos.set(t.cartao_id, [...(grupos.get(t.cartao_id) ?? []), t]);
+
+  // Ordenação por coluna (clique no título; de novo inverte). Um grupo de cartão se ordena como
+  // uma linha só: pela data mais recente, pelo total, pelo nome do cartão.
+  type Coluna = "situacao" | "data" | "descricao" | "categoria" | "conta" | "valor";
+  const [ordem, setOrdem] = useState<{ col: Coluna; asc: boolean }>({ col: "data", asc: false });
+  const ordenarPor = (col: Coluna) =>
+    setOrdem(ordem.col === col ? { col, asc: !ordem.asc } : { col, asc: col !== "data" });
+  type Item = { t: Transacao; grupo?: Transacao[] };
+  const itens: Item[] = [];
   const vistos = new Set<number>();
+  for (const t of lista.dados ?? []) {
+    const grupo = agrupar && noCartao(t) && t.cartao_id ? grupos.get(t.cartao_id) : undefined;
+    if (grupo && vistos.has(t.cartao_id!)) continue;
+    if (grupo) vistos.add(t.cartao_id!);
+    itens.push({ t, grupo });
+  }
+  const chave = ({ t, grupo }: Item): string | number => {
+    const g = grupo ?? [t];
+    switch (ordem.col) {
+      case "situacao": return g.every((x) => x.pago) ? 1 : 0;
+      case "data": return g.reduce((m, x) => (x.data > m ? x.data : m), "");
+      case "descricao": return (grupo ? t.cartao ?? "" : t.descricao).toLowerCase();
+      case "categoria": return (grupo ? "Compras do mês" : t.categoria ?? "").toLowerCase();
+      case "conta": return (t.conta ?? t.cartao ?? "").toLowerCase();
+      case "valor": return g.reduce((s, x) => s + efeito(x) * x.valor_centavos, 0);
+    }
+  };
+  itens.sort((a, b) => {
+    const ka = chave(a), kb = chave(b);
+    const c = ka < kb ? -1 : ka > kb ? 1 : b.t.id - a.t.id;
+    return ordem.asc ? c : -c;
+  });
+  const ordenar = (g: Transacao[]) => [...g].sort((a, b) => {
+    const c = ordem.col === "valor" ? efeito(a) * a.valor_centavos - efeito(b) * b.valor_centavos
+      : ordem.col === "descricao" ? a.descricao.localeCompare(b.descricao) : a.data.localeCompare(b.data);
+    return ordem.asc ? c : -c;
+  });
+  const Th = ({ col, children, num }: { col: Coluna; children: string; num?: boolean }) => (
+    <th className={`ordenavel${num ? " num" : ""}`} onClick={() => ordenarPor(col)}
+      aria-sort={ordem.col === col ? (ordem.asc ? "ascending" : "descending") : "none"}>
+      {children}{ordem.col === col ? (ordem.asc ? " ▲" : " ▼") : ""}</th>
+  );
   // A fatura que vence no mês pode ter compras do mês anterior (feitas antes do fechamento).
   const fatura = (id: number) => painel.dados?.cartoes.find((c) => c.id === id)?.fatura_total;
   const recarregar = () => { lista.recarregar(); painel.recarregar(); };
@@ -103,15 +144,13 @@ export default function Transacoes() {
       <label className="chave agrupar"><input type="checkbox" checked={agrupar} onChange={(e) => setAgrupar(e.target.checked)} />
         Agrupar compras de cartão por cartão</label>
       <table className="tabela">
-        <thead><tr><th>Situação</th><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta / cartão</th>
-          <th className="num">Valor</th><th /></tr></thead>
+        <thead><tr><Th col="situacao">Situação</Th><Th col="data">Data</Th><Th col="descricao">Descrição</Th>
+          <Th col="categoria">Categoria</Th><Th col="conta">Conta / cartão</Th>
+          <Th col="valor" num>Valor</Th><th /></tr></thead>
         <tbody>
           {lista.dados?.length === 0 && <tr><td colSpan={7} className="vazio">Nenhuma transação neste mês.</td></tr>}
-          {lista.dados?.map((t) => {
-            const grupo = agrupar && noCartao(t) && t.cartao_id ? grupos.get(t.cartao_id) : undefined;
+          {itens.map(({ t, grupo }) => {
             if (!grupo) return linha(t);
-            if (vistos.has(t.cartao_id!)) return null;
-            vistos.add(t.cartao_id!);
             const total = grupo.reduce((s, x) => s + efeito(x) * x.valor_centavos, 0);
             const aberto = abertos.includes(t.cartao_id!);
             return (
@@ -127,7 +166,7 @@ export default function Transacoes() {
                   <td className={`num ${total > 0 ? "pos" : "neg"}`}><strong>{reais(total)}</strong></td>
                   <td />
                 </tr>
-                {aberto && grupo.map((x) => linha(x, true))}
+                {aberto && ordenar(grupo).map((x) => linha(x, true))}
               </Fragment>
             );
           })}
