@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api";
+import { api, type APagar } from "../api";
 import Kpi from "../componentes/Kpi";
+import PagarConta from "../componentes/PagarConta";
 import Rosca from "../componentes/Rosca";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
-import { dataBR, mesAtual, reais } from "../formato";
+import { dataBR, hojeISO, mesAtual, reais } from "../formato";
 
 export default function Dashboard() {
   const [mes, setMes] = useState(mesAtual());
-  const { dados: p, erro } = useDados(() => api.painel(mes), [mes]);
+  const { dados: p, erro, recarregar } = useDados(() => api.painel(mes), [mes]);
+  const aPagar = useDados(() => api.aPagar(30), []);
+  const [pagando, setPagando] = useState<APagar | null>(null);
+  const hoje = hojeISO();
 
   return (
     <>
@@ -66,6 +70,19 @@ export default function Dashboard() {
                 </dl>
               </div>
               <div className="cartao-painel">
+                <h3>Contas a pagar e receber · próximos 30 dias</h3>
+                {aPagar.dados?.length === 0 && <p className="vazio">Nada pendente. 🎉</p>}
+                <ul className="lista-apagar">
+                  {aPagar.dados?.map((t) => (
+                    <li key={t.id} className={t.data < hoje ? "atrasada" : ""}>
+                      <span>{t.descricao}<small>{t.data < hoje ? "atrasada · " : ""}vence {dataBR(t.data)}{t.conta ? ` · ${t.conta}` : ""}</small></span>
+                      <span className={t.tipo === "receita" ? "pos" : "neg"}>{reais(t.tipo === "receita" ? t.valor_centavos : -t.valor_centavos)}</span>
+                      <button className="pagar" onClick={() => setPagando(t)}>{t.tipo === "receita" ? "Receber" : "Pagar"}</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="cartao-painel">
                 <h3>Cartões de crédito</h3>
                 {p.cartoes.length === 0 && <p className="vazio">Nenhum cartão cadastrado.</p>}
                 {p.cartoes.map((c) => {
@@ -89,6 +106,8 @@ export default function Dashboard() {
           </section>
         </>
       )}
+      {pagando && <PagarConta transacao={pagando} aoFechar={() => setPagando(null)}
+        aoSalvar={() => { setPagando(null); aPagar.recarregar(); recarregar(); }} />}
     </>
   );
 }

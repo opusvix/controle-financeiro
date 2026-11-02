@@ -10,7 +10,7 @@ export type Editavel = {
   id: number; tipo: string; descricao: string; valor_centavos: number; data: string;
   conta_id: number | null; cartao_id?: number | null; categoria_id: number | null;
   observacao: string | null; itens: number; conferido: number; parcela: number | null;
-  total_parcelas?: number | null;
+  total_parcelas?: number | null; recorrencia_id?: string | null; pago?: number;
 };
 
 /**
@@ -35,7 +35,7 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
     descricao: t.descricao, valor: (t.valor_centavos / 100).toFixed(2).replace(".", ","), data: t.data,
     pagoCom: noCartao ? `cartao:${t.cartao_id}` : `conta:${t.conta_id}`,
     categoria_id: t.categoria_id ? String(t.categoria_id) : "", observacao: t.observacao ?? "",
-    conferido: !!t.conferido, fatura: competenciaFatura ?? "", proximas: true,
+    conferido: !!t.conferido, fatura: competenciaFatura ?? "", proximas: true, nasProximas: true,
   });
   const [erro, setErro] = useState<string | null>(null);
   const muda = (campo: keyof typeof f, valor: unknown) => setF({ ...f, [campo]: valor });
@@ -54,6 +54,7 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
       d.parcelas_seguintes = temProximas && f.proximas;
     }
     else if (usaConta) d.conta_id = Number(id);
+    if (t.recorrencia_id) d.aplicar_nas_proximas = f.nasProximas;
     if (noCartao) {
       d.conferido = f.conferido;
       if (f.fatura && f.fatura !== competenciaFatura) d.fatura_competencia = f.fatura;
@@ -105,6 +106,11 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
             <small className="dica">Use quando o banco lançou a compra numa fatura diferente.</small></label>
         )}
         <label>Observação<input value={f.observacao} onChange={(e) => muda("observacao", e.target.value)} /></label>
+        {t.recorrencia_id && (
+          <label className="chave"><input type="checkbox" checked={f.nasProximas}
+            onChange={(e) => muda("nasProximas", e.target.checked)} />
+            Aplicar também nos próximos meses ainda não pagos (valor, descrição, conta, categoria)</label>
+        )}
         {noCartao && (
           <label className="chave"><input type="checkbox" checked={f.conferido}
             onChange={(e) => muda("conferido", e.target.checked)} />Conferido com o extrato do banco</label>

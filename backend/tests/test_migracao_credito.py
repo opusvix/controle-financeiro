@@ -23,7 +23,7 @@ def test_migracao_004_preserva_dados_e_faz_copia(tmp_path):
                         "VALUES ('despesa', 'Pão', 500, '2026-10-01', ?)", (conta,)).lastrowid
         tag = con.execute("INSERT INTO tag (nome) VALUES ('CERCO FELINO')").lastrowid
         con.execute("INSERT INTO transacao_tag VALUES (?, ?)", (t, tag))
-    assert db.migrar(con) == ["004_credito_cartao.sql"]
+    assert db.migrar(con)[0] == "004_credito_cartao.sql"
     assert (tmp_path / "financeiro.antes-004_credito_cartao.db").exists()
     assert con.execute("SELECT descricao FROM transacao WHERE id = ?", (t,)).fetchone()[0] == "Pão"
     assert con.execute("SELECT COUNT(*) FROM transacao_tag").fetchone()[0] == 1

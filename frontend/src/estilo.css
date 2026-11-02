@@ -139,3 +139,13 @@ a.botao:hover { background: var(--painel-2); }
 .acoes-fatura { display: flex; justify-content: flex-end; margin: 0 0 12px; }
 .form .abas { flex-wrap: wrap; }
 .selo-credito { font-size: 11px; text-transform: uppercase; background: #84cc1633; color: #a3e635; border-radius: 6px; padding: 2px 6px; margin-right: 8px; }
+
+/* Contas a pagar */
+button.pagar { background: var(--roxo); color: #fff; border: none; border-radius: 6px; padding: 2px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.repete { color: var(--roxo); font-weight: 700; }
+.repetir .meses { display: flex; align-items: center; gap: 6px; flex-direction: row; }
+.repetir .meses input { width: 70px; }
+.lista-apagar { list-style: none; padding: 0; margin: 0; }
+.lista-apagar li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--borda, #2a2f3a); }
+.lista-apagar li small { display: block; opacity: .7; }
+.lista-apagar .atrasada small { color: #ef4444; opacity: 1; }
