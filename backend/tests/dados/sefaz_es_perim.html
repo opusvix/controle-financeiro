@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<!-- saved from url=(0064)https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx -->
+<html lang="pt-BR" class="ui-mobile"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--<base href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx">--><base href=".">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Nao adicione nada antes destas meta-tags -->
+    <title>Consulta NFC-e</title>
+    
+    <!---->
+    
+    
+    <!-- Hack para funcionamento de HTML5 e Media Queries no IE8 -->
+    <!-- ATENÇÃO: Não funcionará se abrir o arquivo com duplo clique, via file:// -->
+    <!--[if lt IE 9]>
+        
+        
+    <![endif]-->
+    
+    
+    
+    
+
+    
+    
+        
+        
+        
+            
+            
+    
+    
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    
+    
+
+</head>
+<body class="ui-mobile-viewport ui-overlay-a"><div data-role="page" data-url="/ConsultaNFCe/ConsultaDANFE_NFCe.aspx" tabindex="0" class="ui-page ui-page-theme-a ui-page-active" style="">
+    <form method="post" action="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx" id="ctl00">
+<div class="aspNetHidden">
+<input type="hidden" >
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="FB71F6EF">
+</div>
+        <div id="loading-page" class="hide">
+            <p><span>
+                <img src="https://cdn.sefaz.es.gov.br/layout/img/loading.gif" alt="Aguarde. Carregando!"></span></p>
+        </div>
+
+        <nav class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed ui-shadow ui-corner-all" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Menu</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand ui-link" href="https://internet.sefaz.es.gov.br/">
+                        <img src="./PERIM-Consulta NFC-e_files/logo-topo.png" alt="" class="img-responsive logotipo-topo" width="105"></a>
+                </div>
+
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li><a href="https://internet.sefaz.es.gov.br/agenciavirtual/index.php" class="ui-link">Agência Virtual</a></li>
+                        <li><a href="https://internet.sefaz.es.gov.br/informacoes/index.php" class="ui-link">Receita</a></li>
+                        <li><a href="https://internet.sefaz.es.gov.br/contas/index.php" class="ui-link">Tesouro</a></li>
+                        <li><a href="https://internet.sefaz.es.gov.br/legislacao/index.php" class="ui-link">Legislação</a></li>
+                    </ul>
+
+                    <ul class="nav navbar-nav navbar-right navegacao-direita">
+                        <li><a href="https://internet.sefaz.es.gov.br/faleconosco/index.php" class="ui-link"><i class="fa fa-comments"></i>Fale Conosco</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="barra-menu" id="fixaMenu">
+            <div class="container">
+                <a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" onclick="NovaConsulta()" class="titulo-barra pull-left ui-link">NFC-e - Nota Fiscal de Consumidor Eletrônica</a>
+            </div>
+        </div>
+
+        <div class="container corpo">
+            <div class="row">
+                <div class="col-md-12 conteudo">
+                    
+    
+    
+    
+    <span id="body_lblRetorno"></span>
+    
+
+
+    <div id="body_borda" class="borda-op">
+        <span id="body_lbDataeHoraAtual" class="entradaDados"></span>
+        <button id="body_btnImprimirDANFE_NFCe" onclick="AbrirAbaImpressao()" class="botao-padrao cinza ui-btn ui-shadow ui-corner-all"><i class="fa fa-print"></i> Imprimir</button>
+        <button id="body_btnVisualizarAbas" onclick="VisualizarAbas()" class="botao-padrao cinza ui-btn ui-shadow ui-corner-all"><i class="fa fa-th-list" aria-hidden="true"></i> Visualizar em abas</button>
+        <button id="body_btnNovaConsulta" onclick="NovaConsulta()" class="botao-padrao azul ui-btn ui-shadow ui-corner-all"><i class="fa fa-search"></i> Nova consulta</button>
+    </div>
+
+    <div id="body_pnlImpressao">
+	
+        
+        <div class="" id="divXMl" style="margin: 20px auto 0 auto">
+            <div data-role="header" xmlns:n="http://www.portalfiscal.inf.br/nfe" xmlns:chave="http://exslt.org/chaveacesso" xmlns:r="http://www.serpro.gov.br/nfe/remessanfe.xsd" role="banner" class="ui-header ui-bar-inherit">
+  <h1 class="tit ui-title" role="heading" aria-level="1">
+    <img src="./PERIM-Consulta NFC-e_files/logoNFCe.PNG" width="90" height="64" alt="NFC-e">
+    <p>DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA</p>
+    <p>
+    </p>
+  </h1>
+</div>
+<div data-role="content" xmlns:n="http://www.portalfiscal.inf.br/nfe" xmlns:chave="http://exslt.org/chaveacesso" xmlns:r="http://www.serpro.gov.br/nfe/remessanfe.xsd" class="ui-content" role="main">
+  <div id="conteudo">
+    <div id="avisos">
+    </div>
+    <div class="txtCenter">
+      <div id="u20" class="txtTopo">ITAPOA SUPERMERCADO LTDA</div>
+      <div class="text">
+								CNPJ:
+								06.955.576/0005-12</div>
+      <div class="text">EST AYRTON SENNA,
+							0,
+							,
+							RIVIERA DA BARRA,
+							VILA VELHA,
+							ES</div>
+    </div>
+    <form class="ui-filterable"><div class="ui-input-search ui-body-inherit ui-corner-all ui-shadow-inset ui-input-has-clear"><input data-type="search" placeholder="Filtrar itens..." autocorrect="off" autocomplete="off"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" tabindex="-1" aria-hidden="true" class="ui-input-clear ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-input-clear-hidden" title="Clear text">Clear text</a></div></form><table border="0" align="center" cellpadding="0" cellspacing="0" id="tabResult" data-filter="true">
+      <tbody><tr id="Item + 1">
+        <td valign="top">
+          <span class="txtTit">FILE PEITO IQF PERDIGAO          10/800G</span>
+          <span class="RCod">
+										(Código: 114834)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;19,98</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">19,98</span></td>
+      </tr>
+      <tr id="Item + 2">
+        <td valign="top">
+          <span class="txtTit">BATATA CONG  UAI        7/2K</span>
+          <span class="RCod">
+										(Código: 128635)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;21,8</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">21,80</span></td>
+      </tr>
+      <tr id="Item + 3">
+        <td valign="top">
+          <span class="txtTit">MANTEIGA ITALAT C/SAL     30/200G</span>
+          <span class="RCod">
+										(Código: 177644)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;8,98</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">8,98</span></td>
+      </tr>
+      <tr id="Item + 4">
+        <td valign="top">
+          <span class="txtTit">QUEIJO MINAS PADRAO  DAVACA SEM LACTOSE KG</span>
+          <span class="RCod">
+										(Código: 119393)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,458</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;89,5</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">40,99</span></td>
+      </tr>
+      <tr id="Item + 5">
+        <td valign="top">
+          <span class="txtTit">LING AURORA PAIO VACUO NV  KG</span>
+          <span class="RCod">
+										(Código: 37269)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,222</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;36,8</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">8,17</span></td>
+      </tr>
+      <tr id="Item + 6">
+        <td valign="top">
+          <span class="txtTit">APRESUNTADO RETANG PIF-PAF KG</span>
+          <span class="RCod">
+										(Código: 25023)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,298</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;19,5</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">5,81</span></td>
+      </tr>
+      <tr id="Item + 7">
+        <td valign="top">
+          <span class="txtTit">MORTADELA BOLOGNA OURO PERDIGAO                  8KG</span>
+          <span class="RCod">
+										(Código: 4752)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,222</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;25,6</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">5,68</span></td>
+      </tr>
+      <tr id="Item + 8">
+        <td valign="top">
+          <span class="txtTit">CONTRA FILE VACUO MAFRICAL KG</span>
+          <span class="RCod">
+										(Código: 88577)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1,18</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;62,9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">74,22</span></td>
+      </tr>
+      <tr id="Item + 9">
+        <td valign="top">
+          <span class="txtTit">LING AURORA PAIO VACUO NV  KG</span>
+          <span class="RCod">
+										(Código: 37269)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,176</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;36,8</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">6,48</span></td>
+      </tr>
+      <tr id="Item + 10">
+        <td valign="top">
+          <span class="txtTit">MUSCULO BOVINO DE 1   KG</span>
+          <span class="RCod">
+										(Código: 6905)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1,126</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;47,4</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">53,37</span></td>
+      </tr>
+      <tr id="Item + 11">
+        <td valign="top">
+          <span class="txtTit">AGUA MINERAL CAMPINHO GASOSA      6/1 5L</span>
+          <span class="RCod">
+										(Código: 46129)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,75</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,75</span></td>
+      </tr>
+      <tr id="Item + 12">
+        <td valign="top">
+          <span class="txtTit">AGUA MINERAL CAMPINHO GASOSA      6/1 5L</span>
+          <span class="RCod">
+										(Código: 46129)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,75</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,75</span></td>
+      </tr>
+      <tr id="Item + 13">
+        <td valign="top">
+          <span class="txtTit">REF ANTARCTICA GUARANA ZERO     12/600ML</span>
+          <span class="RCod">
+										(Código: 12130)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;4,78</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">4,78</span></td>
+      </tr>
+      <tr id="Item + 14">
+        <td valign="top">
+          <span class="txtTit">FEIJAO PRETO COMBRASIL        10/1K</span>
+          <span class="RCod">
+										(Código: 20905)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;8,99</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">8,99</span></td>
+      </tr>
+      <tr id="Item + 15">
+        <td valign="top">
+          <span class="txtTit">NISSIN TALHARIM BOLONHESA                     50/99G</span>
+          <span class="RCod">
+										(Código: 103460)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,68</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,68</span></td>
+      </tr>
+      <tr id="Item + 16">
+        <td valign="top">
+          <span class="txtTit">TABL CHOC HERSHEYS SPEC DARK 73% AVELA        68/80G</span>
+          <span class="RCod">
+										(Código: 183384)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;14,2</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">14,20</span></td>
+      </tr>
+      <tr id="Item + 17">
+        <td valign="top">
+          <span class="txtTit">COADOR CAFETEIRA ELETRICA MEDIO  24/30UN</span>
+          <span class="RCod">
+										(Código: 90192)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;5,78</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">5,78</span></td>
+      </tr>
+      <tr id="Item + 18">
+        <td valign="top">
+          <span class="txtTit">COADOR CAFETEIRA ELETRICA MEDIO  24/30UN</span>
+          <span class="RCod">
+										(Código: 90192)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;5,78</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">5,78</span></td>
+      </tr>
+      <tr id="Item + 19">
+        <td valign="top">
+          <span class="txtTit">REF FANTA LARANJA ZERO LATA  6/350ML</span>
+          <span class="RCod">
+										(Código: 75396)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,49</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,49</span></td>
+      </tr>
+      <tr id="Item + 20">
+        <td valign="top">
+          <span class="txtTit">REF FANTA LARANJA ZERO LATA  6/350ML</span>
+          <span class="RCod">
+										(Código: 75396)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,49</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,49</span></td>
+      </tr>
+      <tr id="Item + 21">
+        <td valign="top">
+          <span class="txtTit">REF FANTA LARANJA ZERO LATA  6/350ML</span>
+          <span class="RCod">
+										(Código: 75396)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,49</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,49</span></td>
+      </tr>
+      <tr id="Item + 22">
+        <td valign="top">
+          <span class="txtTit">REF FANTA LARANJA ZERO LATA  6/350ML</span>
+          <span class="RCod">
+										(Código: 75396)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,49</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">3,49</span></td>
+      </tr>
+      <tr id="Item + 23">
+        <td valign="top">
+          <span class="txtTit">MELANCIA KG</span>
+          <span class="RCod">
+										(Código: 5667)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>2,016</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;3,2</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">6,45</span></td>
+      </tr>
+      <tr id="Item + 24">
+        <td valign="top">
+          <span class="txtTit">ARROZ SEPE BIANCO TIPO 1          15/2KG</span>
+          <span class="RCod">
+										(Código: 13513)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;8,98</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">8,98</span></td>
+      </tr>
+      <tr id="Item + 25">
+        <td valign="top">
+          <span class="txtTit">DOCE DE LEITE VENEZA ZERO ACUCAR             12/250G</span>
+          <span class="RCod">
+										(Código: 177704)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;19,98</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">19,98</span></td>
+      </tr>
+      <tr id="Item + 26">
+        <td valign="top">
+          <span class="txtTit">TOALHA PAPEL SCALA PLUS MULT              12/2X100FL</span>
+          <span class="RCod">
+										(Código: 159486)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;5,98</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">5,98</span></td>
+      </tr>
+      <tr id="Item + 27">
+        <td valign="top">
+          <span class="txtTit">DET BARRA LIMAO                             24/500ML</span>
+          <span class="RCod">
+										(Código: 39055)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;2,29</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">2,29</span></td>
+      </tr>
+      <tr id="Item + 28">
+        <td valign="top">
+          <span class="txtTit">FILME PVC BOMPACK 0 28X30MT                     C/25</span>
+          <span class="RCod">
+										(Código: 119311)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">9,00</span></td>
+      </tr>
+      <tr id="Item + 29">
+        <td valign="top">
+          <span class="txtTit">DES TABU SPRAY                               12/90ML</span>
+          <span class="RCod">
+										(Código: 12183)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;6,98</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">6,98</span></td>
+      </tr>
+      <tr id="Item + 30">
+        <td valign="top">
+          <span class="txtTit">LAVA ROUPAS BRILUX HOME COCO/AVELA              4/3L</span>
+          <span class="RCod">
+										(Código: 187715)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>1</span>
+          <span class="RUN">
+            <strong>UN: </strong>UN</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;18,9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">18,90</span></td>
+      </tr>
+    </tbody></table>
+    <div id="totalNota" class="txtRight">
+      <div id="linhaTotal">
+        <label>Qtd. total de itens:</label>
+        <span class="totalNumb">30</span>
+      </div>
+      <div id="linhaTotal">
+        <label>Valor total R$:</label>
+        <span class="totalNumb">388,71</span>
+      </div>
+      <div id="linhaTotal">
+        <label>Descontos R$:</label>
+        <span class="totalNumb">13,65</span>
+      </div>
+      <div id="linhaTotal" class="linhaShade">
+        <label>Valor a pagar R$:</label>
+        <span class="totalNumb txtMax">375,06</span>
+      </div>
+      <div id="linhaForma">
+        <label>Forma de pagamento:</label>
+        <span class="totalNumb txtTitR">Valor pago R$:</span>
+      </div>
+      <div id="linhaTotal">
+        <label class="tx">
+        </label>
+        <span class="totalNumb">NaN</span>
+      </div>
+      <div id="linhaTotal" class="spcTop">
+        <label class="txtObs">Informação dos Tributos Totais Incidentes (Lei Federal 12.741/2012)&nbsp;R$</label>
+        <span class="totalNumb txtObs">49,61</span>
+      </div>
+    </div>
+  </div>
+  <div id="infos" class="txtCenter">
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Informações gerais da Nota<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">
+          <strong>EMISSÃO NORMAL</strong>
+          <br>
+          <br>
+          <strong>Número: </strong>376989<strong> Série: </strong>121<strong> Emissão: </strong>09/10/2026 09:08:04  - Via Consumidor
+								<br><br><strong>Protocolo de Autorização: </strong>232260571127206       09/10/2026 09:08:07<br><br><strong>Ambiente de Produção - 
+									Versão XML: 4.00 - Versão XSLT: 2.03
+								</strong></li>
+      </ul>
+    </div></div>
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Chave de acesso<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">
+								Consulte pela Chave de Acesso em
+								
+										http://app.sefaz.es.gov.br/consultaNFCe
+									<br><br><strong>Chave de acesso:</strong><br><span class="chave">3226 1006 9555 7600 0512 6512 1000 3769 8916 1325 7499</span></li>
+      </ul>
+    </div></div>
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Consumidor<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">
+          <strong>Consumidor não identificado</strong>
+        </li>
+      </ul>
+    </div></div>
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Informações de interesse do contribuinte<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">Tributos Incidentes Lei Federal 12.741/12 Total R$ 375,00.00% Federal  13,22% Estadual 0.00% Municipal          Operador: 71 - Cristiane Menezes Prazo para troca:15 dias mediante a apresentacaodo Cupom Fiscal !</li>
+      </ul>
+    </div></div>
+  </div>
+</div>
+            
+            
+
+            
+        </div>
+
+    
+</div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid rodape">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm-10">
+                        <p>© Copyright 2003 - 2016 Secretaria de Estado da Fazenda do Espírito Santo<br>
+                            Av. João Batista Parra . nº 600 . Ed. Aureliano Hoffman . Enseada do Suá . Vitória-ES . CEP: 29050-375 . CNPJ: 27.080.571/0001-30</p>
+                    </div>
+                    <div class="col-sm-2">
+                        <img src="https://internet.sefaz.es.gov.br/imagens/brasao_negativo.png" alt="Secretaria de Estado da Fazenda do Espírito Santo" width="150">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </form>
+    <!-- jQuery (É necessário para o funcionamento dos plugins) -->
+    
+    
+    
+
+
+</div><div class="ui-loader ui-corner-all ui-body-a ui-loader-default"><span class="ui-icon-loading"></span><h1>loading</h1></div><reclameaqui-extension-pin><section><template shadowrootmode="open"><span hidden="" aria-hidden="true" data-trust-ds-style-anchor="true"></span></template></section></reclameaqui-extension-pin><iframe id="nr-ext-rsicon" style="position: absolute; display: none; width: 50px; height: 50px; z-index: 2147483647; border-style: none; background: transparent;" src="./PERIM-Consulta NFC-e_files/saved_resource.html"></iframe></body></html>
