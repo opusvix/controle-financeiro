@@ -38,13 +38,13 @@ export default function Contas() {
         {contas.dados?.map((c) => (
           <div key={c.id} className={`cartao-painel ${c.ativa ? "" : "inativa"}`}>
             <header><i style={{ background: c.cor }} /><strong>{c.nome}</strong>
-              <button className="link" onClick={() => setReajustando(c)}>Reajustar saldo</button>
               <button className="link" onClick={() => setEditando(c)}>Editar</button></header>
             <small>{TIPOS[c.tipo]}{c.compoe_saldo_disponivel ? "" : " · fora do saldo disponível"}</small>
             <dl>
               <dt>Saldo atual</dt><dd>{reais(saldo(c.id)?.saldo_atual ?? 0)}</dd>
               <dt>Saldo previsto</dt><dd>{reais(saldo(c.id)?.saldo_previsto ?? 0)}</dd>
             </dl>
+            <button className="bloco" onClick={() => setReajustando(c)}>Reajustar saldo</button>
           </div>
         ))}
       </section>

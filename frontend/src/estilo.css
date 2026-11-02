@@ -113,3 +113,4 @@ legend { color: var(--suave); font-size: 14px; margin-bottom: 6px; width: 100%; 
   .app { grid-template-columns: 1fr; } .menu { flex-direction: row; overflow-x: auto; padding: 8px; }
   .menu .marca { display: none; } .grade-2 { grid-template-columns: 1fr; } main { padding: 16px; }
 }
+button.bloco { width: 100%; margin-top: 4px; }

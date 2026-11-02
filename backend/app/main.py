@@ -58,4 +58,5 @@ def _servir_telas(app: FastAPI) -> None:
         arquivo = (dist / caminho).resolve()
         if caminho and arquivo.is_file() and dist.resolve() in arquivo.parents:
             return FileResponse(arquivo)
-        return FileResponse(dist / "index.html")
+        # Sem cache: depois de atualizar o app, o navegador sempre pega a tela nova.
+        return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})
