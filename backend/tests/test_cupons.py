@@ -106,3 +106,15 @@ def test_apagar_libera_cupom_e_sugere_pagamento(cliente):
     assert r3["ja_lancado"] is None
     assert cliente.post("/api/cupons/lancar", json={"cupom": r3["cupom"], "conta_id": conta,
                                                      "categorias": {"1": padaria}}).status_code == 201
+
+
+def test_lancamento_de_cupom_nao_muda_valor_mas_troca_pagamento(cliente):
+    r = cliente.post("/api/cupons/ler", files={"arquivo": ("i.html", AMOSTRA.read_bytes(), "text/html")}).json()
+    conta = cliente.get("/api/contas").json()[0]["id"]
+    cartao = cliente.post("/api/cartoes", json={"nome": "BB JU", "bandeira": "Visa", "final": "3756",
+        "limite_centavos": 0, "dia_fechamento": 3, "dia_vencimento": 10}).json()["id"]
+    padaria = next(x["id"] for x in cliente.get("/api/categorias").json() if x["nome"] == "Padaria")
+    t = cliente.post("/api/cupons/lancar", json={"cupom": r["cupom"], "conta_id": conta,
+                                                  "categorias": {"1": padaria}}).json()["transacao_id"]
+    assert cliente.patch(f"/api/transacoes/{t}", json={"valor_centavos": 1}).status_code == 422
+    assert cliente.patch(f"/api/transacoes/{t}", json={"cartao_id": cartao}).json()["tipo"] == "despesa_cartao"

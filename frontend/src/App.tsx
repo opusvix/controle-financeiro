@@ -1,5 +1,6 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import Cadastros from "./telas/Cadastros";
+import Fatura from "./telas/Fatura";
 import Cartoes from "./telas/Cartoes";
 import Configuracoes from "./telas/Configuracoes";
 import Contas from "./telas/Contas";
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/transacoes" element={<Transacoes />} />
           <Route path="/cupons" element={<Cupons />} />
           <Route path="/cartoes" element={<Cartoes />} />
+          <Route path="/cartoes/:id" element={<Fatura />} />
           <Route path="/cadastros" element={<Cadastros />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="*" element={<Navigate to="/" />} />

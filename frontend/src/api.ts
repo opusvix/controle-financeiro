@@ -20,6 +20,21 @@ export type Transacao = {
   conta_id: number | null; cartao_id: number | null; categoria: string | null; conta: string | null;
   cartao: string | null; tags: string | null; itens: number; entrada: number;
   ajuste_negativo: number; parcela: number | null; total_parcelas: number | null;
+  categoria_id: number | null; observacao: string | null; conferido: number;
+};
+export type LancamentoFatura = {
+  id: number; tipo: string; descricao: string; valor_centavos: number; data: string;
+  categoria_id: number | null; categoria: string | null; parcela: number | null;
+  total_parcelas: number | null; conferido: number; observacao: string | null;
+  conta_id: number | null; conta: string | null; itens: number;
+};
+export type Fatura = {
+  cartao: { id: number; nome: string; final: string; bandeira: string; conta_pagamento_id: number | null };
+  competencia: string; fatura_id: number | null; data_fechamento: string; data_vencimento: string;
+  total: number; pago: number; a_pagar: number; conferido: number;
+  situacao: "sem lançamentos" | "aberta" | "fechada" | "paga";
+  valor_banco: number | null; diferenca_banco: number | null;
+  lancamentos: LancamentoFatura[]; pagamentos: LancamentoFatura[];
 };
 export type Fatia = { categoria_id: number; categoria: string; cor: string; total: number };
 export type SaldoConta = {
@@ -114,6 +129,12 @@ export const api = {
   transacoes: (comp: string) => chamar<Transacao[]>(`/api/transacoes?competencia=${comp}`),
   criarTransacao: (d: Record<string, unknown>) =>
     chamar<Transacao[]>("/api/transacoes", enviar("POST", d)),
+  editarTransacao: (id: number, d: Record<string, unknown>) =>
+    chamar<Transacao>(`/api/transacoes/${id}`, enviar("PATCH", d)),
+  fatura: (cartao: number, comp: string) =>
+    chamar<Fatura>(`/api/cartoes/${cartao}/fatura?competencia=${comp}`),
+  valorBanco: (cartao: number, comp: string, valor_centavos: number | null) =>
+    chamar<Fatura>(`/api/cartoes/${cartao}/fatura/${comp}/valor-banco`, enviar("PUT", { valor_centavos })),
   apagarTransacao: (id: number) => chamar<void>(`/api/transacoes/${id}`, { method: "DELETE" }),
   backup: () => chamar<{ arquivo: string; copiado_drive: boolean }>("/api/backup", { method: "POST" }),
 };
