@@ -1,6 +1,7 @@
 """Criação de transações com as regras de cada tipo."""
 from __future__ import annotations
 
+import re
 import sqlite3
 import uuid
 from dataclasses import dataclass, field
@@ -243,9 +244,12 @@ def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
         if campos.get("cartao_id") is None:
             campos.pop("cartao_id", None)
         cartao = campos.get("cartao_id", t["cartao_id"])
+        from .fatura_cartao import fatura_por_competencia
         if mudancas.get("fatura_competencia"):
-            from .fatura_cartao import fatura_por_competencia
             campos["fatura_id"] = fatura_por_competencia(con, cartao, mudancas["fatura_competencia"])
+        elif "cartao_id" in campos and "data" not in campos and "tipo" not in campos and t["fatura_id"]:
+            # Só trocou o cartão: a compra continua no mesmo mês de vencimento.
+            campos["fatura_id"] = fatura_por_competencia(con, cartao, _competencia_da_fatura(con, t["fatura_id"]))
         elif {"data", "cartao_id", "tipo"} & campos.keys():
             campos["fatura_id"] = faturas.obter_ou_criar_fatura(
                 con, cartao, date.fromisoformat(campos.get("data", t["data"])))
@@ -267,8 +271,39 @@ def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
             if par and comuns:
                 sets = ", ".join(f"{k} = ?" for k in comuns)
                 con.execute(f"UPDATE transacao SET {sets} WHERE id = ?", (*comuns.values(), par))
+        if mudancas.get("parcelas_seguintes") and campos.get("cartao_id") \
+                and campos["cartao_id"] != t["cartao_id"] and t["parcela"]:
+            from .fatura_cartao import fatura_por_competencia
+            for irma in parcelas_seguintes(con, t):
+                comp = _competencia_da_fatura(con, irma["fatura_id"])
+                con.execute("UPDATE transacao SET cartao_id = ?, fatura_id = ? WHERE id = ?",
+                            (campos["cartao_id"], fatura_por_competencia(con, campos["cartao_id"], comp),
+                             irma["id"]))
         if mudancas.get("tags") is not None:
             con.execute("DELETE FROM transacao_tag WHERE transacao_id = ?", (transacao_id,))
             con.executemany("INSERT INTO transacao_tag (transacao_id, tag_id) VALUES (?, ?)",
                             [(transacao_id, tag) for tag in mudancas["tags"]])
     return dict(con.execute("SELECT * FROM transacao WHERE id = ?", (transacao_id,)).fetchone())
+
+
+def _competencia_da_fatura(con: sqlite3.Connection, fatura_id: int) -> str:
+    return con.execute("SELECT competencia FROM fatura WHERE id = ?", (fatura_id,)).fetchone()[0]
+
+
+_RE_PARCELA = re.compile(r"\s*\(\s*\d{1,3}\s*/\s*\d{1,3}\s*\)\s*$")
+
+
+def parcelas_seguintes(con: sqlite3.Connection, t) -> list:
+    """Parcelas posteriores da mesma compra, no mesmo cartão.
+
+    Pelo grupo (parcelado pelo app) ou, para parcelas importadas uma a uma, pela
+    descrição sem o "(n/m)" e pelo total de parcelas."""
+    if t["grupo_parcelas"]:
+        return con.execute("SELECT * FROM transacao WHERE grupo_parcelas = ? AND parcela > ?",
+                           (t["grupo_parcelas"], t["parcela"])).fetchall()
+    base = _RE_PARCELA.sub("", t["descricao"]).strip().lower()
+    candidatas = con.execute(
+        """SELECT * FROM transacao WHERE tipo = 'despesa_cartao' AND cartao_id = ? AND id <> ?
+           AND total_parcelas = ? AND parcela > ? AND data > ?""",
+        (t["cartao_id"], t["id"], t["total_parcelas"], t["parcela"], t["data"])).fetchall()
+    return [c for c in candidatas if _RE_PARCELA.sub("", c["descricao"]).strip().lower() == base]
