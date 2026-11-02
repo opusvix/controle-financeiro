@@ -72,3 +72,10 @@ def test_simulacao_nao_grava(con, tmp_path):
     arq = _xlsx(tmp_path, [["10/10/2026", "DL GOOGLE", -9.99, "1 - C6 Bank 1118", "Paga", None, None, ""]])
     m.executar(con, arq, MAPA, simular=True)
     assert con.execute("SELECT COUNT(*) FROM transacao WHERE tipo = 'despesa'").fetchone()[0] == 2
+
+
+def test_conta_sem_cartao_no_mapa_fica_como_esta(con, tmp_path):
+    _cenario(con)
+    arq = _xlsx(tmp_path, [["10/10/2026", "DL GOOGLE", -9.99, "1 - C6 Bank 1118", "Paga", None, None, ""]])
+    rel, _ = m.executar(con, arq, {**MAPA, "contas_sem_cartao": ["1 - c6 bank 1118"]})
+    assert rel.sem_cartao == {"1 - C6 Bank 1118": 1} and not rel.convertidos

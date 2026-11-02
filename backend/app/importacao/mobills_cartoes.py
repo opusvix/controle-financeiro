@@ -104,7 +104,12 @@ def _contas(con, mapa) -> dict[str, int]:
 
 
 def _cartao_da_conta(con, conta_nome: str, conta_id: int | None, mapa: dict) -> int | None:
-    """Cartão pelo mapa, pelos 4 dígitos no nome da conta, ou o único pago por ela."""
+    """Cartão pelo mapa, pelos 4 dígitos no nome da conta, ou o único pago por ela.
+
+    Contas listadas em "contas_sem_cartao" no mapa nunca viram cartão (a despesa
+    foi paga direto da conta bancária)."""
+    if conta_nome.lower() in {c.lower() for c in mapa.get("contas_sem_cartao", [])}:
+        return None
     nome = mapa.get("cartoes_por_conta", {}).get(conta_nome)
     if nome:
         r = con.execute("SELECT id FROM cartao WHERE lower(nome) = lower(?)", (nome,)).fetchone()
@@ -228,7 +233,7 @@ def texto_relatorio(rel: Relatorio, simulacao: bool) -> str:
     s += [f"Já estavam nos cartões (rodada anterior): {rel.ja_estavam}",
           f"Pagamentos de fatura criados: {len(rel.pagamentos)}"]
     if rel.sem_cartao:
-        s += ["", "SEM CARTÃO CADASTRADO (continuam como despesa da conta, nada mudou):"]
+        s += ["", "SEM CARTÃO (continuam como despesa da conta, nada mudou):"]
         s += [f"   {k}: {v} linhas" for k, v in rel.sem_cartao.items()]
     if rel.duplicatas:
         s += ["", "PULADAS por já existir compra de mesmo valor na fatura:"] + [f"   {x}" for x in rel.duplicatas]
