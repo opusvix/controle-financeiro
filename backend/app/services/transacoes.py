@@ -37,6 +37,7 @@ class NovaTransacao:
     conta_destino_id: int | None = None      # transferência
     cartao_id: int | None = None
     parcelas: int = 1                         # despesa_cartao parcelada
+    repetir_meses: int = 1                    # receita/despesa que se repete (conta de luz...)
     fatura_competencia: str | None = None     # pagamento_fatura: 'AAAA-MM'
     categoria_id: int | None = None
     estabelecimento_id: int | None = None
@@ -73,6 +74,10 @@ def _validar(n: NovaTransacao) -> None:
             raise RegraViolada("Transferência precisa de uma conta de destino diferente")
     if n.tipo == "pagamento_fatura" and not n.cartao_id:
         raise RegraViolada("Pagamento de fatura precisa do cartão")
+    if n.repetir_meses != 1 and n.tipo not in ("receita", "despesa"):
+        raise RegraViolada("Só receita e despesa podem se repetir todo mês")
+    if not 1 <= n.repetir_meses <= 60:
+        raise RegraViolada("Repetir de 1 a 60 meses")
 
 
 def _inserir(con: sqlite3.Connection, **campos) -> int:
@@ -160,6 +165,14 @@ def criar(con: sqlite3.Connection, n: NovaTransacao) -> list[int]:
                                 data=n.data.isoformat(), conta_id=n.conta_id,
                                 cartao_id=n.cartao_id, fatura_id=fatura_id,
                                 **{**base, "categoria_id": None}))
+        elif n.repetir_meses > 1:
+            # Um lançamento por mês; só o primeiro pode já estar pago, os outros ficam a pagar.
+            recorrencia = uuid.uuid4().hex
+            for i in range(n.repetir_meses):
+                ids.append(_inserir(con, tipo=n.tipo, valor_centavos=n.valor_centavos,
+                                    data=faturas.somar_meses(n.data, i).isoformat(),
+                                    conta_id=n.conta_id, recorrencia_id=recorrencia,
+                                    **{**base, "pago": base["pago"] if i == 0 else 0}))
         else:
             ids.append(_inserir(con, tipo=n.tipo, valor_centavos=n.valor_centavos,
                                 data=n.data.isoformat(), conta_id=n.conta_id,
@@ -276,6 +289,14 @@ def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
             if par and comuns:
                 sets = ", ".join(f"{k} = ?" for k in comuns)
                 con.execute(f"UPDATE transacao SET {sets} WHERE id = ?", (*comuns.values(), par))
+        if mudancas.get("aplicar_nas_proximas") and t["recorrencia_id"]:
+            # Reajuste do plano, troca de conta de débito...: vale para os meses ainda não pagos.
+            comuns = {k: v for k, v in campos.items()
+                      if k in ("descricao", "valor_centavos", "conta_id", "categoria_id", "observacao")}
+            if comuns:
+                sets = ", ".join(f"{k} = ?" for k in comuns)
+                con.execute(f"UPDATE transacao SET {sets} WHERE recorrencia_id = ? AND data > ? "
+                            "AND pago = 0", (*comuns.values(), t["recorrencia_id"], t["data"]))
         if mudancas.get("parcelas_seguintes") and campos.get("cartao_id") \
                 and campos["cartao_id"] != t["cartao_id"] and t["parcela"]:
             from .fatura_cartao import fatura_por_competencia
@@ -312,3 +333,31 @@ def parcelas_seguintes(con: sqlite3.Connection, t) -> list:
            AND total_parcelas = ? AND parcela > ? AND data > ?""",
         (t["cartao_id"], t["id"], t["total_parcelas"], t["parcela"], t["data"])).fetchall()
     return [c for c in candidatas if _RE_PARCELA.sub("", c["descricao"]).strip().lower() == base]
+
+
+def a_pagar(con: sqlite3.Connection, ate: date) -> list[dict]:
+    """Receitas e despesas ainda não pagas até a data (inclui as atrasadas)."""
+    return [dict(r) for r in con.execute(
+        """SELECT t.id, t.tipo, t.descricao, t.valor_centavos, t.data, t.conta_id,
+                  t.recorrencia_id, co.nome AS conta, c.nome AS categoria
+           FROM transacao t LEFT JOIN conta co ON co.id = t.conta_id
+           LEFT JOIN categoria c ON c.id = t.categoria_id
+           WHERE t.pago = 0 AND t.tipo IN ('receita', 'despesa') AND t.ignorar = 0 AND t.data <= ?
+           ORDER BY t.data, t.id""", (ate.isoformat(),))]
+
+
+def apagar(con: sqlite3.Connection, transacao_id: int, proximas: bool = False) -> None:
+    """Apaga a transação (as duas pernas, se transferência).
+
+    proximas=True numa conta que se repete: apaga também os meses seguintes ainda não
+    pagos (ex.: cancelou a internet)."""
+    t = con.execute("SELECT * FROM transacao WHERE id = ?", (transacao_id,)).fetchone()
+    if t is None:
+        raise RegraViolada("Transação não encontrada")
+    with con:
+        par = t["transferencia_par_id"]
+        con.execute("UPDATE transacao SET transferencia_par_id = NULL WHERE id IN (?, ?)", (transacao_id, par))
+        con.execute("DELETE FROM transacao WHERE id IN (?, ?)", (transacao_id, par))
+        if proximas and t["recorrencia_id"]:
+            con.execute("DELETE FROM transacao WHERE recorrencia_id = ? AND data > ? AND pago = 0",
+                        (t["recorrencia_id"], t["data"]))

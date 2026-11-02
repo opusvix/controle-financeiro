@@ -26,6 +26,7 @@ class TransacaoIn(BaseModel):
     conta_destino_id: int | None = None
     cartao_id: int | None = None
     parcelas: int = Field(default=1, ge=1, le=72)
+    repetir_meses: int = Field(default=1, ge=1, le=60)
     fatura_competencia: str | None = Field(default=None, pattern=COMPETENCIA)
     categoria_id: int | None = None
     estabelecimento_id: int | None = None
@@ -102,6 +103,7 @@ class EdicaoIn(BaseModel):
     fatura_competencia: str | None = Field(default=None, pattern=COMPETENCIA)
     tags: list[int] | None = None
     parcelas_seguintes: bool = False     # ao trocar o cartão, levar as próximas parcelas junto
+    aplicar_nas_proximas: bool = False   # conta que se repete: mudar também os meses não pagos
 
 
 @router.patch("/transacoes/{id_}")
@@ -140,15 +142,18 @@ def valor_banco(id_: int, competencia: str, dados: ValorBancoIn, c=Depends(con))
 
 
 @router.delete("/transacoes/{id_}", status_code=204)
-def apagar(id_: int, c=Depends(con)):
-    linha = c.execute("SELECT transferencia_par_id FROM transacao WHERE id = ?", (id_,)).fetchone()
-    if linha is None:
-        raise HTTPException(404, "Transação não encontrada")
-    with c:
-        # Transferência apaga as duas pernas juntas.
-        par = linha["transferencia_par_id"]
-        c.execute("UPDATE transacao SET transferencia_par_id = NULL WHERE id IN (?, ?)", (id_, par))
-        c.execute("DELETE FROM transacao WHERE id IN (?, ?)", (id_, par))
+def apagar(id_: int, proximas: bool = False, c=Depends(con)):
+    try:
+        transacoes.apagar(c, id_, proximas)
+    except transacoes.RegraViolada as e:
+        raise HTTPException(404, str(e)) from e
+
+
+@router.get("/a-pagar")
+def a_pagar(dias: int = Query(default=30, ge=0, le=366), c=Depends(con)):
+    """Contas a pagar e a receber até daqui a 'dias' (inclui as atrasadas)."""
+    from datetime import timedelta
+    return transacoes.a_pagar(c, date.today() + timedelta(days=dias))
 
 
 @router.get("/dashboard")

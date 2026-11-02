@@ -4,6 +4,7 @@ import EditarTransacao from "../componentes/EditarTransacao";
 import SeletorCategoria from "../componentes/SeletorCategoria";
 import Kpi from "../componentes/Kpi";
 import Modal from "../componentes/Modal";
+import PagarConta from "../componentes/PagarConta";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
 import { dataBR, hojeISO, mesAtual, paraCentavos, reais } from "../formato";
@@ -33,12 +34,17 @@ export default function Transacoes() {
   const [novo, setNovo] = useState<Tipo | null>(null);
   const [escolhendo, setEscolhendo] = useState(false);
   const [editando, setEditando] = useState<Transacao | null>(null);
+  const [pagando, setPagando] = useState<Transacao | null>(null);
+  const recarregar = () => { lista.recarregar(); painel.recarregar(); };
 
   async function apagar(t: Transacao) {
     const aviso = t.tipo === "transferencia" ? " As duas pontas da transferência serão apagadas." : "";
     if (!confirm(`Apagar "${t.descricao}"?${aviso}`)) return;
-    await api.apagarTransacao(t.id);
-    lista.recarregar(); painel.recarregar();
+    // Conta que se repete (ex.: cancelou a internet): oferece apagar os meses seguintes ainda não pagos.
+    const proximas = !!t.recorrencia_id &&
+      confirm("Esta conta se repete todo mês. Apagar também os próximos meses ainda não pagos?\n\nOK = apaga este e os próximos · Cancelar = só este");
+    await api.apagarTransacao(t.id, proximas);
+    recarregar();
   }
 
   return (
@@ -71,9 +77,13 @@ export default function Transacoes() {
           {lista.dados?.length === 0 && <tr><td colSpan={7} className="vazio">Nenhuma transação neste mês.</td></tr>}
           {lista.dados?.map((t) => (
             <tr key={t.id}>
-              <td>{t.pago ? <span className="ok" title="Paga">✓</span> : <span className="pendente" title="Pendente">!</span>}</td>
+              <td>{t.pago ? <span className="ok" title="Paga">✓</span>
+                : (t.tipo === "despesa" || t.tipo === "receita")
+                  ? <button className="pagar" onClick={() => setPagando(t)}>{t.tipo === "receita" ? "Receber" : "Pagar"}</button>
+                  : <span className="pendente" title="Pendente">!</span>}</td>
               <td>{dataBR(t.data)}</td>
-              <td>{t.descricao}{t.tags && <small className="tags"> {t.tags}</small>}</td>
+              <td>{t.descricao}{t.recorrencia_id && <span className="repete" title="Repete todo mês"> ↻</span>}
+                {t.tags && <small className="tags"> {t.tags}</small>}</td>
               <td>{t.categoria ?? (t.itens ? `${t.itens} itens` : TIPOS.find((x) => x.tipo === t.tipo)?.nome ?? "—")}</td>
               <td>{t.conta ?? t.cartao}</td>
               <td className={`num ${efeito(t) > 0 ? "pos" : "neg"}`}>{reais(efeito(t) * t.valor_centavos)}</td>
@@ -84,7 +94,9 @@ export default function Transacoes() {
         </tbody>
       </table>
       {editando && <EditarTransacao transacao={editando} aoFechar={() => setEditando(null)}
-        aoSalvar={() => { setEditando(null); lista.recarregar(); painel.recarregar(); }} />}
+        aoSalvar={() => { setEditando(null); recarregar(); }} />}
+      {pagando && <PagarConta transacao={pagando} aoFechar={() => setPagando(null)}
+        aoSalvar={() => { setPagando(null); recarregar(); }} />}
       {novo && <FormTransacao tipo={novo} aoFechar={() => setNovo(null)}
         aoSalvar={(continuar) => { if (!continuar) setNovo(null); lista.recarregar(); painel.recarregar(); }} />}
     </>
@@ -101,6 +113,7 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
   const [f, setF] = useState({
     descricao: "", valor: "", data: hojeISO(), pago: true, conta_id: "", conta_destino_id: "",
     cartao_id: "", categoria_id: "", parcelas: "1", observacao: "", tags: [] as number[],
+    repete: false, meses: "12",
   });
   const [erro, setErro] = useState<string | null>(null);
   const muda = (campo: string, valor: unknown) => setF({ ...f, [campo]: valor });
@@ -124,6 +137,7 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
         cartao_id: usaCartao ? num(f.cartao_id) : null,
         categoria_id: usaCategoria ? num(f.categoria_id) : null,
         parcelas: tipo === "despesa_cartao" ? Number(f.parcelas) || 1 : 1,
+        repetir_meses: (tipo === "despesa" || tipo === "receita") && f.repete ? Number(f.meses) || 1 : 1,
         observacao: f.observacao || null, tags: f.tags,
       });
       if (continuar) setF({ ...f, descricao: "", valor: "", observacao: "" });
@@ -175,6 +189,19 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
         {(tipo === "despesa" || tipo === "receita") && (
           <label className="chave"><input type="checkbox" checked={f.pago} onChange={(e) => muda("pago", e.target.checked)} />
             {tipo === "despesa" ? "Já foi paga" : "Já foi recebida"}</label>
+        )}
+        {(tipo === "despesa" || tipo === "receita") && (
+          <div className="repetir">
+            <label className="chave"><input type="checkbox" checked={f.repete} onChange={(e) => muda("repete", e.target.checked)} />
+              Repete todo mês (luz, água, internet, plano de saúde…)</label>
+            {f.repete && (<>
+              <label className="meses">por <input type="number" min={2} max={60} value={f.meses}
+                onChange={(e) => muda("meses", e.target.value)} /> meses</label>
+              <p className="dica">Cria um lançamento por mês, a partir da data acima.
+                {f.pago && " Só o primeiro fica como pago;"} os seguintes ficam "a pagar". Para contas que variam,
+                lance um valor estimado e informe o real na hora de pagar.</p>
+            </>)}
+          </div>
         )}
         {tags.length > 0 && (
           <fieldset className="tags-sel"><legend>Tags</legend>
