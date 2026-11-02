@@ -221,5 +221,10 @@
       "categoria": "Outras despesas"
     }
   ],
-  "importar_a_partir_de": "2026-01-01"
+  "importar_a_partir_de": "2026-01-01",
+  "contas_sem_cartao": [
+    "2 - Itaú",
+    "C6 - OpusVix Data Intelligence"
+  ],
+  "cartoes_a_partir_de": "2026-11-01"
 }
