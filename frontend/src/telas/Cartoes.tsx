@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api, type Cartao } from "../api";
 import Modal from "../componentes/Modal";
 import SeletorMes from "../componentes/SeletorMes";
@@ -24,6 +25,8 @@ export default function Cartoes() {
         <button className="primario" onClick={() => setEditando({ bandeira: "Visa", dia_fechamento: 3,
           dia_vencimento: 10, limite_centavos: 0 })}>+ Novo cartão</button>
       </header>
+      {painel.dados?.cartoes.length === 0 && (
+        <p className="dica">Nenhum cartão cadastrado. Clique em <b>+ Novo cartão</b> para começar.</p>)}
       <section className="grade-cartoes">
         {painel.dados?.cartoes.map((c) => {
           const usado = c.limite_centavos ? 1 - c.limite_disponivel / c.limite_centavos : 0;
@@ -39,6 +42,7 @@ export default function Cartoes() {
               <div className="barra"><b style={{ width: `${Math.min(100, usado * 100)}%` }} /></div>
               <small>{reais(c.limite_centavos - c.limite_disponivel)} de {reais(c.limite_centavos)} ·
                 disponível {reais(c.limite_disponivel)}</small>
+              <Link className="botao bloco" to={`/cartoes/${c.id}?mes=${mes}`}>Ver fatura e conferir</Link>
             </div>
           );
         })}

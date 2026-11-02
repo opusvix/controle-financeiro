@@ -177,3 +177,78 @@ def reajustar_saldo(con: sqlite3.Connection, conta_id: int, saldo_desejado: int,
             data=data, conta_id=conta_id, ajuste_negativo=diferenca < 0))
     return {"conta_id": conta_id, "saldo_anterior": atual, "saldo_novo": saldo_desejado,
             "diferenca": diferenca, "transacao_id": ids[0] if ids else None}
+
+
+EDITAVEIS = ("descricao", "valor_centavos", "data", "conta_id", "cartao_id", "categoria_id",
+             "observacao", "conferido", "pago", "ignorar")
+
+
+def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
+    """Altera uma transação já lançada.
+
+    - Compra no cartão: mudar a data ou o cartão recalcula a fatura; 'fatura_competencia'
+      move o lançamento para outra fatura (quando o banco lançou num mês diferente).
+    - Transferência: data, valor e descrição mudam nas duas pernas.
+    - Lançamento com itens de cupom: o valor e a categoria vêm dos itens e não mudam aqui.
+    """
+    t = con.execute("SELECT * FROM transacao WHERE id = ?", (transacao_id,)).fetchone()
+    if t is None:
+        raise RegraViolada("Transação não encontrada")
+    campos = {k: v for k, v in mudancas.items() if k in EDITAVEIS}
+    if "data" in campos and isinstance(campos["data"], date):
+        campos["data"] = campos["data"].isoformat()
+    if "descricao" in campos:
+        campos["descricao"] = campos["descricao"].strip()
+        if not campos["descricao"]:
+            raise RegraViolada("A descrição não pode ficar vazia")
+    if campos.get("valor_centavos") is not None and campos["valor_centavos"] <= 0:
+        raise RegraViolada("O valor deve ser maior que zero")
+    tem_itens = con.execute("SELECT COUNT(*) FROM item WHERE transacao_id = ?",
+                            (transacao_id,)).fetchone()[0]
+    if tem_itens:
+        if "valor_centavos" in campos and campos["valor_centavos"] != t["valor_centavos"]:
+            raise RegraViolada("O valor deste lançamento vem dos itens do cupom")
+        if campos.get("categoria_id"):
+            raise RegraViolada("A categoria deste lançamento está nos itens do cupom")
+    # Trocar a forma de pagamento de uma despesa à vista: conta <-> cartão.
+    if t["tipo"] == "despesa" and campos.get("cartao_id") and t["grupo_parcelas"] is None:
+        campos.update(tipo="despesa_cartao", conta_id=None, pago=1)
+    elif t["tipo"] == "despesa_cartao" and campos.get("conta_id") and t["grupo_parcelas"] is None:
+        campos.update(tipo="despesa", cartao_id=None, fatura_id=None, conferido=0)
+    tipo = campos.get("tipo", t["tipo"])
+
+    if tipo == "despesa_cartao":
+        if "tipo" not in campos:
+            campos.pop("conta_id", None)
+        if campos.get("cartao_id") is None:
+            campos.pop("cartao_id", None)
+        cartao = campos.get("cartao_id", t["cartao_id"])
+        if mudancas.get("fatura_competencia"):
+            from .fatura_cartao import fatura_por_competencia
+            campos["fatura_id"] = fatura_por_competencia(con, cartao, mudancas["fatura_competencia"])
+        elif {"data", "cartao_id", "tipo"} & campos.keys():
+            campos["fatura_id"] = faturas.obter_ou_criar_fatura(
+                con, cartao, date.fromisoformat(campos.get("data", t["data"])))
+    else:
+        if "tipo" not in campos:
+            campos.pop("cartao_id", None)
+        if "conta_id" in campos and not campos["conta_id"]:
+            raise RegraViolada("Informe a conta")
+    if t["tipo"] in ("pagamento_fatura", "transferencia", "ajuste"):
+        campos.pop("categoria_id", None)
+
+    with con:
+        if campos:
+            sets = ", ".join(f"{k} = ?" for k in campos)
+            con.execute(f"UPDATE transacao SET {sets} WHERE id = ?", (*campos.values(), transacao_id))
+            par = t["transferencia_par_id"]
+            comuns = {k: v for k, v in campos.items() if k in ("descricao", "valor_centavos", "data",
+                                                                "observacao", "ignorar")}
+            if par and comuns:
+                sets = ", ".join(f"{k} = ?" for k in comuns)
+                con.execute(f"UPDATE transacao SET {sets} WHERE id = ?", (*comuns.values(), par))
+        if mudancas.get("tags") is not None:
+            con.execute("DELETE FROM transacao_tag WHERE transacao_id = ?", (transacao_id,))
+            con.executemany("INSERT INTO transacao_tag (transacao_id, tag_id) VALUES (?, ?)",
+                            [(transacao_id, tag) for tag in mudancas["tags"]])
+    return dict(con.execute("SELECT * FROM transacao WHERE id = ?", (transacao_id,)).fetchone())

@@ -119,3 +119,20 @@ button.bloco { width: 100%; margin-top: 4px; }
 .aviso-ok { color: var(--verde); }
 .tabela select { max-width: 220px; }
 .destaque { background: var(--painel-2); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+
+/* Fatura do cartão */
+a.botao { display: block; text-align: center; text-decoration: none; color: var(--texto);
+  border: 1px solid var(--borda); border-radius: 10px; padding: 10px; margin-top: 14px; }
+a.botao:hover { background: var(--painel-2); }
+.voltar { color: var(--suave); text-decoration: none; font-size: 18px; margin-right: 6px; }
+.faixa-fatura { color: var(--suave); margin: -8px 0 16px; }
+.faixa-fatura b { color: var(--texto); font-weight: 500; }
+.situacao.fechada { color: #f87171; } .situacao.sem-lançamentos { color: var(--suave); }
+.conferencia { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.conferencia label { display: grid; gap: 6px; color: var(--suave); font-size: 14px; }
+.conferencia .linha { display: flex; gap: 8px; }
+.conferencia .linha input { width: 160px; }
+.tabela tr.conferido td { color: var(--suave); }
+.tabela tfoot td { font-weight: 500; }
+.tabela td.acoes { white-space: nowrap; }
+.tabela td.acoes .link + .link { margin-left: 10px; }

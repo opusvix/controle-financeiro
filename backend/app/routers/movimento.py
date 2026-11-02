@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..deps import con
-from ..services import painel, transacoes
+from ..services import fatura_cartao, painel, transacoes
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -85,6 +85,57 @@ def reajustar(id_: int, dados: ReajusteIn, c=Depends(con)):
                                           dados.no_saldo_inicial)
     except transacoes.RegraViolada as e:
         raise HTTPException(404, str(e)) from e
+
+
+class EdicaoIn(BaseModel):
+    """Só os campos enviados mudam."""
+    descricao: str | None = None
+    valor_centavos: int | None = Field(default=None, gt=0)
+    data: date | None = None
+    conta_id: int | None = None
+    cartao_id: int | None = None
+    categoria_id: int | None = None
+    observacao: str | None = None
+    conferido: bool | None = None
+    pago: bool | None = None
+    ignorar: bool | None = None
+    fatura_competencia: str | None = Field(default=None, pattern=COMPETENCIA)
+    tags: list[int] | None = None
+
+
+@router.patch("/transacoes/{id_}")
+def editar(id_: int, dados: EdicaoIn, c=Depends(con)):
+    mudancas = dados.model_dump(exclude_unset=True)
+    for k in ("conferido", "pago", "ignorar"):
+        if k in mudancas and mudancas[k] is not None:
+            mudancas[k] = int(mudancas[k])
+    try:
+        return transacoes.editar(c, id_, mudancas)
+    except transacoes.RegraViolada as e:
+        raise HTTPException(422, str(e)) from e
+
+
+@router.get("/cartoes/{id_}/fatura")
+def fatura(id_: int, competencia: str = Query(pattern=COMPETENCIA), c=Depends(con)):
+    try:
+        return fatura_cartao.detalhe(c, id_, competencia)
+    except transacoes.RegraViolada as e:
+        raise HTTPException(404, str(e)) from e
+
+
+class ValorBancoIn(BaseModel):
+    valor_centavos: int | None = Field(default=None, ge=0)
+
+
+@router.put("/cartoes/{id_}/fatura/{competencia}/valor-banco")
+def valor_banco(id_: int, competencia: str, dados: ValorBancoIn, c=Depends(con)):
+    if not re.match(COMPETENCIA, competencia):
+        raise HTTPException(422, "Competência inválida")
+    try:
+        fatura_cartao.informar_valor_banco(c, id_, competencia, dados.valor_centavos)
+    except transacoes.RegraViolada as e:
+        raise HTTPException(422, str(e)) from e
+    return fatura_cartao.detalhe(c, id_, competencia)
 
 
 @router.delete("/transacoes/{id_}", status_code=204)

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { api, type Categoria, type Transacao } from "../api";
+import { api, type Transacao } from "../api";
+import EditarTransacao from "../componentes/EditarTransacao";
+import SeletorCategoria from "../componentes/SeletorCategoria";
 import Kpi from "../componentes/Kpi";
 import Modal from "../componentes/Modal";
 import SeletorMes from "../componentes/SeletorMes";
@@ -29,6 +31,7 @@ export default function Transacoes() {
   const painel = useDados(() => api.painel(mes), [mes]);
   const [novo, setNovo] = useState<Tipo | null>(null);
   const [escolhendo, setEscolhendo] = useState(false);
+  const [editando, setEditando] = useState<Transacao | null>(null);
 
   async function apagar(t: Transacao) {
     const aviso = t.tipo === "transferencia" ? " As duas pontas da transferência serão apagadas." : "";
@@ -73,11 +76,14 @@ export default function Transacoes() {
               <td>{t.categoria ?? (t.itens ? `${t.itens} itens` : TIPOS.find((x) => x.tipo === t.tipo)?.nome ?? "—")}</td>
               <td>{t.conta ?? t.cartao}</td>
               <td className={`num ${efeito(t) > 0 ? "pos" : "neg"}`}>{reais(efeito(t) * t.valor_centavos)}</td>
-              <td><button className="link" onClick={() => apagar(t)} aria-label="Apagar">Apagar</button></td>
+              <td className="acoes"><button className="link" onClick={() => setEditando(t)}>Editar</button>
+                <button className="link" onClick={() => apagar(t)} aria-label="Apagar">Apagar</button></td>
             </tr>
           ))}
         </tbody>
       </table>
+      {editando && <EditarTransacao transacao={editando} aoFechar={() => setEditando(null)}
+        aoSalvar={() => { setEditando(null); lista.recarregar(); painel.recarregar(); }} />}
       {novo && <FormTransacao tipo={novo} aoFechar={() => setNovo(null)}
         aoSalvar={(continuar) => { if (!continuar) setNovo(null); lista.recarregar(); painel.recarregar(); }} />}
     </>
@@ -184,24 +190,5 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
         </footer>
       </div>
     </Modal>
-  );
-}
-
-function SeletorCategoria({ categorias, valor, aoMudar }: {
-  categorias: Categoria[]; valor: string; aoMudar: (v: string) => void;
-}) {
-  const maes = categorias.filter((c) => c.pai_id === null);
-  return (
-    <label>Categoria
-      <select value={valor} onChange={(e) => aoMudar(e.target.value)}>
-        <option value="">Escolha…</option>
-        {maes.map((m) => (
-          <optgroup key={m.id} label={m.nome}>
-            <option value={m.id}>{m.nome} (geral)</option>
-            {categorias.filter((c) => c.pai_id === m.id).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </optgroup>
-        ))}
-      </select>
-    </label>
   );
 }
