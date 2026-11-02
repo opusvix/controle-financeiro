@@ -18,6 +18,7 @@ export default function Cupons() {
   const [pagoCom, setPagoCom] = useState("");
   const [data, setData] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [soPrecos, setSoPrecos] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
@@ -40,6 +41,7 @@ export default function Cupons() {
       setCats(Object.fromEntries(r.cupom.itens.map((i) => [i.seq, i.categoria_sugerida ? String(i.categoria_sugerida) : ""])));
       setData(r.cupom.emissao ? r.cupom.emissao.slice(0, 10) : "");
       setDescricao(r.cupom.emitente.nome);
+      setSoPrecos(!!r.despesa_parecida);   // a despesa já está no app: só os preços
       const p = r.pagamento_sugerido;
       setPagoCom(p?.cartao_id ? `cartao:${p.cartao_id}` : p?.conta_id ? `conta:${p.conta_id}` : "");
     } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
@@ -47,7 +49,7 @@ export default function Cupons() {
 
   async function lancar() {
     if (!lido) return;
-    if (!pagoCom) return setMsg({ ok: false, texto: "Escolha a conta ou o cartão usado no pagamento." });
+    if (!soPrecos && !pagoCom) return setMsg({ ok: false, texto: "Escolha a conta ou o cartão usado no pagamento." });
     const [tipo, id] = pagoCom.split(":");
     setOcupado(true);
     try {
@@ -55,8 +57,11 @@ export default function Cupons() {
         cupom: lido.cupom, arquivo: lido.arquivo, data: data || null, descricao,
         conta_id: tipo === "conta" ? Number(id) : null, cartao_id: tipo === "cartao" ? Number(id) : null,
         categorias: Object.fromEntries(Object.entries(cats).filter(([, v]) => v).map(([k, v]) => [k, Number(v)])),
+        so_precos: soPrecos,
       });
-      setMsg({ ok: true, texto: `Lançado: ${reais(r.valor_centavos)} em ${r.itens} itens. Veja em Transações.` });
+      setMsg({ ok: true, texto: r.so_precos
+        ? `Preços registrados: ${r.itens} itens (${reais(r.valor_centavos)}). Nenhuma despesa foi criada.`
+        : `Lançado: ${reais(r.valor_centavos)} em ${r.itens} itens. Veja em Transações.` });
       setLido(null); setQr(null);
     } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
     finally { setOcupado(false); }
@@ -92,13 +97,25 @@ export default function Cupons() {
           <h3>{c.emitente.nome || "Estabelecimento"}</h3>
           <small>{c.emitente.cnpj && `CNPJ ${c.emitente.cnpj} · `}{c.numero && `Nota ${c.numero} · `}
             {c.emissao && dataBR(c.emissao.slice(0, 10))}</small>
-          {lido.ja_lancado && <p className="erro">Este cupom já foi lançado{lido.ja_lancado.data ? ` em ${dataBR(lido.ja_lancado.data)}` : ""}.</p>}
+          {lido.ja_lancado && <p className="erro">Este cupom já foi {lido.ja_lancado.so_precos ? "registrado (só preços)" : "lançado"}
+            {lido.ja_lancado.data ? ` em ${dataBR(lido.ja_lancado.data)}` : ""}.</p>}
           <p className={lido.conferencia.confere ? "aviso-ok" : "erro"}>
             {lido.conferencia.confere
               ? `✓ Itens conferem com o total: ${reais(lido.conferencia.valor_pagar)}`
               : `Atenção: itens somam ${reais(lido.conferencia.liquido_itens)}, mas o cupom diz ${reais(lido.conferencia.valor_pagar)}.`}
           </p>
-          <div className="form destaque">
+          <fieldset className="modo-cupom">
+            <label className="chave"><input type="radio" checked={!soPrecos} onChange={() => setSoPrecos(false)} />
+              <span><b>Lançar como despesa</b> · compra nova, ainda não está no app</span></label>
+            <label className="chave"><input type="radio" checked={soPrecos} onChange={() => setSoPrecos(true)} />
+              <span><b>Só registrar os preços</b> · a despesa já está no app (ex.: veio do Mobills)</span></label>
+            {lido.despesa_parecida && (
+              <p className="dica">Achei no app <b>{lido.despesa_parecida.descricao}</b> de {reais(lido.despesa_parecida.valor_centavos)} em{" "}
+                {dataBR(lido.despesa_parecida.data)}{lido.despesa_parecida.onde ? ` (${lido.despesa_parecida.onde})` : ""}.
+                Por isso sugeri só registrar os preços, para não contar a compra duas vezes.</p>
+            )}
+          </fieldset>
+          {!soPrecos && <div className="form destaque">
             <label>💳 Pago com <small>(a página da SEFAZ não informa a forma de pagamento)</small>
               <select value={pagoCom} onChange={(e) => setPagoCom(e.target.value)}>
                 <option value="">Escolha a conta ou o cartão…</option>
@@ -110,7 +127,7 @@ export default function Cupons() {
                 </optgroup>
               </select></label>
             {cartoes.dados?.length === 0 && <p className="suave">Nenhum cartão cadastrado ainda. <Link to="/cartoes">Cadastrar cartão de crédito</Link></p>}
-          </div>
+          </div>}
           <table className="tabela">
             <thead><tr><th>Item</th><th>Qtde.</th><th>Unit.</th><th>Total</th><th>Categoria</th></tr></thead>
             <tbody>
@@ -134,7 +151,7 @@ export default function Cupons() {
             </div>
             <p className="suave">Item sem categoria recebe a categoria mais usada neste cupom.</p>
             <footer><button onClick={() => setLido(null)}>Descartar</button>
-              <button className="primario" disabled={ocupado || !!lido.ja_lancado} onClick={lancar}>Lançar cupom</button></footer>
+              <button className="primario" disabled={ocupado || !!lido.ja_lancado} onClick={lancar}>{soPrecos ? "Registrar preços" : "Lançar cupom"}</button></footer>
           </div>
         </section>
       )}

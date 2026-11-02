@@ -221,10 +221,14 @@ def conferir(cupom: dict) -> dict:
 def ja_lancado(con: sqlite3.Connection, cupom: dict) -> dict | None:
     if not cupom.get("chave"):
         return None
-    # Só conta como lançado se a transação ainda existe (apagar em Transações libera o cupom).
-    r = con.execute("""SELECT d.id, d.status, t.id AS transacao_id, t.data FROM documento d
-                       JOIN transacao t ON t.documento_id = d.id
-                       WHERE d.chave_nfce = ?""", (cupom["chave"],)).fetchone()
+    # Lançado = a transação ainda existe (apagar em Transações libera o cupom),
+    # ou o cupom entrou só para o histórico de preços (status 'revisado').
+    r = con.execute("""SELECT d.id, d.status, t.id AS transacao_id,
+                              COALESCE(t.data, substr(d.data_emissao, 1, 10)) AS data,
+                              (d.status = 'revisado') AS so_precos
+                       FROM documento d LEFT JOIN transacao t ON t.documento_id = d.id
+                       WHERE d.chave_nfce = ? AND (t.id IS NOT NULL OR d.status = 'revisado')""",
+                    (cupom["chave"],)).fetchone()
     return dict(r) if r else None
 
 
@@ -249,8 +253,8 @@ def sugerir_categorias(con: sqlite3.Connection, cupom: dict) -> None:
     loja = con.execute("SELECT id FROM estabelecimento WHERE cnpj = ?", (cnpj,)).fetchone() if cnpj else None
     padrao_loja = None
     if loja:
-        r = con.execute("""SELECT i.categoria_id, COUNT(*) n FROM item i JOIN transacao t ON t.id = i.transacao_id
-                           WHERE t.estabelecimento_id = ? AND i.categoria_id IS NOT NULL
+        r = con.execute("""SELECT i.categoria_id, COUNT(*) n FROM item i JOIN documento d ON d.id = i.documento_id
+                           WHERE d.estabelecimento_id = ? AND i.categoria_id IS NOT NULL
                            GROUP BY 1 ORDER BY n DESC LIMIT 1""", (loja["id"],)).fetchone() \
             or con.execute("""SELECT categoria_id, COUNT(*) n FROM transacao WHERE estabelecimento_id = ?
                               AND categoria_id IS NOT NULL GROUP BY 1 ORDER BY n DESC LIMIT 1""",
@@ -259,8 +263,8 @@ def sugerir_categorias(con: sqlite3.Connection, cupom: dict) -> None:
     for i in cupom["itens"]:
         sug = None
         if loja and i.get("codigo"):
-            r = con.execute("""SELECT i.categoria_id FROM item i JOIN transacao t ON t.id = i.transacao_id
-                               WHERE t.estabelecimento_id = ? AND i.codigo = ? AND i.categoria_id IS NOT NULL
+            r = con.execute("""SELECT i.categoria_id FROM item i JOIN documento d ON d.id = i.documento_id
+                               WHERE d.estabelecimento_id = ? AND i.codigo = ? AND i.categoria_id IS NOT NULL
                                ORDER BY i.id DESC LIMIT 1""", (loja["id"], i["codigo"])).fetchone()
             sug = r[0] if r else None
         if sug is None:
@@ -274,8 +278,27 @@ def sugerir_categorias(con: sqlite3.Connection, cupom: dict) -> None:
 def preparar(con: sqlite3.Connection, cupom: dict) -> dict:
     """O que a tela de revisão recebe: cupom + conferência + duplicidade + sugestões."""
     sugerir_categorias(con, cupom)
-    return {"cupom": cupom, "conferencia": conferir(cupom), "ja_lancado": ja_lancado(con, cupom),
-            "pagamento_sugerido": pagamento_sugerido(con, cupom)}
+    conf = conferir(cupom)
+    return {"cupom": cupom, "conferencia": conf, "ja_lancado": ja_lancado(con, cupom),
+            "pagamento_sugerido": pagamento_sugerido(con, cupom),
+            "despesa_parecida": despesa_parecida(con, cupom, conf["valor_pagar"])}
+
+
+def despesa_parecida(con: sqlite3.Connection, cupom: dict, valor: int) -> dict | None:
+    """Despesa já no app (ex.: veio do Mobills) com o mesmo valor, até 3 dias da emissão.
+
+    Se existe, o cupom provavelmente deve entrar só para o histórico de preços."""
+    if not cupom.get("emissao") or not valor:
+        return None
+    dia = cupom["emissao"][:10]
+    r = con.execute(
+        """SELECT t.id, t.descricao, t.data, t.valor_centavos, COALESCE(co.nome, ca.nome) AS onde
+           FROM transacao t LEFT JOIN conta co ON co.id = t.conta_id LEFT JOIN cartao ca ON ca.id = t.cartao_id
+           WHERE t.tipo IN ('despesa', 'despesa_cartao') AND t.documento_id IS NULL
+             AND t.valor_centavos = ? AND t.data BETWEEN date(?, '-3 days') AND date(?, '+3 days')
+           ORDER BY abs(julianday(t.data) - julianday(?)) LIMIT 1""",
+        (valor, dia, dia, dia)).fetchone()
+    return dict(r) if r else None
 
 
 # --------------------------------------------------------------------------- lançamento
@@ -297,13 +320,17 @@ def _estabelecimento(con: sqlite3.Connection, emit: dict) -> int | None:
 
 def lancar(con: sqlite3.Connection, cupom: dict, *, conta_id: int | None = None,
            cartao_id: int | None = None, data: date | None = None, descricao: str | None = None,
-           categorias: dict[int, int] | None = None, arquivo: str = "") -> dict:
+           categorias: dict[int, int] | None = None, arquivo: str = "",
+           so_precos: bool = False) -> dict:
     """Grava documento + transação (despesa ou despesa_cartao) + itens com categoria.
 
     categorias: {seq do item: categoria_id}. Item sem categoria fica com a categoria
     mais frequente da compra.
+
+    so_precos: cupom antigo cuja despesa já está no app (veio do Mobills). Grava só o
+    documento e os itens, para o histórico de preços; não cria transação.
     """
-    if bool(conta_id) == bool(cartao_id):
+    if not so_precos and bool(conta_id) == bool(cartao_id):
         raise RegraViolada("Escolha uma conta OU um cartão para pagar o cupom")
     if ja_lancado(con, cupom):
         raise RegraViolada("Este cupom já foi lançado (mesma chave de acesso)")
@@ -332,15 +359,16 @@ def lancar(con: sqlite3.Connection, cupom: dict, *, conta_id: int | None = None,
     with con:
         if cupom.get("chave"):
             # Documento órfão (a transação foi apagada): sai para o cupom poder entrar de novo.
-            con.execute("DELETE FROM documento WHERE chave_nfce = ? AND NOT EXISTS "
+            con.execute("DELETE FROM documento WHERE chave_nfce = ? AND status <> 'revisado' AND NOT EXISTS "
                         "(SELECT 1 FROM transacao t WHERE t.documento_id = documento.id)", (cupom["chave"],))
         loja = _estabelecimento(con, emit)
         doc = con.execute(
             "INSERT INTO documento (tipo, arquivo, chave_nfce, estabelecimento_id, data_emissao, "
-            "valor_total_centavos, status, leitura_json) VALUES (?, ?, ?, ?, ?, ?, 'lancado', ?)",
+            "valor_total_centavos, status, leitura_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (cupom.get("tipo_documento") or "outro", arquivo or "(sem arquivo)", cupom.get("chave"),
-             loja, cupom.get("emissao"), valor, json.dumps(cupom, ensure_ascii=False))).lastrowid
-    ids = svc.criar(con, NovaTransacao(
+             loja, data.isoformat() if so_precos else cupom.get("emissao"), valor,
+             "revisado" if so_precos else "lancado", json.dumps(cupom, ensure_ascii=False))).lastrowid
+    ids = [None] if so_precos else svc.criar(con, NovaTransacao(
         tipo="despesa_cartao" if cartao_id else "despesa",
         descricao=descricao or _limpo(emit.get("nome")) or "Cupom",
         valor_centavos=valor, data=data, conta_id=conta_id, cartao_id=cartao_id,
@@ -355,4 +383,4 @@ def lancar(con: sqlite3.Connection, cupom: dict, *, conta_id: int | None = None,
               i["unidade"], i["preco_unitario_centavos"], i["desconto_centavos"],
               i["valor_total_centavos"], i["categoria_id"]) for i in itens])
     return {"documento_id": doc, "transacao_id": ids[0], "valor_centavos": valor,
-            "itens": len(itens), "categorias": len(usadas)}
+            "itens": len(itens), "categorias": len(usadas), "so_precos": so_precos}

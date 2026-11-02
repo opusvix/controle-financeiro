@@ -139,3 +139,9 @@ a.botao:hover { background: var(--painel-2); }
 .acoes-fatura { display: flex; justify-content: flex-end; margin: 0 0 12px; }
 .form .abas { flex-wrap: wrap; }
 .selo-credito { font-size: 11px; text-transform: uppercase; background: #84cc1633; color: #a3e635; border-radius: 6px; padding: 2px 6px; margin-right: 8px; }
+
+/* Cupom: lançar despesa ou só preços */
+.modo-cupom { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 14px; margin: 12px 0; display: grid; gap: 6px; }
+.modo-cupom .dica { margin: 4px 0 0; }
+.modo-cupom label.chave { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 14px; }
+.modo-cupom label.chave input { width: auto; margin: 0; }

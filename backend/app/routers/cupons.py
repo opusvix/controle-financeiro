@@ -31,6 +31,7 @@ class LancarIn(BaseModel):
     descricao: str | None = None
     categorias: dict[int, int] = {}
     arquivo: str = ""
+    so_precos: bool = False     # cupom antigo: só histórico de preços, sem criar despesa
 
 
 @router.post("/lancar", status_code=201)
@@ -38,6 +39,7 @@ def lancar(dados: LancarIn, c=Depends(con)):
     try:
         return cupons.lancar(c, dados.cupom, conta_id=dados.conta_id, cartao_id=dados.cartao_id,
                              data=dados.data, descricao=dados.descricao,
-                             categorias=dados.categorias, arquivo=dados.arquivo)
+                             categorias=dados.categorias, arquivo=dados.arquivo,
+                             so_precos=dados.so_precos)
     except RegraViolada as e:
         raise HTTPException(422, str(e)) from e
