@@ -62,7 +62,7 @@ def test_importa_com_mapa_tags_e_parcelas(con, planilha):
 
     invest = con.execute("SELECT * FROM conta WHERE nome LIKE 'C6 Invest%'").fetchone()
     assert invest["tipo"] == "investimento" and invest["compoe_saldo_disponivel"] == 0
-    assert invest["data_saldo_inicial"] == "2026-10-01"
+    assert invest["data_saldo_inicial"] == "2026-01-01"   # corte do mapa
 
     from app.services.painel import saldos_contas
     saldos = {c["nome"]: c["saldo_atual"] for c in saldos_contas(con)}
@@ -129,9 +129,27 @@ def test_reajuste_futuro_vira_ajuste(con, tmp_path):
     ws = wb.active
     ws.title = "Receitas e Despesas"
     ws.append(["Data", "Descrição", "Valor", "Conta", "Situação", "Categoria", "Subcategoria", "Tags"])
-    ws.append(["01/05/2025", "Acerto antigo", 10.0, "X", "Paga", "Reajuste", None, ""])
+    ws.append(["01/05/2026", "Acerto antigo", 10.0, "X", "Paga", "Reajuste", None, ""])
     ws.append(["05/11/2026", "Acerto novo", -7.0, "X", "Paga", "Reajuste", None, ""])
     arq = tmp_path / "r.xlsx"
     wb.save(arq)
     rel, _ = mobills.executar(con, arq)
     assert rel.por_tipo == {"receita": 1, "ajuste": 1}
+
+
+def test_corte_importa_so_a_partir_da_data(con, planilha):
+    mapa = mobills.carregar_mapa()
+    mapa["importar_a_partir_de"] = "2026-10-04"
+    rel, texto = mobills.executar(con, planilha, mapa)
+    assert rel.anteriores_ao_corte == 4 and rel.importadas == 4
+    datas = {r[0] for r in con.execute("SELECT data_saldo_inicial FROM conta WHERE nome <> 'Carteira'")}
+    assert datas == {"2026-10-04"}
+
+
+def test_reajuste_no_saldo_inicial(con, planilha):
+    mobills.executar(con, planilha)
+    itau = con.execute("SELECT id FROM conta WHERE nome = '2 - Itaú'").fetchone()["id"]
+    r = transacoes.reajustar_saldo(con, itau, 450000, date(2026, 10, 31), no_saldo_inicial=True)
+    assert r["diferenca"] == 50000 and r["transacao_id"] is None
+    conta = con.execute("SELECT saldo_inicial_centavos FROM conta WHERE id = ?", (itau,)).fetchone()
+    assert conta[0] == 50000

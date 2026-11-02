@@ -67,6 +67,7 @@ function FormReajuste({ conta, saldoAtual, aoFechar, aoSalvar }: {
 }) {
   const [txt, setTxt] = useState((saldoAtual / 100).toFixed(2).replace(".", ","));
   const [data, setData] = useState(hojeISO());
+  const [inicial, setInicial] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const negativo = txt.trim().startsWith("-");
   const cent = paraCentavos(txt.replace("-", ""));
@@ -74,7 +75,7 @@ function FormReajuste({ conta, saldoAtual, aoFechar, aoSalvar }: {
 
   async function salvar() {
     if (desejado === null) return setErro("Valor inválido. Use, por exemplo, 1.234,56");
-    try { await api.reajustarSaldo(conta.id, desejado, data); aoSalvar(); }
+    try { await api.reajustarSaldo(conta.id, desejado, data, inicial); aoSalvar(); }
     catch (e) { setErro((e as Error).message); }
   }
 
@@ -82,11 +83,14 @@ function FormReajuste({ conta, saldoAtual, aoFechar, aoSalvar }: {
     <Modal titulo={`Reajustar saldo: ${conta.nome}`} aoFechar={aoFechar}>
       <div className="form">
         <p>Informe o saldo que aparece no banco. O app lança um <b>ajuste</b> com a diferença,
-          que não conta como receita nem despesa.</p>
+          que não conta como receita nem despesa. Ou, marcando a opção abaixo, corrige o saldo de abertura da conta.</p>
         <div className="duas">
           <label>Saldo correto (R$)<input value={txt} onChange={(e) => setTxt(e.target.value)} inputMode="decimal" autoFocus /></label>
           <label>Na data<input type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
         </div>
+        <label className="chave"><input type="checkbox" checked={inicial}
+          onChange={(e) => setInicial(e.target.checked)} />
+          Corrigir o saldo de abertura (use depois de importar: o histórico fica certo desde o início)</label>
         {desejado !== null && <p>Saldo no app hoje: {reais(saldoAtual)} · ajuste de {reais(desejado - saldoAtual)}</p>}
         {erro && <p className="erro">{erro}</p>}
         <footer><button onClick={aoFechar}>Cancelar</button><button className="primario" onClick={salvar}>Reajustar</button></footer>

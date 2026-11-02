@@ -150,7 +150,7 @@ def criar(con: sqlite3.Connection, n: NovaTransacao) -> list[int]:
 
 
 def reajustar_saldo(con: sqlite3.Connection, conta_id: int, saldo_desejado: int,
-                    data: date) -> dict:
+                    data: date, no_saldo_inicial: bool = False) -> dict:
     """Lança um ajuste para que o saldo da conta na data fique igual ao informado.
 
     Como o "Reajuste de saldo" do Mobills: útil depois de importar um histórico
@@ -166,7 +166,12 @@ def reajustar_saldo(con: sqlite3.Connection, conta_id: int, saldo_desejado: int,
         (conta_id, conta["data_saldo_inicial"], data.isoformat())).fetchone()[0]
     diferenca = saldo_desejado - atual
     ids: list[int] = []
-    if diferenca:
+    if diferenca and no_saldo_inicial:
+        # Corrige o saldo de ABERTURA: o histórico mês a mês fica certo desde o início.
+        with con:
+            con.execute("UPDATE conta SET saldo_inicial_centavos = saldo_inicial_centavos + ? "
+                        "WHERE id = ?", (diferenca, conta_id))
+    elif diferenca:
         ids = criar(con, NovaTransacao(
             tipo="ajuste", descricao="Reajuste de saldo", valor_centavos=abs(diferenca),
             data=data, conta_id=conta_id, ajuste_negativo=diferenca < 0))

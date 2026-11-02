@@ -277,6 +277,7 @@ class Relatorio:
     ignoradas_relatorio: int = 0
     parceladas: int = 0
     convertidas: list[str] = field(default_factory=list)
+    anteriores_ao_corte: int = 0
     de_para: Counter = field(default_factory=Counter)   # (tipo, 'Cat/Sub', caminho, tag) -> qtd
     criados: dict = field(default_factory=dict)
     avisos: list[str] = field(default_factory=list)
@@ -313,6 +314,14 @@ def _converter(con: sqlite3.Connection, cad: "Cadastros", ln: Linha, regra: dict
             observacao=regra.get("obs")))
         _gravar_origem(con, ids, ln.origem_id)
         return "ajuste", ids
+    if vira == "despesa":
+        cat = cad._categoria("despesa", regra.get("categoria", "Outras despesas"))
+        ids = svc.criar(con, NovaTransacao(
+            tipo="despesa", descricao=ln.descricao, valor_centavos=abs(ln.valor_centavos),
+            data=ln.data, conta_id=cad.conta(ln.conta), categoria_id=cat, ignorar=ignorar,
+            observacao=regra.get("obs")))
+        _gravar_origem(con, ids, ln.origem_id)
+        return "despesa", ids
     if vira != "transferencia":
         raise ValueError(f"Conversão desconhecida: {vira}")
     transferido = round(float(regra.get("valor_transferido", abs(ln.valor_centavos) / 100)) * 100)
@@ -337,11 +346,18 @@ def _converter(con: sqlite3.Connection, cad: "Cadastros", ln: Linha, regra: dict
 
 def importar(con: sqlite3.Connection, linhas: list[Linha], mapa: dict) -> Relatorio:
     rel = Relatorio(linhas_lidas=len(linhas))
+    corte = mapa.get("importar_a_partir_de")
+    if corte:
+        # Corte contábil: só o "exercício" atual entra; o passado fica no Excel.
+        # As contas começam no corte e o saldo de abertura vem do "Reajustar saldo".
+        antes = sum(1 for ln in linhas if ln.data.isoformat() < corte)
+        linhas = [ln for ln in linhas if ln.data.isoformat() >= corte]
+        rel.anteriores_ao_corte = antes
     if not linhas:
         return rel
     datas = sorted(ln.data for ln in linhas)
     rel.periodo = (datas[0].isoformat(), datas[-1].isoformat())
-    cad = Cadastros(con, mapa, datas[0])
+    cad = Cadastros(con, mapa, date.fromisoformat(corte) if corte else datas[0])
     tag_ignorar = mapa.get("tag_ignorar", "ignorar transação").lower()
     existentes = {r[0] for r in con.execute(
         "SELECT origem_id FROM transacao WHERE origem = ?", (ORIGEM,))}
@@ -426,6 +442,7 @@ def texto_relatorio(con: sqlite3.Connection, rel: Relatorio, simulacao: bool) ->
         out.append(f"Período: {rel.periodo[0]} a {rel.periodo[1]}")
     out += [f"Linhas lidas: {rel.linhas_lidas}  |  importadas: {rel.importadas}  |  "
             f"já existiam: {rel.ja_existiam}",
+            f"Anteriores ao corte (não importadas): {rel.anteriores_ao_corte}",
             "Por tipo: " + ", ".join(f"{k} {v}" for k, v in rel.por_tipo.most_common()),
             f"Marcadas 'ignorar' (fora dos relatórios): {rel.ignoradas_relatorio}",
             f"Com parcela identificada (n/m): {rel.parceladas}", ""]

@@ -81,7 +81,7 @@
     "CEF": "Caixa Econômica Federal"
   },
   "tag_ignorar": "ignorar transação",
-  "_leia_me_conversoes": "Regras linha a linha, achadas por data + conta + valor (negativo = saída). vira: transferencia (com destino; valor_transferido opcional, a diferença vira despesa em diferenca_categoria), ajuste (mexe no saldo, fora dos relatórios) ou pular (a outra perna de uma transferência).",
+  "_leia_me_conversoes": "Regras linha a linha, achadas por data + conta + valor (negativo = saída). vira: transferencia (com destino; valor_transferido opcional, a diferença vira despesa em diferenca_categoria), ajuste (mexe no saldo, fora dos relatórios) ou pular (a outra perna de uma transferência). Também: despesa (com categoria). importar_a_partir_de: corte; vazio = tudo.",
   "reajuste_vira_ajuste_a_partir_de": "2026-11-01",
   "conversoes": [
     {
@@ -208,15 +208,18 @@
       "data": "2025-05-26",
       "conta": "1 - C6 Bank 1118",
       "valor": -1338.0,
-      "vira": "ajuste",
-      "obs": "A CONFIRMAR: para qual investimento foi?"
+      "vira": "transferencia",
+      "obs": "Aplicação no CDB 6 meses (conta já encerrada)",
+      "destino": "C6 Invest - CDB 6 Meses - 106%"
     },
     {
       "data": "2025-06-01",
       "conta": "4 - Bco Brasil JU 3756",
       "valor": -840.0,
-      "vira": "ajuste",
-      "obs": "A CONFIRMAR: Pix para Jussara é investimento?"
+      "vira": "despesa",
+      "obs": "Pix para conta pessoal da Jussara, fora do controle da família",
+      "categoria": "Outras despesas"
     }
-  ]
+  ],
+  "importar_a_partir_de": "2026-01-01"
 }
