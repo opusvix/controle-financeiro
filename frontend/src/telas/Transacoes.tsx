@@ -49,7 +49,15 @@ export default function Transacoes() {
   // Ordenação por coluna (clique no título; de novo inverte). Um grupo de cartão se ordena como
   // uma linha só: pela data mais recente, pelo total, pelo nome do cartão.
   type Coluna = "situacao" | "data" | "descricao" | "categoria" | "conta" | "valor";
-  const [ordem, setOrdem] = useState<{ col: Coluna; asc: boolean }>({ col: "data", asc: false });
+  // A última ordenação escolhida fica guardada neste navegador e volta ao reabrir a tela.
+  const [ordem, setOrdemEstado] = useState<{ col: Coluna; asc: boolean }>(() => {
+    try { return JSON.parse(localStorage.getItem("transacoes.ordem") ?? "") ?? { col: "data", asc: false }; }
+    catch { return { col: "data", asc: false }; }
+  });
+  const setOrdem = (o: { col: Coluna; asc: boolean }) => {
+    setOrdemEstado(o);
+    try { localStorage.setItem("transacoes.ordem", JSON.stringify(o)); } catch { /* sem armazenamento: só não lembra */ }
+  };
   const ordenarPor = (col: Coluna) =>
     setOrdem(ordem.col === col ? { col, asc: !ordem.asc } : { col, asc: col !== "data" });
   type Item = { t: Transacao; grupo?: Transacao[] };
