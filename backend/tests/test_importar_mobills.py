@@ -153,3 +153,42 @@ def test_reajuste_no_saldo_inicial(con, planilha):
     assert r["diferenca"] == 50000 and r["transacao_id"] is None
     conta = con.execute("SELECT saldo_inicial_centavos FROM conta WHERE id = ?", (itau,)).fetchone()
     assert conta[0] == 50000
+
+
+def test_relatorio_de_futuros_entra_a_pagar_e_agrupa_as_que_se_repetem(con, tmp_path):
+    """RELATORIO_TRANSACOES_FUTURAS: tudo 'Pendente'. Não mexe no saldo de hoje, entra em
+    'a pagar' e as iguais viram conta que se repete (reajuste/cancelamento de uma vez)."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Receitas e Despesas"
+    ws.append(["Data", "Descrição", "Valor", "Conta", "Situação", "Categoria", "Subcategoria", "Tags"])
+    for d in ("30/11/2026", "30/12/2026", "30/01/2027"):
+        ws.append((d, "UNIMED", -989.62, "1 - C6 Bank 1118", "Pendente", "Saúde", None, ""))
+    ws.append(("16/11/2026", "PIX RECEBIDO - EDSON APTO RIO(1/2)", 2000, "2 - Itaú", "Pendente", "Outros", None, None))
+    ws.append(("16/12/2026", "PIX RECEBIDO - EDSON APTO RIO(2/2)", 2000, "2 - Itaú", "Pendente", "Outros", None, None))
+    ws.append(("13/11/2026", "CESAN", -1, "1 - C6 Bank 1118", "Pendente", "Serviços", "Água", ""))
+    arq = tmp_path / "futuras.xlsx"
+    wb.save(arq)
+
+    rel, texto = mobills.executar(con, arq)
+    assert rel.importadas == 6 and rel.pendentes == 6 and rel.recorrencias == 2
+    assert "A pagar/receber (Situação = Pendente): 6" in texto
+    linhas = con.execute("SELECT descricao, pago, recorrencia_id FROM transacao ORDER BY data").fetchall()
+    assert all(r["pago"] == 0 for r in linhas)
+    unimed = {r["recorrencia_id"] for r in linhas if r["descricao"] == "UNIMED"}
+    edson = {r["recorrencia_id"] for r in linhas if r["descricao"].startswith("PIX")}
+    assert len(unimed) == 1 and len(edson) == 1 and unimed != edson and None not in unimed
+    assert [r["recorrencia_id"] for r in linhas if r["descricao"] == "CESAN"] == [None]   # só uma: não agrupa
+    # Rodar de novo não duplica.
+    assert mobills.executar(con, arq)[0].importadas == 0
+
+
+def test_saldo_previsto_vai_so_ate_o_fim_do_mes(con):
+    from app.services import painel
+    conta = con.execute("SELECT id FROM conta WHERE nome = 'Carteira'").fetchone()[0]
+    con.execute("UPDATE conta SET data_saldo_inicial = '2026-01-01', saldo_inicial_centavos = 100000 WHERE id = ?", (conta,))
+    for d in ("2026-11-20", "2026-12-20"):
+        transacoes.criar(con, transacoes.NovaTransacao("despesa", "UNIMED", 30000, date.fromisoformat(d),
+                                                       conta_id=conta, pago=False))
+    c = next(x for x in painel.resumo(con, "2026-11")["contas"] if x["id"] == conta)
+    assert (c["saldo_atual"], c["saldo_previsto"]) == (100000, 70000)

@@ -118,7 +118,8 @@ def cartoes(con: sqlite3.Connection, competencia: str) -> list[dict]:
 
 def resumo(con: sqlite3.Connection, competencia: str) -> dict:
     ini, fim = _limites_mes(competencia)
-    contas = saldos_contas(con)
+    # Previsto = até o fim do mês escolhido (contas a pagar de meses seguintes não entram).
+    contas = saldos_contas(con, fim)
     soma = con.execute(
         """
         SELECT
