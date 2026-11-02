@@ -218,6 +218,11 @@ def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
     campos = {k: v for k, v in mudancas.items() if k in EDITAVEIS}
     if "data" in campos and isinstance(campos["data"], date):
         campos["data"] = campos["data"].isoformat()
+    # A tela reenvia o formulário inteiro: o que veio igual não é mudança e não pode
+    # recalcular a fatura (trocar só o cartão mantém o mês de vencimento).
+    for k in ("data", "cartao_id", "conta_id"):
+        if k in campos and campos[k] == t[k]:
+            del campos[k]
     if "descricao" in campos:
         campos["descricao"] = campos["descricao"].strip()
         if not campos["descricao"]:

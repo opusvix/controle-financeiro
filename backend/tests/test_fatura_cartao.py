@@ -162,3 +162,20 @@ def test_parcelas_importadas_uma_a_uma_sao_achadas_pela_descricao(con):
     linhas = con.execute("SELECT t.cartao_id, f.competencia FROM transacao t JOIN fatura f ON f.id = t.fatura_id "
                          "ORDER BY t.id").fetchall()
     assert [tuple(r) for r in linhas] == [(bb, "2026-11"), (bb, "2026-12"), (bb, "2027-01")]
+
+
+def test_trocar_cartao_pela_tela_mantem_o_mes_mesmo_com_a_data_reenviada(cliente):
+    """Caso real: parcela vence 10/11 no C6 e vai para um cartão que fecha dia 5.
+    A tela manda a data junto (sem mudar); a parcela deve continuar em nov, não pular para dez."""
+    _, c6 = _base(cliente)
+    mp = cliente.post("/api/cartoes", json={"nome": "Mercado Pago", "bandeira": "Visa", "final": "5083",
+        "limite_centavos": 0, "dia_fechamento": 5, "dia_vencimento": 10}).json()["id"]
+    t = cliente.post("/api/transacoes", json={"tipo": "despesa_cartao", "descricao": "MELI - RAÇÃO (1/2)",
+        "valor_centavos": 6660, "data": "2026-11-10", "cartao_id": c6,
+        "fatura_competencia": "2026-11"}).json()[0]
+    r = cliente.patch(f"/api/transacoes/{t['id']}", json={"descricao": "MELI - RAÇÃO (1/2)",
+        "data": "2026-11-10", "observacao": None, "conferido": False, "cartao_id": mp,
+        "parcelas_seguintes": False})
+    assert r.status_code == 200
+    nov = cliente.get(f"/api/cartoes/{mp}/fatura", params={"competencia": "2026-11"}).json()
+    assert [x["id"] for x in nov["lancamentos"]] == [t["id"]]
