@@ -79,6 +79,7 @@ export type CupomLido = {
   arquivo: string; cupom: Cupom;
   conferencia: { liquido_itens: number; valor_pagar: number; diferenca: number; confere: boolean };
   ja_lancado: { id: number; transacao_id: number | null; data: string | null } | null;
+  pagamento_sugerido: { conta_id: number | null; cartao_id: number | null } | null;
 };
 export type NotaQR = { chave: string; numero: number; cnpj: string; valida: boolean; url_consulta: string | null };
 

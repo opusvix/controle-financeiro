@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api, type Categoria, type CupomLido } from "../api";
 import { useDados } from "../componentes/useDados";
 import { dataBR, reais } from "../formato";
@@ -39,6 +40,8 @@ export default function Cupons() {
       setCats(Object.fromEntries(r.cupom.itens.map((i) => [i.seq, i.categoria_sugerida ? String(i.categoria_sugerida) : ""])));
       setData(r.cupom.emissao ? r.cupom.emissao.slice(0, 10) : "");
       setDescricao(r.cupom.emitente.nome);
+      const p = r.pagamento_sugerido;
+      setPagoCom(p?.cartao_id ? `cartao:${p.cartao_id}` : p?.conta_id ? `conta:${p.conta_id}` : "");
     } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
   }
 
@@ -95,6 +98,19 @@ export default function Cupons() {
               ? `✓ Itens conferem com o total: ${reais(lido.conferencia.valor_pagar)}`
               : `Atenção: itens somam ${reais(lido.conferencia.liquido_itens)}, mas o cupom diz ${reais(lido.conferencia.valor_pagar)}.`}
           </p>
+          <div className="form destaque">
+            <label>💳 Pago com <small>(a página da SEFAZ não informa a forma de pagamento)</small>
+              <select value={pagoCom} onChange={(e) => setPagoCom(e.target.value)}>
+                <option value="">Escolha a conta ou o cartão…</option>
+                <optgroup label="Contas (débito, Pix, dinheiro)">
+                  {contas.dados?.filter((x) => x.ativa).map((x) => <option key={x.id} value={`conta:${x.id}`}>{x.nome}</option>)}
+                </optgroup>
+                <optgroup label="Cartões de crédito">
+                  {cartoes.dados?.filter((x) => x.ativo).map((x) => <option key={x.id} value={`cartao:${x.id}`}>{x.nome} · final {x.final}</option>)}
+                </optgroup>
+              </select></label>
+            {cartoes.dados?.length === 0 && <p className="suave">Nenhum cartão cadastrado ainda. <Link to="/cartoes">Cadastrar cartão de crédito</Link></p>}
+          </div>
           <table className="tabela">
             <thead><tr><th>Item</th><th>Qtde.</th><th>Unit.</th><th>Total</th><th>Categoria</th></tr></thead>
             <tbody>
@@ -113,19 +129,9 @@ export default function Cupons() {
           </table>
           <div className="form espaco">
             <div className="duas">
-              <label>Pago com
-                <select value={pagoCom} onChange={(e) => setPagoCom(e.target.value)}>
-                  <option value="">Escolha…</option>
-                  <optgroup label="Contas">
-                    {contas.dados?.filter((x) => x.ativa).map((x) => <option key={x.id} value={`conta:${x.id}`}>{x.nome}</option>)}
-                  </optgroup>
-                  <optgroup label="Cartões de crédito">
-                    {cartoes.dados?.filter((x) => x.ativo).map((x) => <option key={x.id} value={`cartao:${x.id}`}>{x.nome}</option>)}
-                  </optgroup>
-                </select></label>
               <label>Data<input type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
+              <label>Descrição<input value={descricao} onChange={(e) => setDescricao(e.target.value)} /></label>
             </div>
-            <label>Descrição<input value={descricao} onChange={(e) => setDescricao(e.target.value)} /></label>
             <p className="suave">Item sem categoria recebe a categoria mais usada neste cupom.</p>
             <footer><button onClick={() => setLido(null)}>Descartar</button>
               <button className="primario" disabled={ocupado || !!lido.ja_lancado} onClick={lancar}>Lançar cupom</button></footer>
