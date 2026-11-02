@@ -79,3 +79,16 @@ def test_conta_sem_cartao_no_mapa_fica_como_esta(con, tmp_path):
     arq = _xlsx(tmp_path, [["10/10/2026", "DL GOOGLE", -9.99, "1 - C6 Bank 1118", "Paga", None, None, ""]])
     rel, _ = m.executar(con, arq, {**MAPA, "contas_sem_cartao": ["1 - c6 bank 1118"]})
     assert rel.sem_cartao == {"1 - C6 Bank 1118": 1} and not rel.convertidos
+
+
+def test_so_futuras_e_sem_ignoradas_no_c6(con, tmp_path):
+    _cenario(con)
+    arq = _xlsx(tmp_path, [
+        ["10/10/2026", "DL GOOGLE", -9.99, "1 - C6 Bank 1118", "Paga", None, None, ""],
+        ["10/12/2026", "PNEUS 6x (6/6)", -367.67, "1 - C6 Bank 1118", "Pendente", None, None, "ignorar transação"],
+        ["10/12/2026", "SEGURO 10x (4/10)", -169.02, "1 - C6 Bank 1118", "Pendente", None, None, ""],
+    ])
+    mapa = {**MAPA, "cartoes_a_partir_de": "2026-11-01", "cartoes_sem_ignoradas": ["1 - C6 Bank 1118"]}
+    rel, _ = m.executar(con, arq, mapa)
+    assert rel.historico_mantido == 1 and rel.ignoradas_fora == 1
+    assert not rel.convertidos and sum(rel.novos.values()) == 1 and not rel.pagamentos

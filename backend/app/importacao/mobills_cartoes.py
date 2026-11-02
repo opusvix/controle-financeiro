@@ -88,6 +88,8 @@ class Relatorio:
     convertidos: Counter = field(default_factory=Counter)        # por cartão
     novos: Counter = field(default_factory=Counter)
     ja_estavam: int = 0
+    historico_mantido: int = 0
+    ignoradas_fora: int = 0
     duplicatas: list[str] = field(default_factory=list)
     sem_cartao: Counter = field(default_factory=Counter)          # por conta
     pagos_nao_encontrados: list[str] = field(default_factory=list)
@@ -136,7 +138,15 @@ def importar(con: sqlite3.Connection, itens: list[Item], mapa: dict) -> Relatori
     usados: set[int] = set()
     a_pagar: dict[tuple, int] = defaultdict(int)     # (cartão, conta, data) -> centavos
 
+    desde = mapa.get("cartoes_a_partir_de")      # antes disso o histórico fica como está
+    sem_ignoradas = {c.lower() for c in mapa.get("cartoes_sem_ignoradas", [])}
     for it in itens:
+        if desde and it.data.isoformat() < desde:
+            rel.historico_mantido += 1
+            continue
+        if it.conta.lower() in sem_ignoradas and any(t.lower() == tag_ignorar for t in it.tags):
+            rel.ignoradas_fora += 1
+            continue
         conta_id = contas.get(it.conta.lower())
         cartao = _cartao_da_conta(con, it.conta, conta_id, mapa)
         if cartao is None:
@@ -232,6 +242,10 @@ def texto_relatorio(rel: Relatorio, simulacao: bool) -> str:
     s += [f"   {nc[k]}: {v}" for k, v in rel.novos.items()]
     s += [f"Já estavam nos cartões (rodada anterior): {rel.ja_estavam}",
           f"Pagamentos de fatura criados: {len(rel.pagamentos)}"]
+    if rel.historico_mantido:
+        s.append(f"Histórico mantido como está (antes do início): {rel.historico_mantido}")
+    if rel.ignoradas_fora:
+        s.append(f"Com 'ignorar transação' em cartão onde elas não vão para a fatura: {rel.ignoradas_fora}")
     if rel.sem_cartao:
         s += ["", "SEM CARTÃO (continuam como despesa da conta, nada mudou):"]
         s += [f"   {k}: {v} linhas" for k, v in rel.sem_cartao.items()]
