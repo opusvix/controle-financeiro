@@ -101,6 +101,7 @@ class EdicaoIn(BaseModel):
     ignorar: bool | None = None
     fatura_competencia: str | None = Field(default=None, pattern=COMPETENCIA)
     tags: list[int] | None = None
+    parcelas_seguintes: bool = False     # ao trocar o cartão, levar as próximas parcelas junto
 
 
 @router.patch("/transacoes/{id_}")

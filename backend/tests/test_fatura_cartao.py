@@ -123,3 +123,42 @@ def test_credito_exige_cartao(cliente):
     r = cliente.post("/api/transacoes", json={"tipo": "credito_cartao", "descricao": "x",
         "valor_centavos": 100, "data": "2026-10-25", "conta_id": conta})
     assert r.status_code == 422
+
+
+def test_trocar_cartao_de_parcela_leva_as_proximas(cliente, con=None):
+    _, c6 = _base(cliente)
+    bb = cliente.post("/api/cartoes", json={"nome": "BB", "bandeira": "Visa", "final": "1111",
+        "limite_centavos": 0, "dia_fechamento": 29, "dia_vencimento": 10}).json()["id"]
+    ids = [t["id"] for t in _compra(cliente, c6, "Geladeira", 30000, "2026-10-25", parcelas=3)]
+    nov = cliente.get(f"/api/cartoes/{c6}/fatura", params={"competencia": "2026-11"}).json()
+    assert [t["id"] for t in nov["lancamentos"]] == [ids[0]]
+    # Troca a 2ª parcela de cartão levando a 3ª; a 1ª fica onde está.
+    r = cliente.patch(f"/api/transacoes/{ids[1]}", json={"cartao_id": bb, "parcelas_seguintes": True}).json()
+    assert r["cartao_id"] == bb
+    for comp, esperado in [("2026-12", [ids[1]]), ("2027-01", [ids[2]])]:
+        f = cliente.get(f"/api/cartoes/{bb}/fatura", params={"competencia": comp}).json()
+        assert [t["id"] for t in f["lancamentos"]] == esperado   # mesmo mês de vencimento
+    assert cliente.get(f"/api/cartoes/{c6}/fatura", params={"competencia": "2026-11"}).json()["total"] == 10000
+
+
+def test_parcelas_importadas_uma_a_uma_sao_achadas_pela_descricao(con):
+    from datetime import date
+
+    from app.services import transacoes as svc
+    with con:
+        c6 = con.execute("INSERT INTO cartao (nome, bandeira, final, dia_fechamento, dia_vencimento) "
+                         "VALUES ('C6', 'Visa', '1118', 28, 10)").lastrowid
+        bb = con.execute("INSERT INTO cartao (nome, bandeira, final, dia_fechamento, dia_vencimento) "
+                         "VALUES ('BB', 'Visa', '3756', 29, 10)").lastrowid
+    ids = []
+    for i, d in enumerate(["2026-11-10", "2026-12-10", "2027-01-10"], start=4):
+        tid = svc.criar(con, svc.NovaTransacao("despesa_cartao", f"PNEUS MAURI 6x ({i}/6)", 36767,
+                                               date.fromisoformat(d), cartao_id=c6,
+                                               fatura_competencia=d[:7]))[0]
+        con.execute("UPDATE transacao SET parcela = ?, total_parcelas = 6 WHERE id = ?", (i, tid))
+        ids.append(tid)
+    con.commit()
+    svc.editar(con, ids[0], {"cartao_id": bb, "parcelas_seguintes": True})
+    linhas = con.execute("SELECT t.cartao_id, f.competencia FROM transacao t JOIN fatura f ON f.id = t.fatura_id "
+                         "ORDER BY t.id").fetchall()
+    assert [tuple(r) for r in linhas] == [(bb, "2026-11"), (bb, "2026-12"), (bb, "2027-01")]

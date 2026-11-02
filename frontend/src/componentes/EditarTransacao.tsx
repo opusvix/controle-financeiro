@@ -10,6 +10,7 @@ export type Editavel = {
   id: number; tipo: string; descricao: string; valor_centavos: number; data: string;
   conta_id: number | null; cartao_id?: number | null; categoria_id: number | null;
   observacao: string | null; itens: number; conferido: number; parcela: number | null;
+  total_parcelas?: number | null;
 };
 
 /**
@@ -27,12 +28,14 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
   const noCartao = t.tipo === "despesa_cartao" || t.tipo === "credito_cartao";
   const usaCategoria = (ehCompra || t.tipo === "receita" || t.tipo === "credito_cartao") && !t.itens;
   const usaConta = !noCartao && t.tipo !== "transferencia";
+  const trocaCartao = noCartao && !trocaPagamento;           // parcela ou crédito: só entre cartões
+  const temProximas = !!t.parcela && !!t.total_parcelas && t.parcela < t.total_parcelas;
 
   const [f, setF] = useState({
     descricao: t.descricao, valor: (t.valor_centavos / 100).toFixed(2).replace(".", ","), data: t.data,
     pagoCom: noCartao ? `cartao:${t.cartao_id}` : `conta:${t.conta_id}`,
     categoria_id: t.categoria_id ? String(t.categoria_id) : "", observacao: t.observacao ?? "",
-    conferido: !!t.conferido, fatura: competenciaFatura ?? "",
+    conferido: !!t.conferido, fatura: competenciaFatura ?? "", proximas: true,
   });
   const [erro, setErro] = useState<string | null>(null);
   const muda = (campo: keyof typeof f, valor: unknown) => setF({ ...f, [campo]: valor });
@@ -46,6 +49,10 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
     if (usaCategoria && f.categoria_id) d.categoria_id = Number(f.categoria_id);
     const [qual, id] = f.pagoCom.split(":");
     if (trocaPagamento) d[qual === "cartao" ? "cartao_id" : "conta_id"] = Number(id);
+    else if (trocaCartao && Number(id) !== t.cartao_id) {
+      d.cartao_id = Number(id);
+      d.parcelas_seguintes = temProximas && f.proximas;
+    }
     else if (usaConta) d.conta_id = Number(id);
     if (noCartao) {
       d.conferido = f.conferido;
@@ -75,6 +82,17 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
                   <option key={c.id} value={`cartao:${c.id}`}>{c.nome} · final {c.final}</option>))}</optgroup>
               )}
             </select></label>
+        )}
+        {trocaCartao && (
+          <label>Cartão
+            <select value={f.pagoCom} onChange={(e) => muda("pagoCom", e.target.value)}>
+              {cartoes.map((c) => <option key={c.id} value={`cartao:${c.id}`}>{c.nome} · final {c.final}</option>)}
+            </select></label>
+        )}
+        {trocaCartao && temProximas && f.pagoCom !== `cartao:${t.cartao_id}` && (
+          <label className="chave"><input type="checkbox" checked={f.proximas}
+            onChange={(e) => muda("proximas", e.target.checked)} />
+            Levar também as próximas parcelas desta compra (até a {t.total_parcelas}ª)</label>
         )}
         {usaCategoria && <SeletorCategoria valor={f.categoria_id} aoMudar={(v) => muda("categoria_id", v)}
           categorias={categorias.filter((c) => c.tipo === (t.tipo === "receita" ? "receita" : "despesa"))} />}
