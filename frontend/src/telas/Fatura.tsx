@@ -67,9 +67,11 @@ export default function Fatura() {
                   <td><input type="checkbox" checked={!!t.conferido} onChange={() => marcar(t)}
                     aria-label="Conferido" /></td>
                   <td>{dataBR(t.data)}</td>
-                  <td>{t.descricao}{t.observacao && <small className="dica"> · {t.observacao}</small>}</td>
+                  <td>{t.tipo === "credito_cartao" && <span className="selo-credito">crédito</span>}
+                    {t.descricao}{t.observacao && <small className="dica"> · {t.observacao}</small>}</td>
                   <td>{t.categoria ?? (t.itens ? `${t.itens} itens` : "—")}</td>
-                  <td className="num">{reais(t.valor_centavos)}</td>
+                  <td className={`num ${t.tipo === "credito_cartao" ? "pos" : ""}`}>
+                    {reais(t.tipo === "credito_cartao" ? -t.valor_centavos : t.valor_centavos)}</td>
                   <td className="acoes"><button className="link" onClick={() => setEditando(t)}>Editar</button>
                     <button className="link" onClick={() => apagar(t)}>Apagar</button></td>
                 </tr>
@@ -129,7 +131,7 @@ function ConferenciaBanco({ fatura: f, aoMudar }: { fatura: TFatura; aoMudar: ()
       {d === null ? <span className="dica">Digite o total do banco para comparar com o app.</span>
         : d === 0 ? <span className="aviso-ok">✓ Bate com o banco</span>
         : <span className="erro">Diferença de {reais(Math.abs(d))}: {d > 0
-            ? "o app tem lançamentos a mais (ou valores maiores)."
+            ? "o app tem a mais. Falta lançar um crédito ou estorno, ou algum valor está maior."
             : "falta lançar algo no app (ou algum valor está menor)."}</span>}
       {erro && <p className="erro">{erro}</p>}
     </div>
@@ -176,6 +178,7 @@ function PagarFatura({ fatura: f, aoFechar, aoSalvar }: { fatura: TFatura; aoFec
 
 const MODELOS = [
   { id: "compra", nome: "Compra esquecida", descricao: "", categoria: null },
+  { id: "credito", nome: "Crédito / estorno", descricao: "Estorno ", categoria: null },
   { id: "tarifa", nome: "Anuidade / tarifa", descricao: "Anuidade", categoria: "Tarifas bancárias" },
   { id: "juros", nome: "Juros / IOF / multa", descricao: "Juros e IOF", categoria: "Tarifas bancárias" },
 ] as const;
@@ -188,21 +191,26 @@ function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
   fatura: TFatura; aoFechar: () => void; aoSalvar: (continuar: boolean) => void;
 }) {
   const categorias = useDados(api.categorias).dados ?? [];
-  const falta = f.diferenca_banco !== null && f.diferenca_banco < 0 ? -f.diferenca_banco : 0;
+  const dif = f.diferenca_banco ?? 0;   // > 0: app tem a mais (falta crédito); < 0: falta compra/tarifa
   const vespera = (() => {   // compra precisa cair antes do fechamento
     const d = new Date(f.data_fechamento + "T12:00:00"); d.setDate(d.getDate() - 1);
     return d.toISOString().slice(0, 10);
   })();
-  const [modelo, setModelo] = useState<(typeof MODELOS)[number]["id"]>("compra");
+  const [modelo, setModelo] = useState<(typeof MODELOS)[number]["id"]>(dif > 0 ? "credito" : "compra");
+  const ehCredito = modelo === "credito";
   const [descricao, setDescricao] = useState("");
-  const [valor, setValor] = useState(falta ? (falta / 100).toFixed(2).replace(".", ",") : "");
+  const sugestao = (credito: boolean) => {
+    const v = credito ? Math.max(dif, 0) : Math.max(-dif, 0);
+    return v ? (v / 100).toFixed(2).replace(".", ",") : "";
+  };
+  const [valor, setValor] = useState(sugestao(dif > 0));
   const [data, setData] = useState(hojeISO() < f.data_fechamento ? hojeISO() : vespera);
   const [categoria, setCategoria] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
   function escolher(id: (typeof MODELOS)[number]["id"]) {
     const m = MODELOS.find((x) => x.id === id)!;
-    setModelo(id); setDescricao(m.descricao);
+    setModelo(id); setDescricao(m.descricao); setValor(sugestao(id === "credito"));
     const cat = m.categoria && categorias.find((c) => c.nome === m.categoria);
     setCategoria(cat ? String(cat.id) : "");
   }
@@ -212,7 +220,7 @@ function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
     if (!v) return setErro("Valor inválido.");
     if (!descricao.trim()) return setErro("Informe a descrição.");
     try {
-      const [t] = await api.criarTransacao({ tipo: "despesa_cartao", descricao, valor_centavos: v, data,
+      const [t] = await api.criarTransacao({ tipo: ehCredito ? "credito_cartao" : "despesa_cartao", descricao, valor_centavos: v, data,
         cartao_id: f.cartao.id, fatura_competencia: f.competencia,
         categoria_id: categoria ? Number(categoria) : null });
       await api.editarTransacao(t.id, { conferido: true });
@@ -234,8 +242,10 @@ function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
           <label>Valor (R$)<input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" /></label>
           <label>Data<input type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
         </div>
-        {falta > 0 && <p className="dica">O valor já vem com a diferença para o banco ({reais(falta)}). Ajuste se
+        {sugestao(ehCredito) && <p className="dica">O valor já vem com a diferença para o banco. Ajuste se
           for só parte dela.</p>}
+        {ehCredito && <p className="dica">Crédito <b>diminui</b> a fatura. Escolha a categoria da compra
+          estornada para a despesa dela também diminuir.</p>}
         <SeletorCategoria categorias={categorias.filter((c) => c.tipo === "despesa")} valor={categoria}
           aoMudar={setCategoria} />
         <p className="dica">Entra nesta fatura mesmo que a data seja depois do fechamento, e já fica marcado

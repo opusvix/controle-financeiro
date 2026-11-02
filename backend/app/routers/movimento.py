@@ -16,7 +16,7 @@ COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
 
 
 class TransacaoIn(BaseModel):
-    tipo: Literal["receita", "despesa", "despesa_cartao", "transferencia",
+    tipo: Literal["receita", "despesa", "despesa_cartao", "credito_cartao", "transferencia",
                   "pagamento_fatura", "ajuste"]
     descricao: str = Field(min_length=1)
     valor_centavos: int = Field(gt=0)

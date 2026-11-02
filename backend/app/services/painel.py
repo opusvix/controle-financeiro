@@ -41,9 +41,12 @@ def despesas_por_categoria(con: sqlite3.Connection, competencia: str) -> list[di
     sql = """
         WITH base AS (
             -- transações sem itens: a categoria da transação
-            SELECT t.categoria_id AS cat, t.valor_centavos AS valor
+            -- crédito no cartão (estorno, cashback) abate a despesa da sua categoria
+            SELECT t.categoria_id AS cat,
+                   CASE WHEN t.tipo = 'credito_cartao' THEN -t.valor_centavos
+                        ELSE t.valor_centavos END AS valor
             FROM transacao t
-            WHERE t.tipo IN ('despesa', 'despesa_cartao') AND t.ignorar = 0
+            WHERE t.tipo IN ('despesa', 'despesa_cartao', 'credito_cartao') AND t.ignorar = 0
               AND t.data BETWEEN :ini AND :fim
               AND NOT EXISTS (SELECT 1 FROM item i WHERE i.transacao_id = t.id)
             UNION ALL
@@ -84,12 +87,15 @@ def cartoes(con: sqlite3.Connection, competencia: str) -> list[dict]:
     sql = """
         SELECT ca.id, ca.nome, ca.bandeira, ca.final, ca.cor, ca.limite_centavos,
                f.data_vencimento,
-               COALESCE((SELECT SUM(valor_centavos) FROM transacao
-                         WHERE tipo = 'despesa_cartao' AND fatura_id = f.id), 0) AS fatura_total,
+               COALESCE((SELECT SUM(CASE WHEN tipo = 'credito_cartao' THEN -valor_centavos
+                                         ELSE valor_centavos END) FROM transacao
+                         WHERE tipo IN ('despesa_cartao', 'credito_cartao') AND fatura_id = f.id), 0)
+                 AS fatura_total,
                COALESCE((SELECT SUM(valor_centavos) FROM transacao
                          WHERE tipo = 'pagamento_fatura' AND fatura_id = f.id), 0) AS fatura_paga,
-               COALESCE((SELECT SUM(valor_centavos) FROM transacao
-                         WHERE tipo = 'despesa_cartao' AND cartao_id = ca.id), 0)
+               COALESCE((SELECT SUM(CASE WHEN tipo = 'credito_cartao' THEN -valor_centavos
+                                         ELSE valor_centavos END) FROM transacao
+                         WHERE tipo IN ('despesa_cartao', 'credito_cartao') AND cartao_id = ca.id), 0)
              - COALESCE((SELECT SUM(valor_centavos) FROM transacao
                          WHERE tipo = 'pagamento_fatura' AND cartao_id = ca.id), 0) AS em_aberto
         FROM cartao ca
@@ -117,7 +123,8 @@ def resumo(con: sqlite3.Connection, competencia: str) -> dict:
         """
         SELECT
           COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor_centavos END), 0) AS receitas,
-          COALESCE(SUM(CASE WHEN tipo IN ('despesa', 'despesa_cartao') THEN valor_centavos END), 0)
+          COALESCE(SUM(CASE WHEN tipo IN ('despesa', 'despesa_cartao') THEN valor_centavos
+                            WHEN tipo = 'credito_cartao' THEN -valor_centavos END), 0)
             AS despesas,
           COALESCE(SUM(CASE WHEN tipo = 'despesa' AND pago = 0 THEN valor_centavos END), 0)
             AS despesas_pendentes,

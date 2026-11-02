@@ -11,9 +11,9 @@ card "Despesas" (R$ 5.906,77) e o gráfico "Despesas por categoria"
 | Saldo disponível | soma do saldo atual das contas marcadas "compõe saldo disponível" | É o "caixa": corrente, carteira. Investimentos ficam de fora |
 | Patrimônio | soma do saldo atual de todas as contas ativas | Caixa + investimentos |
 | Receitas do mês | receitas com data no mês (pagas e pendentes), sem as ignoradas | |
-| Despesas do mês | despesas + despesas de cartão com **data da compra** no mês, sem as ignoradas | Regime de competência. Pagamento de fatura e transferências **não** entram |
+| Despesas do mês | despesas + despesas de cartão − créditos no cartão (estorno, cashback), com **data da compra** no mês, sem as ignoradas | Regime de competência. Pagamento de fatura e transferências **não** entram |
 | Despesas por categoria | mesma base de "Despesas do mês", agrupada pela categoria-mãe; compras com itens usam a categoria de cada item (valor líquido) | A soma do gráfico é igual ao card |
-| Fatura do mês (cartão) | despesas de cartão cuja fatura tem competência (mês do vencimento) igual ao mês | |
+| Fatura do mês (cartão) | despesas de cartão − créditos no cartão cuja fatura tem competência (mês do vencimento) igual ao mês | |
 | Limite disponível | limite − (todas as compras no cartão − todos os pagamentos de fatura) | |
 | Preço líquido unitário | (valor do item − desconto do item) ÷ quantidade | View `v_preco` |
 

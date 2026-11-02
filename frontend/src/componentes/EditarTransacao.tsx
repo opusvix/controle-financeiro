@@ -24,12 +24,13 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
   const categorias = useDados(api.categorias).dados ?? [];
   const ehCompra = t.tipo === "despesa" || t.tipo === "despesa_cartao";
   const trocaPagamento = ehCompra && t.parcela === null;     // parcelada fica presa ao cartão
-  const usaCategoria = (ehCompra || t.tipo === "receita") && !t.itens;
-  const usaConta = t.tipo !== "despesa_cartao" && t.tipo !== "transferencia";
+  const noCartao = t.tipo === "despesa_cartao" || t.tipo === "credito_cartao";
+  const usaCategoria = (ehCompra || t.tipo === "receita" || t.tipo === "credito_cartao") && !t.itens;
+  const usaConta = !noCartao && t.tipo !== "transferencia";
 
   const [f, setF] = useState({
     descricao: t.descricao, valor: (t.valor_centavos / 100).toFixed(2).replace(".", ","), data: t.data,
-    pagoCom: t.tipo === "despesa_cartao" ? `cartao:${t.cartao_id}` : `conta:${t.conta_id}`,
+    pagoCom: noCartao ? `cartao:${t.cartao_id}` : `conta:${t.conta_id}`,
     categoria_id: t.categoria_id ? String(t.categoria_id) : "", observacao: t.observacao ?? "",
     conferido: !!t.conferido, fatura: competenciaFatura ?? "",
   });
@@ -46,7 +47,7 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
     const [qual, id] = f.pagoCom.split(":");
     if (trocaPagamento) d[qual === "cartao" ? "cartao_id" : "conta_id"] = Number(id);
     else if (usaConta) d.conta_id = Number(id);
-    if (t.tipo === "despesa_cartao") {
+    if (noCartao) {
       d.conferido = f.conferido;
       if (f.fatura && f.fatura !== competenciaFatura) d.fatura_competencia = f.fatura;
     }
@@ -55,7 +56,7 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
   }
 
   return (
-    <Modal titulo="Editar lançamento" aoFechar={aoFechar}>
+    <Modal titulo={t.tipo === "credito_cartao" ? "Editar crédito na fatura" : "Editar lançamento"} aoFechar={aoFechar}>
       <div className="form">
         <label>Descrição<input value={f.descricao} onChange={(e) => muda("descricao", e.target.value)} autoFocus /></label>
         <div className="duas">
@@ -77,7 +78,7 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
         )}
         {usaCategoria && <SeletorCategoria valor={f.categoria_id} aoMudar={(v) => muda("categoria_id", v)}
           categorias={categorias.filter((c) => c.tipo === (t.tipo === "receita" ? "receita" : "despesa"))} />}
-        {t.tipo === "despesa_cartao" && viraCartao && competenciaFatura && (
+        {noCartao && viraCartao && competenciaFatura && (
           <label>Fatura
             <select value={f.fatura} onChange={(e) => muda("fatura", e.target.value)}>
               {[-1, 0, 1].map((n) => somarMes(competenciaFatura, n)).map((m) => (
@@ -86,7 +87,7 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
             <small className="dica">Use quando o banco lançou a compra numa fatura diferente.</small></label>
         )}
         <label>Observação<input value={f.observacao} onChange={(e) => muda("observacao", e.target.value)} /></label>
-        {t.tipo === "despesa_cartao" && (
+        {noCartao && (
           <label className="chave"><input type="checkbox" checked={f.conferido}
             onChange={(e) => muda("conferido", e.target.checked)} />Conferido com o extrato do banco</label>
         )}

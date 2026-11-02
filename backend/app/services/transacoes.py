@@ -8,7 +8,9 @@ from datetime import date
 
 from . import faturas
 
-TIPOS = ("receita", "despesa", "despesa_cartao", "transferencia", "pagamento_fatura", "ajuste")
+TIPOS = ("receita", "despesa", "despesa_cartao", "credito_cartao", "transferencia",
+         "pagamento_fatura", "ajuste")
+NO_CARTAO = ("despesa_cartao", "credito_cartao")   # entram na fatura, não mexem em conta
 
 # Efeito no saldo da conta, em SQL. Usado por saldos e relatórios.
 EFEITO_SQL = """
@@ -53,7 +55,12 @@ def _validar(n: NovaTransacao) -> None:
         raise RegraViolada(f"Tipo inválido: {n.tipo}")
     if n.valor_centavos <= 0:
         raise RegraViolada("O valor deve ser maior que zero")
-    if n.tipo == "despesa_cartao":
+    if n.tipo == "credito_cartao":
+        if not n.cartao_id:
+            raise RegraViolada("Crédito na fatura precisa do cartão")
+        if n.parcelas != 1:
+            raise RegraViolada("Crédito na fatura não tem parcelas")
+    elif n.tipo == "despesa_cartao":
         if not n.cartao_id:
             raise RegraViolada("Despesa de cartão precisa do cartão")
         if n.parcelas < 1:
@@ -138,6 +145,14 @@ def criar(con: sqlite3.Connection, n: NovaTransacao) -> list[int]:
                     parcela=i + 1 if grupo else None, total_parcelas=n.parcelas if grupo else None,
                     grupo_parcelas=grupo, **{**base, "descricao": descricao},
                 ))
+        elif n.tipo == "credito_cartao":
+            from .fatura_cartao import fatura_por_competencia
+            fatura_id = (fatura_por_competencia(con, n.cartao_id, n.fatura_competencia)
+                         if n.fatura_competencia
+                         else faturas.obter_ou_criar_fatura(con, n.cartao_id, n.data))
+            ids.append(_inserir(con, tipo="credito_cartao", valor_centavos=n.valor_centavos,
+                                data=n.data.isoformat(), cartao_id=n.cartao_id,
+                                fatura_id=fatura_id, **base))
         elif n.tipo == "pagamento_fatura":
             fatura_id = _fatura_a_pagar(con, n)
             ids.append(_inserir(con, tipo="pagamento_fatura", valor_centavos=n.valor_centavos,
@@ -222,7 +237,7 @@ def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
         campos.update(tipo="despesa", cartao_id=None, fatura_id=None, conferido=0)
     tipo = campos.get("tipo", t["tipo"])
 
-    if tipo == "despesa_cartao":
+    if tipo in NO_CARTAO:
         if "tipo" not in campos:
             campos.pop("conta_id", None)
         if campos.get("cartao_id") is None:
