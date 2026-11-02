@@ -70,6 +70,9 @@ export const api = {
   contas: () => chamar<Conta[]>("/api/contas"),
   salvarConta: (d: Partial<Conta>, id?: number) =>
     chamar<Conta>(id ? `/api/contas/${id}` : "/api/contas", enviar(id ? "PUT" : "POST", d)),
+  reajustarSaldo: (id: number, saldo_centavos: number, data: string, no_saldo_inicial: boolean) =>
+    chamar<{ diferenca: number }>(`/api/contas/${id}/reajuste`,
+      enviar("POST", { saldo_centavos, data, no_saldo_inicial })),
   cartoes: () => chamar<Cartao[]>("/api/cartoes"),
   salvarCartao: (d: Partial<Cartao>, id?: number) =>
     chamar<Cartao>(id ? `/api/cartoes/${id}` : "/api/cartoes", enviar(id ? "PUT" : "POST", d)),

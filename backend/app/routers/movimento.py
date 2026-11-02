@@ -71,6 +71,22 @@ def criar(dados: TransacaoIn, c=Depends(con)):
     return [dict(r) for r in c.execute(f"SELECT * FROM transacao WHERE id IN ({marcas})", ids)]
 
 
+class ReajusteIn(BaseModel):
+    saldo_centavos: int
+    data: date = Field(default_factory=date.today)
+    no_saldo_inicial: bool = False   # True: corrige o saldo de abertura em vez de lançar ajuste
+
+
+@router.post("/contas/{id_}/reajuste", status_code=201)
+def reajustar(id_: int, dados: ReajusteIn, c=Depends(con)):
+    """Acerta o saldo da conta lançando um ajuste com a diferença."""
+    try:
+        return transacoes.reajustar_saldo(c, id_, dados.saldo_centavos, dados.data,
+                                          dados.no_saldo_inicial)
+    except transacoes.RegraViolada as e:
+        raise HTTPException(404, str(e)) from e
+
+
 @router.delete("/transacoes/{id_}", status_code=204)
 def apagar(id_: int, c=Depends(con)):
     linha = c.execute("SELECT transferencia_par_id FROM transacao WHERE id = ?", (id_,)).fetchone()

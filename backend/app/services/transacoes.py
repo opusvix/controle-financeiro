@@ -147,3 +147,33 @@ def criar(con: sqlite3.Connection, n: NovaTransacao) -> list[int]:
             con.executemany("INSERT INTO transacao_tag (transacao_id, tag_id) VALUES (?, ?)",
                             [(tid, tag) for tag in n.tags])
     return ids
+
+
+def reajustar_saldo(con: sqlite3.Connection, conta_id: int, saldo_desejado: int,
+                    data: date, no_saldo_inicial: bool = False) -> dict:
+    """Lança um ajuste para que o saldo da conta na data fique igual ao informado.
+
+    Como o "Reajuste de saldo" do Mobills: útil depois de importar um histórico
+    que não traz saldo inicial, ou para acertar diferenças com o extrato.
+    """
+    conta = con.execute("SELECT id, nome, saldo_inicial_centavos, data_saldo_inicial "
+                        "FROM conta WHERE id = ?", (conta_id,)).fetchone()
+    if conta is None:
+        raise RegraViolada("Conta não encontrada")
+    atual = conta["saldo_inicial_centavos"] + con.execute(
+        f"SELECT COALESCE(SUM({EFEITO_SQL}), 0) FROM transacao t "
+        "WHERE t.conta_id = ? AND t.pago = 1 AND t.data >= ? AND t.data <= ?",
+        (conta_id, conta["data_saldo_inicial"], data.isoformat())).fetchone()[0]
+    diferenca = saldo_desejado - atual
+    ids: list[int] = []
+    if diferenca and no_saldo_inicial:
+        # Corrige o saldo de ABERTURA: o histórico mês a mês fica certo desde o início.
+        with con:
+            con.execute("UPDATE conta SET saldo_inicial_centavos = saldo_inicial_centavos + ? "
+                        "WHERE id = ?", (diferenca, conta_id))
+    elif diferenca:
+        ids = criar(con, NovaTransacao(
+            tipo="ajuste", descricao="Reajuste de saldo", valor_centavos=abs(diferenca),
+            data=data, conta_id=conta_id, ajuste_negativo=diferenca < 0))
+    return {"conta_id": conta_id, "saldo_anterior": atual, "saldo_novo": saldo_desejado,
+            "diferenca": diferenca, "transacao_id": ids[0] if ids else None}
