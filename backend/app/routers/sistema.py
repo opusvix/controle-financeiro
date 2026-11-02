@@ -36,7 +36,17 @@ def interpretar_chave(chave: str):
 async def ler_qr(arquivo: UploadFile):
     conteudo = await arquivo.read()
     try:
-        chaves = nfce.chaves_da_imagem(conteudo)
+        textos = nfce.ler_qr(conteudo)
     except Exception as e:  # imagem corrompida ou formato não suportado
         raise HTTPException(422, f"Não consegui abrir a imagem: {e}") from e
-    return {"arquivo": arquivo.filename, "notas": [k.como_dict() for k in chaves]}
+    notas = []
+    for texto in textos:
+        try:
+            chave = nfce.interpretar_chave(nfce.chave_da_url(texto))
+        except ValueError:
+            continue  # QR que não é de nota fiscal
+        # O próprio QR é o link de consulta da SEFAZ: a tela abre no navegador do usuário,
+        # que resolve o captcha e salva a página (Ctrl+S) para importar.
+        url = texto if texto.lower().startswith(("http://", "https://")) else None
+        notas.append({**chave.como_dict(), "url_consulta": url})
+    return {"arquivo": arquivo.filename, "notas": notas}

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<!-- saved from url=(0064)https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx -->
+<html lang="pt-BR" class="ui-mobile"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--<base href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx">--><base href=".">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Nao adicione nada antes destas meta-tags -->
+    <title>Consulta NFC-e</title>
+    
+    <!---->
+    
+    
+    <!-- Hack para funcionamento de HTML5 e Media Queries no IE8 -->
+    <!-- ATENÇÃO: Não funcionará se abrir o arquivo com duplo clique, via file:// -->
+    <!--[if lt IE 9]>
+        
+        
+    <![endif]-->
+    
+    
+    
+    
+
+    
+    
+        
+        
+        
+            
+            
+    
+    
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    
+    
+
+</head>
+<body class="ui-mobile-viewport ui-overlay-a"><div data-role="page" data-url="/ConsultaNFCe/ConsultaDANFE_NFCe.aspx" tabindex="0" class="ui-page ui-page-theme-a ui-page-active" style="">
+    <form method="post" action="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx" id="ctl00">
+<div class="aspNetHidden">
+<input type="hidden" >
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="FB71F6EF">
+</div>
+        <div id="loading-page" class="hide">
+            <p><span>
+                <img src="https://cdn.sefaz.es.gov.br/layout/img/loading.gif" alt="Aguarde. Carregando!"></span></p>
+        </div>
+
+        <nav class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed ui-shadow ui-corner-all" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Menu</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand ui-link" href="https://internet.sefaz.es.gov.br/">
+                        <img src="./IDEAL-Consulta NFC-e_files/logo-topo.png" alt="" class="img-responsive logotipo-topo" width="105"></a>
+                </div>
+
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li><a href="https://internet.sefaz.es.gov.br/agenciavirtual/index.php" class="ui-link">Agência Virtual</a></li>
+                        <li><a href="https://internet.sefaz.es.gov.br/informacoes/index.php" class="ui-link">Receita</a></li>
+                        <li><a href="https://internet.sefaz.es.gov.br/contas/index.php" class="ui-link">Tesouro</a></li>
+                        <li><a href="https://internet.sefaz.es.gov.br/legislacao/index.php" class="ui-link">Legislação</a></li>
+                    </ul>
+
+                    <ul class="nav navbar-nav navbar-right navegacao-direita">
+                        <li><a href="https://internet.sefaz.es.gov.br/faleconosco/index.php" class="ui-link"><i class="fa fa-comments"></i>Fale Conosco</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="barra-menu" id="fixaMenu">
+            <div class="container">
+                <a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" onclick="NovaConsulta()" class="titulo-barra pull-left ui-link">NFC-e - Nota Fiscal de Consumidor Eletrônica</a>
+            </div>
+        </div>
+
+        <div class="container corpo">
+            <div class="row">
+                <div class="col-md-12 conteudo">
+                    
+    
+    
+    
+    <span id="body_lblRetorno"></span>
+    
+
+
+    <div id="body_borda" class="borda-op">
+        <span id="body_lbDataeHoraAtual" class="entradaDados"></span>
+        <button id="body_btnImprimirDANFE_NFCe" onclick="AbrirAbaImpressao()" class="botao-padrao cinza ui-btn ui-shadow ui-corner-all"><i class="fa fa-print"></i> Imprimir</button>
+        <button id="body_btnVisualizarAbas" onclick="VisualizarAbas()" class="botao-padrao cinza ui-btn ui-shadow ui-corner-all"><i class="fa fa-th-list" aria-hidden="true"></i> Visualizar em abas</button>
+        <button id="body_btnNovaConsulta" onclick="NovaConsulta()" class="botao-padrao azul ui-btn ui-shadow ui-corner-all"><i class="fa fa-search"></i> Nova consulta</button>
+    </div>
+
+    <div id="body_pnlImpressao">
+	
+        
+        <div class="" id="divXMl" style="margin: 20px auto 0 auto">
+            <div data-role="header" xmlns:n="http://www.portalfiscal.inf.br/nfe" xmlns:chave="http://exslt.org/chaveacesso" xmlns:r="http://www.serpro.gov.br/nfe/remessanfe.xsd" role="banner" class="ui-header ui-bar-inherit">
+  <h1 class="tit ui-title" role="heading" aria-level="1">
+    <img src="./IDEAL-Consulta NFC-e_files/logoNFCe.PNG" width="90" height="64" alt="NFC-e">
+    <p>DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA</p>
+    <p>
+    </p>
+  </h1>
+</div>
+<div data-role="content" xmlns:n="http://www.portalfiscal.inf.br/nfe" xmlns:chave="http://exslt.org/chaveacesso" xmlns:r="http://www.serpro.gov.br/nfe/remessanfe.xsd" class="ui-content" role="main">
+  <div id="conteudo">
+    <div id="avisos">
+    </div>
+    <div class="txtCenter">
+      <div id="u20" class="txtTopo">PADARIA IDEAL LTDA</div>
+      <div class="text">
+								CNPJ:
+								05.932.696/0001-08</div>
+      <div class="text">AVENIDA AMAZONAS,
+							6,
+							,
+							JOCKEY DE ITAPARICA,
+							Vila Velha,
+							ES</div>
+    </div>
+    <form class="ui-filterable"><div class="ui-input-search ui-body-inherit ui-corner-all ui-shadow-inset ui-input-has-clear"><input data-type="search" placeholder="Filtrar itens..." autocorrect="off" autocomplete="off"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" tabindex="-1" aria-hidden="true" class="ui-input-clear ui-btn ui-icon-delete ui-btn-icon-notext ui-corner-all ui-input-clear-hidden" title="Clear text">Clear text</a></div></form><table border="0" align="center" cellpadding="0" cellspacing="0" id="tabResult" data-filter="true">
+      <tbody><tr id="Item + 1">
+        <td valign="top">
+          <span class="txtTit">MORT DF SEARA KG</span>
+          <span class="RCod">
+										(Código: 5595)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,106</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;38,9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">4,12</span></td>
+      </tr>
+      <tr id="Item + 2">
+        <td valign="top">
+          <span class="txtTit">PAO DE HOT DOG KG</span>
+          <span class="RCod">
+										(Código: 6309)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,298</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;34,9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">10,40</span></td>
+      </tr>
+      <tr id="Item + 3">
+        <td valign="top">
+          <span class="txtTit">PAO DE HOT DOG KG</span>
+          <span class="RCod">
+										(Código: 6309)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,302</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;34,9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">10,54</span></td>
+      </tr>
+      <tr id="Item + 4">
+        <td valign="top">
+          <span class="txtTit">PAO FRANCES KG</span>
+          <span class="RCod">
+										(Código: 4)
+									</span>
+          <br>
+          <span class="Rqtd">
+            <strong>Qtde.:</strong>0,172</span>
+          <span class="RUN">
+            <strong>UN: </strong>KG</span>
+          <span class="RvlUnit">
+            <strong>Vl. Unit.:</strong>&nbsp;23,9</span>
+        </td>
+        <td align="right" valign="top" class="txtTit noWrap">
+									Vl. Total<br><span class="valor">4,11</span></td>
+      </tr>
+    </tbody></table>
+    <div id="totalNota" class="txtRight">
+      <div id="linhaTotal">
+        <label>Qtd. total de itens:</label>
+        <span class="totalNumb">4</span>
+      </div>
+      <div id="linhaTotal" class="linhaShade">
+        <label>Valor a pagar R$:</label>
+        <span class="totalNumb txtMax">29,17</span>
+      </div>
+      <div id="linhaForma">
+        <label>Forma de pagamento:</label>
+        <span class="totalNumb txtTitR">Valor pago R$:</span>
+      </div>
+      <div id="linhaTotal">
+        <label class="tx">
+        </label>
+        <span class="totalNumb">NaN</span>
+      </div>
+    </div>
+  </div>
+  <div id="infos" class="txtCenter">
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Informações gerais da Nota<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">
+          <strong>EMISSÃO NORMAL</strong>
+          <br>
+          <br>
+          <strong>Número: </strong>379430<strong> Série: </strong>13<strong> Emissão: </strong>21/10/2026 16:45:12  - Via Consumidor
+								<br><br><strong>Protocolo de Autorização: </strong>232260596784017       21/10/2026 16:45:17<br><br><strong>Ambiente de Produção - 
+									Versão XML: 4.00 - Versão XSLT: 2.03
+								</strong></li>
+      </ul>
+    </div></div>
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Chave de acesso<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">
+								Consulte pela Chave de Acesso em
+								
+										http://app.sefaz.es.gov.br/consultaNFCe
+									<br><br><strong>Chave de acesso:</strong><br><span class="chave">3226 1005 9326 9600 0108 6501 3000 3794 3011 3379 4308</span></li>
+      </ul>
+    </div></div>
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Consumidor<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">
+          <strong>Consumidor não identificado</strong>
+        </li>
+      </ul>
+    </div></div>
+    <div data-role="collapsible" data-collapsed-icon="carat-d" data-expanded-icon="carat-u" data-collapsed="false" class="ui-collapsible ui-collapsible-inset ui-corner-all ui-collapsible-themed-content"><h4 class="ui-collapsible-heading"><a href="https://app.sefaz.es.gov.br/ConsultaNFCe/ConsultaDANFE_NFCe.aspx#" class="ui-collapsible-heading-toggle ui-btn ui-icon-carat-u ui-btn-icon-left ui-btn-inherit">Informações de interesse do contribuinte<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h4><div class="ui-collapsible-content ui-body-inherit" aria-hidden="false">
+      
+      <ul data-role="listview" data-inset="false" class="ui-listview">
+        <li class="ui-li-static ui-body-inherit ui-first-child ui-last-child">CP:13379430 OP:000076&lt;/lf&gt;ID:2D46B55EF39345D8A508BA5BFD6F8BAF</li>
+      </ul>
+    </div></div>
+  </div>
+</div>
+            
+            
+
+            
+        </div>
+
+    
+</div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid rodape">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm-10">
+                        <p>© Copyright 2003 - 2016 Secretaria de Estado da Fazenda do Espírito Santo<br>
+                            Av. João Batista Parra . nº 600 . Ed. Aureliano Hoffman . Enseada do Suá . Vitória-ES . CEP: 29050-375 . CNPJ: 27.080.571/0001-30</p>
+                    </div>
+                    <div class="col-sm-2">
+                        <img src="https://internet.sefaz.es.gov.br/imagens/brasao_negativo.png" alt="Secretaria de Estado da Fazenda do Espírito Santo" width="150">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </form>
+    <!-- jQuery (É necessário para o funcionamento dos plugins) -->
+    
+    
+    
+
+
+</div><div class="ui-loader ui-corner-all ui-body-a ui-loader-default"><span class="ui-icon-loading"></span><h1>loading</h1></div><reclameaqui-extension-pin><section><template shadowrootmode="open"><span hidden="" aria-hidden="true" data-trust-ds-style-anchor="true"></span></template></section></reclameaqui-extension-pin><iframe id="nr-ext-rsicon" style="position: absolute; display: none; width: 50px; height: 50px; z-index: 2147483647; border-style: none; background: transparent;" src="./IDEAL-Consulta NFC-e_files/saved_resource.html"></iframe></body></html>

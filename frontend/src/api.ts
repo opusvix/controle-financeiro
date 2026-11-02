@@ -44,8 +44,9 @@ export type Saude = {
 };
 
 async function chamar<T>(caminho: string, opcoes?: RequestInit): Promise<T> {
+  const ehArquivo = opcoes?.body instanceof FormData;   // upload: o navegador define o cabeçalho
   const r = await fetch(caminho, {
-    headers: { "Content-Type": "application/json" },
+    headers: ehArquivo ? undefined : { "Content-Type": "application/json" },
     ...opcoes,
   });
   if (!r.ok) {
@@ -63,7 +64,36 @@ async function chamar<T>(caminho: string, opcoes?: RequestInit): Promise<T> {
 const enviar = (metodo: string, dados: unknown): RequestInit =>
   ({ method: metodo, body: JSON.stringify(dados) });
 
+export type ItemCupom = {
+  seq: number; descricao: string; codigo: string | null; quantidade_milesimos: number;
+  unidade: string; preco_unitario_centavos: number; valor_total_centavos: number;
+  desconto_centavos: number; categoria_sugerida?: number | null;
+};
+export type Cupom = {
+  origem: string; tipo_documento: string; chave: string | null;
+  emitente: { nome: string; cnpj: string | null; cidade: string | null; uf: string | null };
+  numero: string | null; serie: string | null; emissao: string | null; itens: ItemCupom[];
+  valor_total_centavos: number; desconto_centavos: number; valor_pagar_centavos: number;
+};
+export type CupomLido = {
+  arquivo: string; cupom: Cupom;
+  conferencia: { liquido_itens: number; valor_pagar: number; diferenca: number; confere: boolean };
+  ja_lancado: { id: number; transacao_id: number | null; data: string | null } | null;
+};
+export type NotaQR = { chave: string; numero: number; cnpj: string; valida: boolean; url_consulta: string | null };
+
+const comArquivo = (arquivo: File): RequestInit => {
+  const f = new FormData();
+  f.append("arquivo", arquivo);
+  return { method: "POST", body: f };
+};
+
 export const api = {
+  lerQR: (arquivo: File) => chamar<{ notas: NotaQR[] }>("/api/nfce/qr", comArquivo(arquivo)),
+  lerCupom: (arquivo: File) => chamar<CupomLido>("/api/cupons/ler", comArquivo(arquivo)),
+  lancarCupom: (d: Record<string, unknown>) =>
+    chamar<{ transacao_id: number; valor_centavos: number; itens: number }>(
+      "/api/cupons/lancar", enviar("POST", d)),
   saude: () => chamar<Saude>("/api/saude"),
   painel: (comp: string) => chamar<Painel>(`/api/dashboard?competencia=${comp}`),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),
