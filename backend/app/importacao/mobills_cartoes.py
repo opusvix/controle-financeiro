@@ -228,7 +228,7 @@ def texto_relatorio(rel: Relatorio, simulacao: bool) -> str:
     s += [f"Já estavam nos cartões (rodada anterior): {rel.ja_estavam}",
           f"Pagamentos de fatura criados: {len(rel.pagamentos)}"]
     if rel.sem_cartao:
-        s += ["", "SEM CARTÃO CADASTRADO (nada foi feito com estas linhas):"]
+        s += ["", "SEM CARTÃO CADASTRADO (continuam como despesa da conta, nada mudou):"]
         s += [f"   {k}: {v} linhas" for k, v in rel.sem_cartao.items()]
     if rel.duplicatas:
         s += ["", "PULADAS por já existir compra de mesmo valor na fatura:"] + [f"   {x}" for x in rel.duplicatas]
