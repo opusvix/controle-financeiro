@@ -89,3 +89,20 @@ def test_perim_30_itens_com_desconto_no_total():
     assert (queijo["quantidade_milesimos"], queijo["preco_unitario_centavos"], queijo["valor_total_centavos"]) == (458, 8950, 4099)
     assert sum(i["desconto_centavos"] for i in c["itens"]) == 1365
     assert cupons.conferir(c)["confere"]
+
+
+def test_apagar_libera_cupom_e_sugere_pagamento(cliente):
+    ler = lambda: cliente.post("/api/cupons/ler", files={"arquivo": ("i.html", AMOSTRA.read_bytes(), "text/html")}).json()  # noqa: E731
+    r = ler()
+    assert r["pagamento_sugerido"] is None
+    conta = cliente.get("/api/contas").json()[0]["id"]
+    padaria = next(x["id"] for x in cliente.get("/api/categorias").json() if x["nome"] == "Padaria")
+    t = cliente.post("/api/cupons/lancar", json={"cupom": r["cupom"], "conta_id": conta,
+                                                  "categorias": {"1": padaria}}).json()["transacao_id"]
+    r2 = ler()
+    assert r2["ja_lancado"] and r2["pagamento_sugerido"] == {"conta_id": conta, "cartao_id": None}
+    assert cliente.delete(f"/api/transacoes/{t}").status_code == 204
+    r3 = ler()
+    assert r3["ja_lancado"] is None
+    assert cliente.post("/api/cupons/lancar", json={"cupom": r3["cupom"], "conta_id": conta,
+                                                     "categorias": {"1": padaria}}).status_code == 201

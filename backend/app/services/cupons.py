@@ -221,9 +221,21 @@ def conferir(cupom: dict) -> dict:
 def ja_lancado(con: sqlite3.Connection, cupom: dict) -> dict | None:
     if not cupom.get("chave"):
         return None
+    # Só conta como lançado se a transação ainda existe (apagar em Transações libera o cupom).
     r = con.execute("""SELECT d.id, d.status, t.id AS transacao_id, t.data FROM documento d
-                       LEFT JOIN transacao t ON t.documento_id = d.id
+                       JOIN transacao t ON t.documento_id = d.id
                        WHERE d.chave_nfce = ?""", (cupom["chave"],)).fetchone()
+    return dict(r) if r else None
+
+
+def pagamento_sugerido(con: sqlite3.Connection, cupom: dict) -> dict | None:
+    """A página da SEFAZ não traz a forma de pagamento: sugere a última usada nesta loja."""
+    cnpj = (cupom.get("emitente") or {}).get("cnpj")
+    if not cnpj:
+        return None
+    r = con.execute("""SELECT t.conta_id, t.cartao_id FROM transacao t
+                       JOIN estabelecimento e ON e.id = t.estabelecimento_id
+                       WHERE e.cnpj = ? ORDER BY t.data DESC, t.id DESC LIMIT 1""", (cnpj,)).fetchone()
     return dict(r) if r else None
 
 
@@ -262,7 +274,8 @@ def sugerir_categorias(con: sqlite3.Connection, cupom: dict) -> None:
 def preparar(con: sqlite3.Connection, cupom: dict) -> dict:
     """O que a tela de revisão recebe: cupom + conferência + duplicidade + sugestões."""
     sugerir_categorias(con, cupom)
-    return {"cupom": cupom, "conferencia": conferir(cupom), "ja_lancado": ja_lancado(con, cupom)}
+    return {"cupom": cupom, "conferencia": conferir(cupom), "ja_lancado": ja_lancado(con, cupom),
+            "pagamento_sugerido": pagamento_sugerido(con, cupom)}
 
 
 # --------------------------------------------------------------------------- lançamento
@@ -317,6 +330,10 @@ def lancar(con: sqlite3.Connection, cupom: dict, *, conta_id: int | None = None,
     emit = cupom.get("emitente") or {}
 
     with con:
+        if cupom.get("chave"):
+            # Documento órfão (a transação foi apagada): sai para o cupom poder entrar de novo.
+            con.execute("DELETE FROM documento WHERE chave_nfce = ? AND NOT EXISTS "
+                        "(SELECT 1 FROM transacao t WHERE t.documento_id = documento.id)", (cupom["chave"],))
         loja = _estabelecimento(con, emit)
         doc = con.execute(
             "INSERT INTO documento (tipo, arquivo, chave_nfce, estabelecimento_id, data_emissao, "
