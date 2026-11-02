@@ -79,3 +79,13 @@ def test_api_ler_e_lancar(cliente):
                                                     "conta_id": contas[0]["id"]}).status_code == 422
     ruim = cliente.post("/api/cupons/ler", files={"arquivo": ("x.html", b"<html>nada</html>", "text/html")})
     assert ruim.status_code == 422
+
+
+def test_perim_30_itens_com_desconto_no_total():
+    c = cupons.ler_sefaz_html((AMOSTRA.parent / "sefaz_es_perim.html").read_bytes())
+    assert c["emitente"]["cnpj"] == "06955576000512" and len(c["itens"]) == 30
+    assert (c["valor_total_centavos"], c["desconto_centavos"], c["valor_pagar_centavos"]) == (38871, 1365, 37506)
+    queijo = c["itens"][3]
+    assert (queijo["quantidade_milesimos"], queijo["preco_unitario_centavos"], queijo["valor_total_centavos"]) == (458, 8950, 4099)
+    assert sum(i["desconto_centavos"] for i in c["itens"]) == 1365
+    assert cupons.conferir(c)["confere"]
