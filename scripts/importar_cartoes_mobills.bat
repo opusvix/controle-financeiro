@@ -1,24 +1,33 @@
 @echo off
 rem Traz as faturas de cartao do Mobills (RELATORIO_CARTOES_*.xlsx).
-rem Primeiro SIMULA e mostra o relatorio; so grava se voce confirmar.
-rem Uso: scripts\importar_cartoes_mobills.bat "D:\caminho\RELATORIO_CARTOES.xlsx"
+rem Pode dar dois cliques: sem arquivo informado, usa o RELATORIO_CARTOES_*.xlsx
+rem mais recente da pasta ControleFinanceiro. Primeiro SIMULA; so grava com S.
 setlocal
-if "%~1"=="" (
-    echo Informe o arquivo .xlsx de cartoes exportado do Mobills.
-    exit /b 1
-)
 set RAIZ=%~dp0..
+set ARQ=%~1
+if "%ARQ%"=="" (
+    for /f "delims=" %%F in ('dir /b /o:d "%RAIZ%\..\RELATORIO_CARTOES_*.xlsx" 2^>nul') do set ARQ=%RAIZ%\..\%%F
+)
+if "%ARQ%"=="" (
+    echo Nao achei nenhum RELATORIO_CARTOES_*.xlsx na pasta ControleFinanceiro.
+    goto fim
+)
+echo Arquivo: %ARQ%
+echo.
 cd /d "%RAIZ%\backend"
-.venv\Scripts\python -m app.importacao.mobills_cartoes "%~1" --simular --saida "%RAIZ%\cartoes_simulacao.txt" || goto erro
+.venv\Scripts\python -m app.importacao.mobills_cartoes "%ARQ%" --simular --saida "%RAIZ%\cartoes_simulacao.txt" || goto erro
 echo.
 set /p OK=Os saldos ficaram iguais e as faturas conferem? Digite S para gravar: 
 if /i not "%OK%"=="S" (
     echo Nada foi gravado.
-    exit /b 0
+    goto fim
 )
-.venv\Scripts\python -m app.importacao.mobills_cartoes "%~1" --saida "%RAIZ%\cartoes_resultado.txt" || goto erro
+.venv\Scripts\python -m app.importacao.mobills_cartoes "%ARQ%" --saida "%RAIZ%\cartoes_resultado.txt" || goto erro
+echo.
 echo Pronto. Abra o app em Cartoes de credito.
-exit /b 0
+goto fim
 :erro
 echo Algo deu errado na importacao.
-exit /b 1
+:fim
+echo.
+pause
