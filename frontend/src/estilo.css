@@ -149,3 +149,8 @@ button.pagar { background: var(--roxo); color: #fff; border: none; border-radius
 .lista-apagar li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--borda, #2a2f3a); }
 .lista-apagar li small { display: block; opacity: .7; }
 .lista-apagar .atrasada small { color: #ef4444; opacity: 1; }
+/* Cupom: lançar despesa ou só preços */
+.modo-cupom { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 14px; margin: 12px 0; display: grid; gap: 6px; }
+.modo-cupom .dica { margin: 4px 0 0; }
+.modo-cupom label.chave { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 14px; }
+.modo-cupom label.chave input { width: auto; margin: 0; }

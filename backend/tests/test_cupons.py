@@ -118,3 +118,40 @@ def test_lancamento_de_cupom_nao_muda_valor_mas_troca_pagamento(cliente):
                                                   "categorias": {"1": padaria}}).json()["transacao_id"]
     assert cliente.patch(f"/api/transacoes/{t}", json={"valor_centavos": 1}).status_code == 422
     assert cliente.patch(f"/api/transacoes/{t}", json={"cartao_id": cartao}).json()["tipo"] == "despesa_cartao"
+
+
+def test_cupom_antigo_so_precos_nao_cria_despesa_mas_entra_no_historico(con):
+    """A despesa já veio do Mobills: o cupom entra só para o controle de preços."""
+    conta, padaria, carnes = _ids(con)
+    antes = con.execute("SELECT COUNT(*) FROM transacao").fetchone()[0]
+    c = cupons.ler_sefaz_html(AMOSTRA.read_bytes())
+    r = cupons.lancar(con, c, categorias={1: carnes, 2: padaria}, so_precos=True)
+    assert r["transacao_id"] is None and r["so_precos"] and r["itens"] == 4
+    assert con.execute("SELECT COUNT(*) FROM transacao").fetchone()[0] == antes
+    # Preço por kg da mortadela (4,12 por 0,106 kg), datado e com a loja do cupom.
+    p = con.execute("SELECT data, estabelecimento_id, preco_liquido_unitario_centavos FROM v_preco "
+                    "ORDER BY item_id LIMIT 1").fetchone()
+    assert p["data"] == "2026-10-21" and p["estabelecimento_id"] is not None
+    assert p["preco_liquido_unitario_centavos"] == round(412 * 1000 / 106)
+    # Não pode registrar de novo, e as categorias aprendidas valem para o próximo cupom da loja.
+    de_novo = cupons.preparar(con, cupons.ler_sefaz_html(AMOSTRA.read_bytes()))
+    assert de_novo["ja_lancado"]["so_precos"] == 1
+    assert [i["categoria_sugerida"] for i in de_novo["cupom"]["itens"]][:2] == [carnes, padaria]
+    with pytest.raises(RegraViolada, match="já foi lançado"):
+        cupons.lancar(con, de_novo["cupom"], conta_id=conta)
+
+
+def test_api_so_precos_dispensa_pagamento(cliente):
+    c = cliente.post("/api/cupons/ler", files={"arquivo": ("ideal.html", AMOSTRA.read_bytes(), "text/html")}).json()
+    cats = {i["seq"]: 1 for i in c["cupom"]["itens"]}
+    r = cliente.post("/api/cupons/lancar", json={"cupom": c["cupom"], "categorias": cats, "so_precos": True})
+    assert r.status_code == 201 and r.json()["transacao_id"] is None
+
+
+def test_avisa_quando_a_despesa_ja_esta_no_app(con):
+    conta, _, _ = _ids(con)
+    con.execute("INSERT INTO transacao (tipo, descricao, valor_centavos, data, conta_id, origem, origem_id) "
+                "VALUES ('despesa', 'PADARIA IDEAL', 2917, '2026-10-22', ?, 'mobills', 'x1')", (conta,))
+    r = cupons.preparar(con, cupons.ler_sefaz_html(AMOSTRA.read_bytes()))
+    assert r["despesa_parecida"]["descricao"] == "PADARIA IDEAL"
+    assert r["despesa_parecida"]["data"] == "2026-10-22"
