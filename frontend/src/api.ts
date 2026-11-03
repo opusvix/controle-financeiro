@@ -86,6 +86,30 @@ export type PainelEnergia = {
     meses_com_atraso: number; variacao_consumo_pct: number | null; meses_comparados: number;
   };
 };
+export type MesAgua = {
+  referencia: string; consumo: number | null; total_centavos: number; fixo_centavos: number;
+  variavel_centavos: number; multa_centavos: number; custo_m3: number | null; variavel_m3: number | null;
+  consumo_ano_anterior: number | null; pago_com_atraso: boolean;
+};
+export type PainelAgua = {
+  meses: MesAgua[];
+  resumo: { meses: number; total_centavos: number; consumo: number; custo_m3: number | null;
+    fixo_centavos: number; multa_centavos: number; variacao_consumo_pct: number | null; meses_comparados: number };
+};
+export type EventoPlano = {
+  referencia: string; antes_centavos: number; depois_centavos: number; percentual: number;
+  diferenca_mes_centavos: number; tipo: "anual" | "faixa_etaria" | "desconhecido"; quem: string[];
+  detalhe: { beneficiario: string; item: string; antes_centavos: number; depois_centavos: number; percentual: number }[];
+  teto_ans?: { ciclo_inicio: string; percentual: number; fonte: string | null } | null;
+  comparacao?: { indice: string; percentual: number | null; periodo: string }[];
+  acima_do_teto?: boolean;
+};
+export type PainelPlano = {
+  meses: { referencia: string; total_centavos: number; vidas: number | null;
+    itens: { beneficiario: string; item: string; valor_centavos: number }[] }[];
+  eventos: EventoPlano[];
+  indices_ate: Record<string, string | null>;
+};
 export type Saude = {
   ok: boolean; banco: string; leitura_ia_configurada: boolean;
   ultimo_backup: { arquivo: string; criado_em: string; copiado_drive: number } | null;
@@ -151,6 +175,10 @@ export const api = {
   saude: () => chamar<Saude>("/api/saude"),
   painel: (comp: string) => chamar<Painel>(`/api/dashboard?competencia=${comp}`),
   energia: (meses = 12) => chamar<PainelEnergia>(`/api/painel/energia?meses=${meses}`),
+  agua: (meses = 12) => chamar<PainelAgua>(`/api/painel/agua?meses=${meses}`),
+  plano: () => chamar<PainelPlano>("/api/painel/plano"),
+  atualizarIndices: () =>
+    chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),
   contas: () => chamar<Conta[]>("/api/contas"),
   salvarConta: (d: Partial<Conta>, id?: number) =>

@@ -1,0 +1,65 @@
+                                         UNIMED VITÓRIA - COOPERATIVA DE TRABALHO MÉDICO
+                                         Av. César Hilal, 700 - 3º Andar - Bento Ferreira
+                                         CEP.: 29.052-232 - Vitória
+                                         Telefone: 0800-026-0080 - www.unimedvitoria.com.br
+                                         CNPJ: 27.578.434/0001-20                                                       RECEBIDO DO SACADO
+
+  Sacado                                                                                                               Código do Cliente
+FULANO DE TAL                                                                                               000.0000.000000
+
+Nome Beneficiário                                           Descrição Fatura                           Cod.Mn.Saúde          Data Inclusão       Valor Fatura
+
+FULANO DE TAL                                    MENSALIDADE                                212                   26/08/1992          R$ 273,04
+
+FULANO DE TAL                                    REMOCAO                                                          30/12/1995          R$ 21,34
+
+TITULAR DA CONTA                               MENSALIDADE                                212                   26/08/1992          R$ 374,11
+
+TITULAR DA CONTA                               REMOCAO                                                          30/12/1995          R$ 14,25
+
+BELTRANO DE TAL                                       MENSALIDADE                                212                   26/08/1992          R$ 212,63
+
+BELTRANO DE TAL                                       REMOCAO                                                          30/12/1995          R$ 14,25
+
+Observações                                                                                                                Dúvidas, ligue: 0800 026 0080.
+                                   AVISO IMPORTANTE - PRAZO DE CANCELAMENTO POR INADIMPLÊNCIA.
+                             De acordo com a Lei nº 9656/98 de planos de saúde, contratos com atraso superior a 60 dias poderão ser
+                             cancelados por inadimplência. Evite contratempos e verifique se existe pendência financeira em seu contrato.
+Mensagem
+A Unimed Vitória, em cumprimento ao disposto na Lei 12.007/2009, declara que NÃO HÁ DÉBITOS ANTERIORES ao período de 01/2026 A presente
+declaração substitui, para a comprovação do cumprimento das obrigações do consumidor, as quitações dos faturamentos mensais dos débitos do
+período a que se refere e dos períodos anteriores.
+
+Os valores da coparticipação, se houver, serão reajustados a partir de janeiro de 2026, conforme previsão em contrato: a tabela de coparticipação por
+regra fixa terá os valores reajustados em 6,06%; a coparticipação em percentual terá a tabela de custo médio atualizada. Dúvidas? Ligue 0800 026
+0080.
+Valor do Documento                           Nosso Número                           Vencimento                           Código Cedente
+       R$ 909,62                                 00000000                              30/01/2026                          3010/285994
+                                                                   00000.00000 00000.000000 00000.000000 0 00000000000000
+
+Local de Pagamento                                                                                                          Vencimento
+PAGÁVEL EM QUALQUER BANCO ATÉ O VENCIMENTO                                                                                        30/01/2026
+Cedente                                                                                                                     Agência / Código Cedente
+UNIMED VITÓRIA - COOPERATIVA DE TRABALHO MÉDICO                                                                                   3010/285994
+Data do Documento     Nº do Documento      Espécie Doc.     Aceite        Data do Processamento                             Nosso Número
+  07/01/2026          10-017511/26           PD                             07/01/2026                                            00000000
+Uso do Banco          Carteira             Espécie          Quantidade    Valor                                             (=) Valor do Documento
+                      1                      R$                                                                                   R$ 909,62
+Instruções                                                                                                                  (-) Desconto / Abatimento
+
+Não receber após 90 dias de vencido. Após vencimento
+cobrar mora de R$ 0,30 ao dia, mais multa de R$ 18,19.
+
+Pague suas faturas em dia. Evite inclusão nos orgãos de proteção ao crédito.                                                (+) Mora / Multa
+
+
+
+
+
+
+                                                                                                                            (=) Valor Cobrado
+Carga tribut. Aprox. 16,30%. Lei 12.741/2012. Fonte: IBPT.                                                                        R$ 909,62
+Sacado                                                                                                                        Autenticação Mecânica
+FULANO DE TAL
+Sacador / Avalista                                                                                                                Cód. De Baixa
+                                                                                                                             Ficha de Compensação

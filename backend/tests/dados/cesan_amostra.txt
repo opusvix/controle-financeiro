@@ -1,0 +1,151 @@
+                                                  DOCUMENTO AUXILIAR DA NOTA FISCAL DA ÁGUA E SANEAMENTO ELETRÔNICA
+
+                                                  COMPANHIA ESPÍRITO SANTENSE DE SANEAMENTO – CESAN
+                                                  CNPJ: 28.151.363/0001-47 Inscrição Estadual: 080.247.318
+                                                  Av. Governador Bley, 186, Ed. Bemge - 3º Andar - Centro - Vitória - ES. CEP: 29.010-150
+
+TITULAR DA CONTA                                                                                                                TOTAL A PAGAR
+CPF: 000.***.**0-00                                                                           MATRÍCULA       0000000-0
+RUA EXEMPLO, 100, BAIRRO                                                                                                 R$ 147,51
+VILA VELHA                                                                                        MÊS/ANO     09/2026
+CEP: 29103620                                                                                                                                  VENCIMENTO
+Tipo de Ligação: Água e Esgoto            Hidrômetro X00X000000                      DATA DE EMISSÃO         05/09/2026
+Categoria: Residencial Coletivo I         Quant. Economias: 2                                                                                  13/10/2026
+
+Atendendo a Lei 12.007/2009 declaramos que NÃO CONSTAM                              Atendimento ao Cliente
+DÉBITOS, nesta matrícula relativos ao ano de 2025. Esta declaração                  R HENRIQUE MOSCOSO, 1375, LJ 2, CENTRO, VILA VELHA - 08:00
+substitui os comprovantes de quitações referentes ao faturamento do                 às 16:00
+período citado, ressalvando o direito de cobrança por dívidas de
+períodos anteriores aos referenciados nesta declaração.
+
+               NOTA FISCAL Nº 2159382
+               SÉRIE UNICA
+               DATA DE EMISSÃO: 09/09/2026
+               Consulte pela Chave de Acesso em: https://dfe-portal.svrs.rs.gov.br/Nfag/consulta
+               Chave de acesso: 0
+               Protocolo de autorização: 3322600002181742 - 09/09/2026 às 15:18:58
+
+INFORMAÇÕES SOBRE A QUALIDADE DA ÁGUA                                                                                     HISTÓRICO DE CONSUMO M³
+         Número de Amostras referente ao mês 09/2026                                                                    08/2026 17,0             02/2026 18,0
+Parâmetro                Nº Exigidos       Nº Realizado       Nº Conforme                                               07/2026 20,0             01/2026 21,0
+Turbidez                     154                168                161                                                  06/2026 20,0             12/2025 19,0
+Cor                          154                168                161                                                  05/2026 19,0             11/2025 15,0
+Cloro                        154                168                168                                                  04/2026 19,0             10/2025 19,0
+Escherichia Coli             154                168                168                                                  03/2026 23,0             09/2025 16,0
+Coliformes Totais            154                168                165
+
+Conclusão: Anomalias detectadas já foram solucionadas
+
+INFORMAÇÕES DE LEITURA
+        LEITURA                           LEITURA                           NÚMERO                           CONSUMO                             MÉDIA
+       ANTERIOR                            ATUAL                            DE DIAS                           MEDIDO                             DIÁRIA
+           924                               938                                29                              14 M³                            0,62 M³
+
+Consumo medido (litros):      14.000                          Data leitura atual:            05/09/2026
+Tipo de faturamento:          MEDIDO                          Data leitura anterior:         07/08/2026
+Vol. Fat. Água (m³):          14,0                            Data prev. prox. leitura:      07/10/2026
+Vol. Fat. Esgoto (m³):        14.0                            Valor médio/m³:                5,85
+
+DESCRIÇÃO DOS SERVIÇOS / LANÇAMENTOS
+DESCRIÇÃO                                        FIXO (R$) +       VARIÁVEL (R$)  =          VALOR (R$)     IBS-Mun (0,00%)      IBS-UF (0,10%)         CBS (0,90%)
+
+Água Residencial Coletivo I                         49,75                 32,20                  81,95                 0,00                0,08                0,74
+Esgoto Residencial Coletivo I                       39,80                 25,76                  65,56                 0,00                0,07                0,59
+                                                                   VALOR TOTAL (R$)        147,51                      0,00                0,15                1,33
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Tributos Base de Cálculo R$ 147,51
+PIS – alíquota 1,65% - R$ 2,43
+COFINS – alíquota 7,60% - R$ 11,21
+Total Aprox Impostos: R$ 13,64 (9.25%)
+Não há incidência de ICMS.
+
+
+
+                                TOTAL A PAGAR                 VENCIMENTO                MÊS REFERÊNCIA                CÓD. DÉB. AUT.             PAGUE COM O PIX
+
+
+                                   R$ 147,51                   13/10/2026                    09/2026                     00000000
+CNPJ: 28.151.363/0001-47
+
+
+                                              000000000000 000000000000 000000000000 000000000000
+                                                                     Dúvidas sobre o consumo?
+
+                                                          Anote a leitura do hidrômetro e informe à Cesan
+
+                                    Data                                                                       Somente os números em preto
+
+
+
+
+                                                        1 (um) metro cúbico é igual a 1.000litros (mil litros)
+                           Inclua sua conta em débito automático é prático e fácil. Procure seu banco e informe sua matrícula.
+                                                                         Fale com a Cesan
+ 115 chamada gratuita 24 horas para localidades atendidas pela Cesan. 0800 095 2305 chamada gratuita exclusiva para Aracruz. Se estiver em
+                                     região não atendida pela Cesan, ligue para (27) 3422-0115. A chamada é tarifada.
+                                                  Acesse sua agência virtual pelo site www.cesan.com.br
+
+ Se sua solicitação não foi atendida de forma adequada, entre em contato com a ARSP - Agência de Regulação de Serviços Públicos através do
+                                0800 280 8080 ou do site www.arsp.es.gov.br e informe o número de protocolo da Cesan
+
+                                                                         Qualidade da água
+  A água da Cesan passa por um rigoroso tratamento e atende aos padrões da qualidade da água estabelecidos pela Portaria de Consolidação
+   nº5/2017, Anexo XX, do Ministério da Saúde. Saiba mais sobre a qualidade da água que você recebe no site www.cesan.com.br, pelo e-mail
+                                                qualidadeagua@cesan.com.br ou pelo instagram cesan_oficial
+
+PARÂMETROS                                                  PADRÃO                                                       SIGNIFICADOS
+Turbidez                                                        5 UT                       Grau de transparência da água
+Cor                                                            15 UC                       Coloração da água
+Cloro                                                         ≤ 5 ppm                      Produto químico usado para desinfecção da água
+Escherichia Coli                                              Ausente                      Indicador microbiológico de contaminação
+
+                                             Indica a presença de bactérias na água e, não necessariamente, representa problemas para a saúde. A
+Coliformes Totais                            legislação permite a presença de Coliformes Totais (CT) em função da população abastecida. Até 20.000
+                                             habitantes só é admitido a presença de CT em apenas 1 amostra entre todas coletadas no mês. Acima de
+                                             20.000 habitantes permite-se a presença de CT em 5% da amostras coletadas.
+
+                                                                             Tarifa social
+ Têm direito à Tarifa Social os beneficiários do Programa do Benefício de Prestação Continuada – BPC (Amparo Social) ou inscritos no Cadastro
+   Único para Programas Sociais do Governo Federal – CadÚnico, com renda familiar mensal por pessoa menor ou igual a meio salário mínimo
+           nacional, cujo imóvel esteja classificado na categoria residencial e que atenda às demais condições estabelecidas pela Cesan.
+                  O que precisa ser apresentado: • CPF e da Carteira de Identidade ou outro documento de identificação com foto;
+ • Comprovante atualizado (24 meses) do benefício do BPC (Amparo Social) ou do CadÚnico (com faixa de renda e número do NIS); • Conta de
+água do imóvel; • Comprovante de Residência compatível com o endereço da unidade usuária ou declaração que vincule o beneficiário ao imóvel.
+ Para mais informações acesse nosso site https://www.cesan.com.br/sociedade/tarifa-social/ ou entre em contato pelo telefone 115 ou 0800 095
+                                                                          2305 para Aracruz.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                      ATENÇÃO - Esta fatura não quita débitos anteriores.
+Pagamentos efetuados após o vencimento são acrescidos de multa de 2% e juros de mora de 0,033% por dia de atraso, que serão cobrados nas
+                                   próximas faturas. Atraso no pagamento pode acarretar corte no fornecimento de água.

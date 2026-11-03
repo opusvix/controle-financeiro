@@ -1,6 +1,7 @@
 @echo off
-rem Le os PDFs das contas da casa (luz: EDP Escelsa e EDP Solar) e grava a ficha de cada fatura
-rem no lancamento ja pago: consumo, creditos da Solar, bandeira, iluminacao publica, multa.
+rem Le os PDFs das contas da casa (luz: EDP Escelsa e EDP Solar; agua: CESAN; plano: Unimed)
+rem e grava a ficha de cada fatura no lancamento ja pago: consumo, parte fixa, bandeira, multa,
+rem e no plano de saude a mensalidade de cada pessoa (para separar reajuste anual x faixa etaria).
 rem Primeiro SIMULA; so grava se voce confirmar. Pode rodar de novo sem duplicar.
 rem Uso: dois cliques (le ..\Contas\2026) ou arraste uma pasta de PDFs sobre este arquivo.
 rem PDFs com senha (EDP Solar): a senha e pedida aqui, escondida, e nao fica gravada.

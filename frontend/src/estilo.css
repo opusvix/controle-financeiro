@@ -198,3 +198,18 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .energia-grafico { height: 280px; }
 .energia-leituras { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--texto); font-size: 14px; }
 .energia-leituras b { color: var(--suave); font-weight: 600; }
+
+/* Plano de saúde */
+.plano-evento { background: var(--painel-2); border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+.plano-evento header { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.plano-evento header strong { flex: 1; min-width: 200px; }
+.plano-evento header small { color: var(--suave); }
+.barras-indices { display: grid; gap: 6px; margin: 10px 0 4px; }
+.barra-indice { display: grid; grid-template-columns: 80px 1fr 64px; gap: 10px; align-items: center; font-size: 14px; }
+.barra-indice span { color: var(--suave); }
+.barra-indice div { height: 10px; background: var(--fundo); border-radius: 5px; overflow: hidden; }
+.barra-indice b { display: block; height: 100%; border-radius: 5px; }
+.barra-indice em { font-style: normal; text-align: right; }
+.plano-rodape { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 12px; }
+.plano-rodape small { color: var(--suave); }
+.plano-rodape .aviso { color: var(--texto); }
