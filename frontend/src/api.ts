@@ -68,6 +68,24 @@ export type Painel = {
   receitas_por_categoria: Fatia[]; despesas_por_categoria: Fatia[];
   fixas_variaveis: { fixas: number; variaveis: number };
 };
+export type MesEnergia = {
+  referencia: string; consumo: number | null; kwh_compensado: number | null;
+  escelsa_centavos: number; solar_centavos: number; total_centavos: number;
+  fixos_centavos: number; seguro_centavos: number; bandeira: string | null; bandeira_centavos: number;
+  multa_centavos: number; economia_centavos: number; dias_atraso: number;
+  custo_kwh: number | null; custo_kwh_energia: number | null; consumo_ano_anterior: number | null;
+  completo: boolean;
+};
+export type PainelEnergia = {
+  meses: MesEnergia[];
+  historico: { referencia: string; consumo: number }[];
+  resumo: {
+    meses: number; total_centavos: number; consumo: number; custo_kwh: number | null;
+    custo_kwh_energia: number | null; economia_solar_centavos: number; fixos_centavos: number;
+    seguro_centavos: number; bandeira_centavos: number; multa_centavos: number;
+    meses_com_atraso: number; variacao_consumo_pct: number | null; meses_comparados: number;
+  };
+};
 export type Saude = {
   ok: boolean; banco: string; leitura_ia_configurada: boolean;
   ultimo_backup: { arquivo: string; criado_em: string; copiado_drive: number } | null;
@@ -128,6 +146,7 @@ export const api = {
       "/api/cupons/lancar", enviar("POST", d)),
   saude: () => chamar<Saude>("/api/saude"),
   painel: (comp: string) => chamar<Painel>(`/api/dashboard?competencia=${comp}`),
+  energia: (meses = 12) => chamar<PainelEnergia>(`/api/painel/energia?meses=${meses}`),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),
   contas: () => chamar<Conta[]>("/api/contas"),
   salvarConta: (d: Partial<Conta>, id?: number) =>

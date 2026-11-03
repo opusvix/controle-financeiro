@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..deps import con
-from ..services import contas_casa, fatura_cartao, painel, transacoes
+from ..services import contas_casa, energia, fatura_cartao, painel, transacoes
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -166,6 +166,12 @@ def dashboard(competencia: str | None = Query(default=None, pattern=COMPETENCIA)
     if not re.match(COMPETENCIA, competencia):
         raise HTTPException(422, "Competência inválida")
     return painel.resumo(c, competencia)
+
+
+@router.get("/painel/energia")
+def painel_energia(meses: int = Query(default=12, ge=1, le=36), c=Depends(con)):
+    """Luz da casa mês a mês: Escelsa + Solar, preço real do kWh, consumo × ano anterior, economia da Solar."""
+    return energia.painel(c, meses)
 
 
 class FichaIn(BaseModel):

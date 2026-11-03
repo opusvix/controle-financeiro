@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type APagar } from "../api";
 import Kpi from "../componentes/Kpi";
 import PagarConta from "../componentes/PagarConta";
+import PainelEnergia from "../componentes/PainelEnergia";
 import Rosca from "../componentes/Rosca";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
@@ -46,6 +47,8 @@ export default function Dashboard() {
               <FixasVariaveis {...p.fixas_variaveis} />
             </div>
           </section>
+
+          <section className="largura-toda"><PainelEnergia /></section>
 
           <section className="grade-2">
             <div className="cartao-painel">
