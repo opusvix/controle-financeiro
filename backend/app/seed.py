@@ -23,6 +23,8 @@ DESPESAS = {
     "Doações": ("#84cc16", []),
     "Outras despesas": ("#9ca3af", []),
 }
+# Despesas fixas (contas da casa); as demais são variáveis. Mesma lista da migração 007.
+FIXAS = ("Energia, água e gás", "Internet e telefone", "Plano de saúde")
 RECEITAS = {
     "Salário": "#16a34a",
     "Rendimentos": "#0ea5e9",
@@ -43,6 +45,9 @@ def popular(con: sqlite3.Connection) -> bool:
             con.executemany(
                 "INSERT INTO categoria (nome, tipo, cor, pai_id) VALUES (?, 'despesa', ?, ?)",
                 [(f, cor, mae) for f in filhas])
+        if any(c[1] == "fixa" for c in con.execute("PRAGMA table_info(categoria)")):
+            con.execute(f"UPDATE categoria SET fixa = 1 WHERE tipo = 'despesa' AND nome IN "
+                        f"({', '.join('?' for _ in FIXAS)})", FIXAS)
         con.executemany("INSERT INTO categoria (nome, tipo, cor) VALUES (?, 'receita', ?)",
                         RECEITAS.items())
         con.executemany("INSERT OR IGNORE INTO instituicao (nome, codigo) VALUES (?, ?)",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { nomeMes, paraCentavos, somarMes } from "../formato";
+import FichaConta, { gravarFicha, useFicha } from "./FichaConta";
 import Modal from "./Modal";
 import SeletorCategoria from "./SeletorCategoria";
 import { useDados } from "./useDados";
@@ -11,6 +12,7 @@ export type Editavel = {
   conta_id: number | null; cartao_id?: number | null; categoria_id: number | null;
   observacao: string | null; itens: number; conferido: number; parcela: number | null;
   total_parcelas?: number | null; recorrencia_id?: string | null; pago?: number;
+  vencimento?: string | null;
 };
 
 /**
@@ -38,6 +40,13 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
     conferido: !!t.conferido, fatura: competenciaFatura ?? "", proximas: true, nasProximas: true,
   });
   const [erro, setErro] = useState<string | null>(null);
+  // Conta da casa (despesa à vista paga por conta): ficha com consumo, bandeira e multa.
+  const usaFicha = t.tipo === "despesa";
+  const ficha = useFicha(t.id);
+  const [vencimento, setVencimento] = useState(t.vencimento ?? "");
+  const cat = categorias.find((c) => String(c.id) === f.categoria_id);
+  const mae = categorias.find((c) => c.id === cat?.pai_id);
+  const catFixa = !!(cat?.fixa || mae?.fixa);   // conta da casa: mostra a ficha
   const muda = (campo: keyof typeof f, valor: unknown) => setF({ ...f, [campo]: valor });
   const viraCartao = f.pagoCom.startsWith("cartao:");
 
@@ -59,7 +68,12 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
       d.conferido = f.conferido;
       if (f.fatura && f.fatura !== competenciaFatura) d.fatura_competencia = f.fatura;
     }
-    try { await api.editarTransacao(t.id, d); aoSalvar(); }
+    if (usaFicha && t.pago && vencimento !== (t.vencimento ?? "")) d.vencimento = vencimento || null;
+    try {
+      await api.editarTransacao(t.id, d);
+      if (usaFicha && ficha.form) await gravarFicha(t.id, ficha.form, ficha.gravada);
+      aoSalvar();
+    }
     catch (e) { setErro((e as Error).message); }
   }
 
@@ -104,6 +118,14 @@ export default function EditarTransacao({ transacao: t, competenciaFatura, aoFec
                 <option key={m} value={m}>Vencimento em {nomeMes(m)}</option>))}
             </select>
             <small className="dica">Use quando o banco lançou a compra numa fatura diferente.</small></label>
+        )}
+        {usaFicha && !!t.pago && (
+          <label>Vencimento
+            <input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+            <small className="dica">Guardado ao dar baixa em “Pagar”. Serve para medir atraso.</small></label>
+        )}
+        {usaFicha && ficha.form && (ficha.gravada || !!ficha.form.tipo || catFixa) && (
+          <FichaConta form={ficha.form} aoMudar={ficha.setForm} valorCentavos={paraCentavos(f.valor)} />
         )}
         <label>Observação<input value={f.observacao} onChange={(e) => muda("observacao", e.target.value)} /></label>
         {t.recorrencia_id && (

@@ -169,3 +169,21 @@ button.pagar { background: var(--roxo); color: #fff; border: none; border-radius
 /* Títulos de coluna clicáveis (ordenar a lista) */
 th.ordenavel { cursor: pointer; user-select: none; white-space: nowrap; }
 th.ordenavel:hover { text-decoration: underline; }
+
+/* Ficha da conta (Pagar / Editar) */
+fieldset.ficha-conta { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 14px 12px; align-items: stretch;
+  display: flex; flex-direction: column; gap: 10px; }
+fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13px; }
+.atraso { color: var(--vermelho); font-weight: 600; }
+/* Cadastros: marca fixa / variável */
+.arvore .marca-fixa { margin-left: 8px; font-size: 11px; padding: 1px 8px; border-radius: 999px; }
+.arvore .marca-fixa.sim { background: #8b5cf633; border-color: var(--roxo); color: #c4b5fd; }
+.arvore .marca-fixa.herdada { opacity: .6; cursor: default; }
+/* Dashboard: barra fixas x variáveis */
+.fixas-var { margin-top: 14px; }
+.fixas-var .barra-fv { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--painel-2); }
+.fixas-var .barra-fv b:first-child { background: var(--roxo); }
+.fixas-var .barra-fv b:last-child { background: #f59e0b; }
+.fixas-var dl { display: flex; justify-content: space-between; margin: 6px 0 0; font-size: 13px; }
+.fixas-var dt { color: var(--suave); } .fixas-var dd { margin: 0 0 0 6px; font-weight: 600; }
+.fixas-var dl > div { display: flex; }

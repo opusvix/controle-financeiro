@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..deps import con
-from ..services import fatura_cartao, painel, transacoes
+from ..services import contas_casa, fatura_cartao, painel, transacoes
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -42,11 +42,14 @@ def listar(competencia: str = Query(pattern=COMPETENCIA), conta_id: int | None =
     ano, mes = competencia.split("-")
     sql = """
         SELECT t.*, c.nome AS categoria, co.nome AS conta, ca.nome AS cartao,
+               COALESCE(c.fixa, 0) OR COALESCE(mae.fixa, 0) AS fixa,
+               EXISTS (SELECT 1 FROM conta_ficha f WHERE f.transacao_id = t.id) AS tem_ficha,
                (SELECT group_concat(tg.nome, ', ') FROM transacao_tag tt
                   JOIN tag tg ON tg.id = tt.tag_id WHERE tt.transacao_id = t.id) AS tags,
                (SELECT COUNT(*) FROM item i WHERE i.transacao_id = t.id) AS itens
         FROM transacao t
         LEFT JOIN categoria c ON c.id = t.categoria_id
+        LEFT JOIN categoria mae ON mae.id = c.pai_id
         LEFT JOIN conta co ON co.id = t.conta_id
         LEFT JOIN cartao ca ON ca.id = t.cartao_id
         WHERE strftime('%Y-%m', t.data) = ?
@@ -100,6 +103,7 @@ class EdicaoIn(BaseModel):
     conferido: bool | None = None
     pago: bool | None = None
     ignorar: bool | None = None
+    vencimento: date | None = None
     fatura_competencia: str | None = Field(default=None, pattern=COMPETENCIA)
     tags: list[int] | None = None
     parcelas_seguintes: bool = False     # ao trocar o cartão, levar as próximas parcelas junto
@@ -162,3 +166,36 @@ def dashboard(competencia: str | None = Query(default=None, pattern=COMPETENCIA)
     if not re.match(COMPETENCIA, competencia):
         raise HTTPException(422, "Competência inválida")
     return painel.resumo(c, competencia)
+
+
+class FichaIn(BaseModel):
+    """O que a fatura da conta diz além do valor. Campos que não valem para o tipo ficam vazios."""
+    tipo: Literal[contas_casa.TIPOS]
+    referencia: str | None = Field(default=None, pattern=COMPETENCIA)
+    consumo: float | None = Field(default=None, ge=0)
+    kwh_compensado: float | None = Field(default=None, ge=0)
+    bandeira: Literal["verde", "amarela", "vermelha1", "vermelha2", "escassez"] | None = None
+    bandeira_centavos: int | None = Field(default=None, ge=0)
+    multa_juros_centavos: int | None = Field(default=None, ge=0)
+    vidas: int | None = Field(default=None, ge=1)
+    observacao: str | None = None
+
+
+@router.get("/transacoes/{id_}/ficha")
+def ficha(id_: int, c=Depends(con)):
+    """A ficha gravada ou, se ainda não houver, uma sugestão a partir do mês anterior da mesma conta."""
+    return contas_casa.obter(c, id_)
+
+
+@router.put("/transacoes/{id_}/ficha")
+def gravar_ficha(id_: int, dados: FichaIn, c=Depends(con)):
+    try:
+        return contas_casa.gravar(c, id_, dados.model_dump())
+    except transacoes.RegraViolada as e:
+        raise HTTPException(422, str(e)) from e
+
+
+@router.delete("/transacoes/{id_}/ficha", status_code=204)
+def apagar_ficha(id_: int, c=Depends(con)):
+    with c:
+        c.execute("DELETE FROM conta_ficha WHERE transacao_id = ?", (id_,))

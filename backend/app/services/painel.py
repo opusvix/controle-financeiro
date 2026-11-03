@@ -35,11 +35,7 @@ def saldos_contas(con: sqlite3.Connection, ate: str | None = None) -> list[dict]
     return [dict(r) for r in con.execute(sql, {"ate": ate})]
 
 
-def despesas_por_categoria(con: sqlite3.Connection, competencia: str) -> list[dict]:
-    """Despesas do mês por categoria-mãe. Compras com itens usam a categoria de cada item."""
-    ini, fim = _limites_mes(competencia)
-    sql = """
-        WITH base AS (
+_BASE_DESPESAS = """
             -- transações sem itens: a categoria da transação
             -- crédito no cartão (estorno, cashback) abate a despesa da sua categoria
             SELECT t.categoria_id AS cat,
@@ -56,7 +52,14 @@ def despesas_por_categoria(con: sqlite3.Connection, competencia: str) -> list[di
             FROM item i JOIN transacao t ON t.id = i.transacao_id
             WHERE t.tipo IN ('despesa', 'despesa_cartao') AND t.ignorar = 0
               AND t.data BETWEEN :ini AND :fim
-        )
+"""
+
+
+def despesas_por_categoria(con: sqlite3.Connection, competencia: str) -> list[dict]:
+    """Despesas do mês por categoria-mãe. Compras com itens usam a categoria de cada item."""
+    ini, fim = _limites_mes(competencia)
+    sql = f"""
+        WITH base AS ({_BASE_DESPESAS})
         SELECT COALESCE(mae.id, c.id) AS categoria_id,
                COALESCE(mae.nome, c.nome, 'Sem categoria') AS categoria,
                COALESCE(mae.cor, c.cor, '#6b7280') AS cor,
@@ -68,6 +71,26 @@ def despesas_por_categoria(con: sqlite3.Connection, competencia: str) -> list[di
         ORDER BY total DESC
     """
     return [dict(r) for r in con.execute(sql, {"ini": ini, "fim": fim})]
+
+
+def fixas_variaveis(con: sqlite3.Connection, competencia: str) -> dict:
+    """Despesas do mês divididas em fixas (contas da casa) e variáveis.
+
+    A marca fica na categoria (Cadastros); a subcategoria herda da categoria-mãe.
+    Mesma base de despesas_por_categoria: itens de cupom na sua categoria, estornos abatem.
+    """
+    ini, fim = _limites_mes(competencia)
+    r = con.execute(f"""
+        WITH base AS ({_BASE_DESPESAS})
+        SELECT COALESCE(SUM(CASE WHEN COALESCE(c.fixa, 0) OR COALESCE(mae.fixa, 0)
+                                 THEN base.valor END), 0) AS fixas,
+               COALESCE(SUM(CASE WHEN COALESCE(c.fixa, 0) OR COALESCE(mae.fixa, 0)
+                                 THEN 0 ELSE base.valor END), 0) AS variaveis
+        FROM base
+        LEFT JOIN categoria c ON c.id = base.cat
+        LEFT JOIN categoria mae ON mae.id = c.pai_id
+    """, {"ini": ini, "fim": fim}).fetchone()
+    return {"fixas": r["fixas"], "variaveis": r["variaveis"]}
 
 
 def receitas_por_categoria(con: sqlite3.Connection, competencia: str) -> list[dict]:
@@ -151,4 +174,5 @@ def resumo(con: sqlite3.Connection, competencia: str) -> dict:
         "cartoes": lista_cartoes,
         "receitas_por_categoria": receitas_por_categoria(con, competencia),
         "despesas_por_categoria": despesas_por_categoria(con, competencia),
+        "fixas_variaveis": fixas_variaveis(con, competencia),
     }

@@ -43,6 +43,7 @@ export default function Dashboard() {
             <div className="cartao-painel">
               <h3>Despesas por categoria</h3>
               <Rosca fatias={p.despesas_por_categoria} />
+              <FixasVariaveis {...p.fixas_variaveis} />
             </div>
           </section>
 
@@ -109,5 +110,21 @@ export default function Dashboard() {
       {pagando && <PagarConta transacao={pagando} aoFechar={() => setPagando(null)}
         aoSalvar={() => { setPagando(null); aPagar.recarregar(); recarregar(); }} />}
     </>
+  );
+}
+
+/** Quanto das despesas do mês é fixo (contas da casa) e quanto é variável. */
+function FixasVariaveis({ fixas, variaveis }: { fixas: number; variaveis: number }) {
+  const total = fixas + variaveis;
+  if (total <= 0) return null;
+  const pct = (v: number) => `${Math.round((v / total) * 100)}%`;
+  return (
+    <div className="fixas-var" title="A marca fixa/variável fica na categoria (Cadastros).">
+      <div className="barra-fv"><b style={{ width: pct(fixas) }} /><b style={{ width: pct(variaveis) }} /></div>
+      <dl>
+        <div><dt>Fixas (contas da casa)</dt><dd>{reais(fixas)} · {pct(fixas)}</dd></div>
+        <div><dt>Variáveis</dt><dd>{reais(variaveis)} · {pct(variaveis)}</dd></div>
+      </dl>
+    </div>
   );
 }
