@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../api";
+import { api, type Categoria } from "../api";
 import { useDados } from "../componentes/useDados";
 
 export default function Cadastros() {
@@ -22,6 +22,16 @@ export default function Cadastros() {
     } catch (e) { setErro((e as Error).message); }
   }
 
+  async function alternarFixa(c: Categoria) {
+    try { await api.editarCategoria(c.id, { fixa: !c.fixa }); categorias.recarregar(); }
+    catch (e) { setErro((e as Error).message); }
+  }
+  // Fixa (conta da casa) x variável: a subcategoria herda a marca da categoria-mãe.
+  const Marca = ({ c, herdada }: { c: Categoria; herdada?: boolean }) => tipo !== "despesa" ? null : herdada
+    ? <span className="marca-fixa sim herdada" title="Herdada da categoria-mãe">fixa</span>
+    : <button className={`marca-fixa${c.fixa ? " sim" : ""}`} onClick={() => alternarFixa(c)}
+        title="Clique para alternar entre despesa fixa e variável">{c.fixa ? "fixa" : "variável"}</button>;
+
   async function criarTag() {
     if (!novaTag.trim()) return;
     try { await api.criarTag({ nome: novaTag.trim() }); setNovaTag(""); setErro(null); tags.recarregar(); }
@@ -42,11 +52,14 @@ export default function Cadastros() {
             </div>
           </header>
           <p className="dica">Categoria responde <b>o que</b> foi gasto (como uma conta contábil).
-            Para <b>qual projeto</b>, use uma tag.</p>
+            Para <b>qual projeto</b>, use uma tag.
+            {tipo === "despesa" && <> A marca <b>fixa</b> separa as contas da casa (luz, água, internet,
+              plano de saúde) dos gastos variáveis no Dashboard.</>}</p>
           <ul className="arvore">
             {maes.map((m) => (
-              <li key={m.id}><i style={{ background: m.cor }} />{m.nome}
-                <ul>{daVez.filter((c) => c.pai_id === m.id).map((c) => <li key={c.id}>{c.nome}</li>)}</ul>
+              <li key={m.id}><i style={{ background: m.cor }} />{m.nome}<Marca c={m} />
+                <ul>{daVez.filter((c) => c.pai_id === m.id).map((c) => (
+                  <li key={c.id}>{c.nome}<Marca c={c} herdada={!!m.fixa} /></li>))}</ul>
               </li>
             ))}
           </ul>

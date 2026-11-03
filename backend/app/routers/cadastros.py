@@ -64,6 +64,7 @@ class CategoriaIn(BaseModel):
     pai_id: int | None = None
     icone: str | None = None
     cor: str = "#6b7280"
+    fixa: bool = False    # despesa fixa (conta da casa); a subcategoria herda da mãe
 
 
 class TagIn(BaseModel):
@@ -129,6 +130,15 @@ def criar_categoria(dados: CategoriaIn, c=Depends(con)):
             raise HTTPException(422, "A categoria-mãe deve existir, ser do mesmo tipo e "
                                      "não ser uma subcategoria")
     return _gravar(c, "categoria", _dump(dados))
+
+
+class CategoriaEdicao(BaseModel):
+    fixa: bool
+
+
+@router.patch("/categorias/{id_}")
+def editar_categoria(id_: int, dados: CategoriaEdicao, c=Depends(con)):
+    return _gravar(c, "categoria", {"fixa": int(dados.fixa)}, id_)
 
 
 @router.get("/tags")

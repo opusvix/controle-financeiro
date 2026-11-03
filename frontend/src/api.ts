@@ -12,6 +12,7 @@ export type Cartao = {
 };
 export type Categoria = {
   id: number; nome: string; tipo: "receita" | "despesa"; pai_id: number | null; cor: string;
+  fixa: number;
 };
 export type Tag = { id: number; nome: string; cor: string };
 export type Instituicao = { id: number; nome: string; codigo: string | null };
@@ -21,7 +22,14 @@ export type Transacao = {
   cartao: string | null; tags: string | null; itens: number; entrada: number;
   ajuste_negativo: number; parcela: number | null; total_parcelas: number | null;
   categoria_id: number | null; observacao: string | null; conferido: number;
-  recorrencia_id: string | null;
+  recorrencia_id: string | null; vencimento: string | null; fixa: number; tem_ficha: number;
+};
+export type TipoFicha = "energia" | "energia_solar" | "agua" | "internet" | "telefone" | "saude" | "outra";
+export type Ficha = {
+  transacao_id: number; gravada: boolean; tipo: TipoFicha | null; referencia: string | null;
+  consumo: number | null; kwh_compensado: number | null; bandeira: string | null;
+  bandeira_centavos: number | null; multa_juros_centavos: number | null; vidas: number | null;
+  observacao: string | null;
 };
 export type APagar = {
   id: number; tipo: "receita" | "despesa"; descricao: string; valor_centavos: number; data: string;
@@ -57,6 +65,7 @@ export type Painel = {
   pendencias: { despesas: number; receitas: number };
   contas: SaldoConta[]; cartoes: CartaoPainel[];
   receitas_por_categoria: Fatia[]; despesas_por_categoria: Fatia[];
+  fixas_variaveis: { fixas: number; variaveis: number };
 };
 export type Saude = {
   ok: boolean; banco: string; leitura_ia_configurada: boolean;
@@ -130,6 +139,8 @@ export const api = {
     chamar<Cartao>(id ? `/api/cartoes/${id}` : "/api/cartoes", enviar(id ? "PUT" : "POST", d)),
   categorias: () => chamar<Categoria[]>("/api/categorias"),
   criarCategoria: (d: Partial<Categoria>) => chamar<Categoria>("/api/categorias", enviar("POST", d)),
+  editarCategoria: (id: number, d: { fixa: boolean }) =>
+    chamar<Categoria>(`/api/categorias/${id}`, enviar("PATCH", d)),
   tags: () => chamar<Tag[]>("/api/tags"),
   criarTag: (d: Partial<Tag>) => chamar<Tag>("/api/tags", enviar("POST", d)),
   transacoes: (comp: string) => chamar<Transacao[]>(`/api/transacoes?competencia=${comp}`),
@@ -143,6 +154,10 @@ export const api = {
     chamar<Fatura>(`/api/cartoes/${cartao}/fatura/${comp}/valor-banco`, enviar("PUT", { valor_centavos })),
   apagarTransacao: (id: number, proximas = false) =>
     chamar<void>(`/api/transacoes/${id}${proximas ? "?proximas=true" : ""}`, { method: "DELETE" }),
+  ficha: (id: number) => chamar<Ficha>(`/api/transacoes/${id}/ficha`),
+  gravarFicha: (id: number, d: Record<string, unknown>) =>
+    chamar<Ficha>(`/api/transacoes/${id}/ficha`, enviar("PUT", d)),
+  apagarFicha: (id: number) => chamar<void>(`/api/transacoes/${id}/ficha`, { method: "DELETE" }),
   aPagar: (dias = 30) => chamar<APagar[]>(`/api/a-pagar?dias=${dias}`),
   backup: () => chamar<{ arquivo: string; copiado_drive: boolean }>("/api/backup", { method: "POST" }),
 };

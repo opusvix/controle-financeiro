@@ -214,7 +214,7 @@ def reajustar_saldo(con: sqlite3.Connection, conta_id: int, saldo_desejado: int,
 
 
 EDITAVEIS = ("descricao", "valor_centavos", "data", "conta_id", "cartao_id", "categoria_id",
-             "observacao", "conferido", "pago", "ignorar")
+             "observacao", "conferido", "pago", "ignorar", "vencimento")
 
 
 def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
@@ -229,13 +229,21 @@ def editar(con: sqlite3.Connection, transacao_id: int, mudancas: dict) -> dict:
     if t is None:
         raise RegraViolada("Transação não encontrada")
     campos = {k: v for k, v in mudancas.items() if k in EDITAVEIS}
-    if "data" in campos and isinstance(campos["data"], date):
-        campos["data"] = campos["data"].isoformat()
+    for k in ("data", "vencimento"):
+        if isinstance(campos.get(k), date):
+            campos[k] = campos[k].isoformat()
     # A tela reenvia o formulário inteiro: o que veio igual não é mudança e não pode
     # recalcular a fatura (trocar só o cartão mantém o mês de vencimento).
     for k in ("data", "cartao_id", "conta_id"):
         if k in campos and campos[k] == t[k]:
             del campos[k]
+    # Dar baixa numa conta a pagar: a data passa a ser o dia do pagamento e o vencimento
+    # (a data prevista até agora) fica guardado, para medir atraso. Desfazer devolve a data.
+    if campos.get("pago") and not t["pago"] and not t["vencimento"] and "vencimento" not in campos:
+        campos["vencimento"] = t["data"]
+    elif campos.get("pago") == 0 and t["pago"] and t["vencimento"]:
+        campos.setdefault("data", t["vencimento"])
+        campos["vencimento"] = None
     if "descricao" in campos:
         campos["descricao"] = campos["descricao"].strip()
         if not campos["descricao"]:
