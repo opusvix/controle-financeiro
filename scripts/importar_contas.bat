@@ -11,7 +11,7 @@ if "%PASTA%"=="" set PASTA=%RAIZ%\..\Contas\2026
 cd /d "%RAIZ%\backend"
 echo Se houver PDFs com senha (ex.: EDP Solar), digite a senha. Enter para pular.
 for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "$s = Read-Host 'Senha dos PDFs' -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))"`) do set "CF_SENHA_PDF=%%p"
-.venv\Scripts\python -m pip install -q -r requirements.txt
+call "%RAIZ%\scripts\dependencias.bat" || goto erro
 .venv\Scripts\python -m app.importacao.contas_pdf "%PASTA%" --simular --diagnostico || goto erro
 echo.
 set /p OK=Digite S para gravar as fichas: 

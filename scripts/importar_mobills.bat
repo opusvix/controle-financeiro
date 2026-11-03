@@ -11,7 +11,7 @@ if "%~1"=="" (
 )
 set RAIZ=%~dp0..
 cd /d "%RAIZ%\backend"
-.venv\Scripts\python -m pip install -q -r requirements.txt
+call "%RAIZ%\scripts\dependencias.bat" || goto erro
 .venv\Scripts\python -m app.importacao.mobills "%~1" --simular --saida "%RAIZ%\importacao_simulacao.txt" || goto erro
 echo.
 set /p OK=Confere com o Mobills? Digite S para gravar de verdade: 
