@@ -110,6 +110,23 @@ export type PainelPlano = {
   eventos: EventoPlano[];
   indices_ate: Record<string, string | null>;
 };
+export type CompraPreco = { data: string; loja: string; preco_centavos: number; qtd_milesimos: number };
+export type ProdutoPreco = {
+  nome: string; unidade: string; compras: number; lojas: number;
+  categoria: string | null; categoria_mae: string | null;
+  preco_atual_centavos: number; data_atual: string; loja_atual: string;
+  preco_anterior_centavos: number | null; data_anterior: string | null; variacao_pct: number | null;
+  menor_centavos: number; menor_loja: string; menor_data: string; maior_centavos: number;
+  media_centavos: number; melhor_loja: string | null;
+  por_loja: { loja: string; preco_centavos: number; data: string }[];
+  serie: CompraPreco[];
+};
+export type GrupoPreco = { categoria: string; categoria_mae: string | null; produtos: ProdutoPreco[] };
+export type PainelPrecos = {
+  grupos: GrupoPreco[];
+  resumo: { produtos: number; compras: number; lojas: number; com_historico: number;
+    subindo: number; caindo: number };
+};
 export type Saude = {
   ok: boolean; banco: string; leitura_ia_configurada: boolean;
   ultimo_backup: { arquivo: string; criado_em: string; copiado_drive: number } | null;
@@ -177,6 +194,7 @@ export const api = {
   energia: (meses = 12) => chamar<PainelEnergia>(`/api/painel/energia?meses=${meses}`),
   agua: (meses = 12) => chamar<PainelAgua>(`/api/painel/agua?meses=${meses}`),
   plano: () => chamar<PainelPlano>("/api/painel/plano"),
+  precos: (meses = 24) => chamar<PainelPrecos>(`/api/painel/precos?meses=${meses}`),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),

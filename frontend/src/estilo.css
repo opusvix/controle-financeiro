@@ -213,3 +213,11 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .plano-rodape { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 12px; }
 .plano-rodape small { color: var(--suave); }
 .plano-rodape .aviso { color: var(--texto); }
+
+/* Tela Preços (Fase 3) */
+.preco-detalhe { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; padding: 4px 0 8px; }
+.preco-spark { background: var(--painel-2); border-radius: 10px; padding: 4px; flex: 0 0 auto; }
+.preco-colunas { display: grid; gap: 10px; flex: 1; min-width: 240px; }
+.preco-colunas b { font-weight: 500; font-size: 13px; color: var(--suave); display: block; margin-bottom: 4px; }
+.preco-colunas .chips li.melhor { background: color-mix(in srgb, var(--verde) 22%, var(--painel-2)); }
+.tabela tr.grupo-cartao td small.dica-linha { font-weight: 400; }
