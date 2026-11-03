@@ -97,6 +97,10 @@ async function chamar<T>(caminho: string, opcoes?: RequestInit): Promise<T> {
     headers: ehArquivo ? undefined : { "Content-Type": "application/json" },
     ...opcoes,
   });
+  // Página HTML no lugar de dados: é o servidor antigo, ligado antes da atualização.
+  if (caminho.startsWith("/api/") && (r.headers.get("content-type") ?? "").includes("text/html"))
+    throw new Error("O servidor que está ligado é de uma versão anterior. "
+      + "Rode scripts\\parar.bat e abra o app de novo pelo atalho.");
   if (!r.ok) {
     const corpo = await r.json().catch(() => ({}));
     const detalhe = corpo.detail;
