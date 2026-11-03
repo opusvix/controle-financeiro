@@ -52,3 +52,29 @@ def test_importa_e_liga_ao_lancamento_pago(cliente, monkeypatch, tmp_path):
         "multa_juros_centavos": 120})
     f = cliente.get(f"/api/transacoes/{t['id']}/ficha").json()
     assert f["cip_centavos"] == 2791 and f["multa_juros_centavos"] == 120
+
+
+SOLAR = (Path(__file__).parent / "dados" / "solar_amostra.txt").read_text(encoding="utf-8")
+
+
+def test_le_a_cobranca_da_solar():
+    f = contas_pdf.ler_solar(SOLAR)
+    assert (f.emissor, f.referencia, f.vencimento, f.total_centavos) == ("EDP Solar", "2026-03", "2026-04-06", 21211)
+    assert f.ficha["kwh_compensado"] == 245 and f.ficha["consumo"] == 295
+    assert f.ficha["desconto_centavos"] == 2357            # a economia declarada (10%)
+    assert f.historico == []                                # a série de consumo vem da Escelsa
+
+
+def test_solar_que_nao_fecha_nao_e_gravada():
+    import pytest
+    with pytest.raises(ValueError):
+        contas_pdf.ler_solar(SOLAR.replace("R$ 23,57", "R$ 13,57"))
+
+
+def test_pdf_nao_entendido_guarda_o_texto_para_diagnostico(tmp_path, monkeypatch):
+    (tmp_path / "x-EDP-SOLAR.pdf").write_bytes(b"%PDF")
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda c, s=None: "Solar Digital EDP sem nada")
+    import pytest
+    with pytest.raises(ValueError):
+        contas_pdf.ler(tmp_path / "x-EDP-SOLAR.pdf", diagnostico=tmp_path / "_texto")
+    assert (tmp_path / "_texto" / "x-EDP-SOLAR.txt").read_text(encoding="utf-8").startswith("Solar")

@@ -22,6 +22,7 @@ export type FichaForm = {
   tipo: string; referencia: string; consumo: string; kwh_compensado: string; bandeira: string;
   bandeira_valor: string; multa: string; vidas: string;
   cip: number | null; terceiros: number | null; arquivo: string | null;   // só leitura (vêm do PDF)
+  desconto: number | null;
 };
 
 const num = (v: number | null) => (v == null ? "" : String(v).replace(".", ","));
@@ -32,7 +33,7 @@ function paraForm(f: Ficha): FichaForm {
     tipo: f.tipo ?? "", referencia: f.referencia ?? "", consumo: num(f.consumo),
     kwh_compensado: num(f.kwh_compensado), bandeira: f.bandeira ?? "",
     bandeira_valor: din(f.bandeira_centavos), multa: din(f.multa_juros_centavos), vidas: num(f.vidas),
-    cip: f.cip_centavos, terceiros: f.terceiros_centavos, arquivo: f.arquivo,
+    cip: f.cip_centavos, terceiros: f.terceiros_centavos, arquivo: f.arquivo, desconto: f.desconto_centavos,
   };
 }
 
@@ -117,6 +118,8 @@ export default function FichaConta({ form: f, aoMudar, valorCentavos }: {
       {f.tipo === "energia" && (f.cip != null || f.terceiros != null) && (
         <p className="dica">Iluminação pública {reais(f.cip ?? 0)} · serviços de terceiros (seguro) {reais(f.terceiros ?? 0)}
           {" "}— não dependem do consumo.</p>)}
+      {f.tipo === "energia_solar" && f.desconto != null && (
+        <p className="dica">Economia declarada pela Solar (desconto): <b>{reais(f.desconto)}</b>.</p>)}
       {f.arquivo && <p className="dica">Lida do PDF {f.arquivo}.</p>}
       {preco && <p className="dica">Preço efetivo: <b>{preco} por {unidade}</b> (valor ÷ consumo).</p>}
       {f.tipo === "saude" && valorCentavos && vidas ? (
