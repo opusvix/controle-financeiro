@@ -187,3 +187,14 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .fixas-var dl { display: flex; justify-content: space-between; margin: 6px 0 0; font-size: 13px; }
 .fixas-var dt { color: var(--suave); } .fixas-var dd { margin: 0 0 0 6px; font-weight: 600; }
 .fixas-var dl > div { display: flex; }
+
+/* Painel de energia */
+.largura-toda { margin-bottom: 16px; }
+.energia h3 small { color: var(--suave); font-size: 13px; margin-left: 8px; }
+.energia-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.energia-kpis > div { background: var(--painel-2); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.energia-kpis span, .energia-kpis small { color: var(--suave); font-size: 13px; }
+.energia-kpis strong { font-size: 20px; }
+.energia-grafico { height: 280px; }
+.energia-leituras { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--texto); font-size: 14px; }
+.energia-leituras b { color: var(--suave); font-weight: 600; }
