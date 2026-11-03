@@ -29,7 +29,8 @@ export type Ficha = {
   transacao_id: number; gravada: boolean; tipo: TipoFicha | null; referencia: string | null;
   consumo: number | null; kwh_compensado: number | null; bandeira: string | null;
   bandeira_centavos: number | null; multa_juros_centavos: number | null; vidas: number | null;
-  observacao: string | null;
+  observacao: string | null; cip_centavos: number | null; terceiros_centavos: number | null;
+  arquivo: string | null;
 };
 export type APagar = {
   id: number; tipo: "receita" | "despesa"; descricao: string; valor_centavos: number; data: string;

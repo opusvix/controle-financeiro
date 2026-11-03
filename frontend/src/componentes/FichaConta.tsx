@@ -21,6 +21,7 @@ const BANDEIRAS = [["verde", "Verde"], ["amarela", "Amarela"], ["vermelha1", "Ve
 export type FichaForm = {
   tipo: string; referencia: string; consumo: string; kwh_compensado: string; bandeira: string;
   bandeira_valor: string; multa: string; vidas: string;
+  cip: number | null; terceiros: number | null; arquivo: string | null;   // só leitura (vêm do PDF)
 };
 
 const num = (v: number | null) => (v == null ? "" : String(v).replace(".", ","));
@@ -31,6 +32,7 @@ function paraForm(f: Ficha): FichaForm {
     tipo: f.tipo ?? "", referencia: f.referencia ?? "", consumo: num(f.consumo),
     kwh_compensado: num(f.kwh_compensado), bandeira: f.bandeira ?? "",
     bandeira_valor: din(f.bandeira_centavos), multa: din(f.multa_juros_centavos), vidas: num(f.vidas),
+    cip: f.cip_centavos, terceiros: f.terceiros_centavos, arquivo: f.arquivo,
   };
 }
 
@@ -112,6 +114,10 @@ export default function FichaConta({ form: f, aoMudar, valorCentavos }: {
         <label>Multa e juros por atraso (R$)
           <input inputMode="decimal" value={f.multa} onChange={(e) => muda("multa", e.target.value)} /></label>
       )}
+      {f.tipo === "energia" && (f.cip != null || f.terceiros != null) && (
+        <p className="dica">Iluminação pública {reais(f.cip ?? 0)} · serviços de terceiros (seguro) {reais(f.terceiros ?? 0)}
+          {" "}— não dependem do consumo.</p>)}
+      {f.arquivo && <p className="dica">Lida do PDF {f.arquivo}.</p>}
       {preco && <p className="dica">Preço efetivo: <b>{preco} por {unidade}</b> (valor ÷ consumo).</p>}
       {f.tipo === "saude" && valorCentavos && vidas ? (
         <p className="dica">Custo por vida: <b>{reais(Math.round(valorCentavos / vidas))}</b>.</p>) : null}
