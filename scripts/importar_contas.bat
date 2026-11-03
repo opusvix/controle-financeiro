@@ -9,7 +9,8 @@ set RAIZ=%~dp0..
 set PASTA=%~1
 if "%PASTA%"=="" set PASTA=%RAIZ%\..\Contas\2026
 cd /d "%RAIZ%\backend"
-echo Se houver PDFs com senha (ex.: EDP Solar), digite a senha. Enter para pular.
+echo Se houver PDFs com senha, digite a senha. Mais de uma (ex.: Solar e Claro)? Separe com ; (ponto e virgula).
+echo Enter para pular.
 for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "$s = Read-Host 'Senha dos PDFs' -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))"`) do set "CF_SENHA_PDF=%%p"
 call "%RAIZ%\scripts\dependencias.bat" || goto erro
 .venv\Scripts\python -m app.importacao.contas_pdf "%PASTA%" --simular --diagnostico || goto erro

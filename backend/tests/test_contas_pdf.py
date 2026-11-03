@@ -94,5 +94,6 @@ def test_abre_pdf_com_senha_aes256(tmp_path):
     pdf = tmp_path / "solar.pdf"
     w.write(pdf)
     assert isinstance(contas_pdf.texto_do_pdf(pdf, "segredo"), str)
+    assert isinstance(contas_pdf.texto_do_pdf(pdf, "da-claro;segredo"), str)   # várias senhas
     with pytest.raises(PermissionError):
         contas_pdf.texto_do_pdf(pdf, "errada")
