@@ -1,0 +1,18 @@
+ Cliente                                   Veículo Jurídico
+ 000.000.000-00                            00.000.000/0001-00                                   edp
+ Fulano de Tal                             ASSOCIAÇÃO ES-L1
+   Instalação        Fatura         Consumo do mês      Referente a        Emissão         Vencimento
+   00000000000       0000000000        295 kWh           Mar/2026        27/03/2026        06/04/2026
+   Total a pagar                                                                  R$ 212,11
+   (Cobrança Solar Digital EDP)
+                         Uma economia de R$ 23,57 com o Solar Digital!
+ Histórico de consumo          Composição da cobrança
+  Mês Ref    Consumo(kWh)        Valores da Cobrança          Quantidade (kWh)    Tarifa (R$/kWh)      Valor (R$)
+  Fev/2026          295          Créditos do solar digital                245          0,961960       R$ 235,68
+  Jan/2026          435          (Aplicados à fatura da distribuidora)
+  Dez/2025          366          Desconto Solar Digital(10%)              245             ---         R$ 23,57
+                                 Total sem Solar Digital EDP    R$ 299,72     Total com Solar Digital EDP   R$ 276,15
+         Vencimento:
+         06/04/2026
+       Total a pagar:
+         R$ 212,11

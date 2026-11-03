@@ -103,18 +103,64 @@ def ler_escelsa(t: str) -> Fatura:
                "terceiros_centavos": linha_fixa(r"Seguro"), "multa_juros_centavos": multa or None})
 
 
+MESES_NOME = {m.capitalize(): i for m, i in MESES.items()}
+
+
+def ler_solar(t: str) -> Fatura:
+    """Cobrança do Solar Digital EDP (locação de usina, REN 482/2012).
+
+    Créditos (kWh acima do mínimo da Escelsa) × tarifa − desconto de 10% = valor a pagar.
+    A economia que a própria fatura declara é o desconto.
+    """
+    meses = "|".join(MESES_NOME)
+    ref = re.search(rf"\b({meses})/\s*(\d{{4}})\b", t[t.find("Referente"):] if "Referente" in t else t)
+    # Vencimento: a última data da linha que tem a referência (Emissão vem antes); senão "Vencimento:".
+    linha_ref = next((ln for ln in t.splitlines() if ref and ref.group(0) in ln), "")
+    datas = re.findall(r"(\d{2})/(\d{2})/(\d{4})", linha_ref)
+    venc = datas[-1:] or re.findall(r"Vencimento:?\s+(\d{2})/(\d{2})/(\d{4})", t)[:1]
+    total = re.search(r"Total a pagar:?[^\n]*?(?:\n[^\n]*?){0,2}R\$\s*" + DINHEIRO, t)
+    creditos = re.search(r"Cr[ée]ditos do solar digital[^\n]*?(?:\n[^\n]*?)?(\d+(?:,\d+)?)\s+" + NUM
+                         + r"\s+R\$\s*" + DINHEIRO, t, re.I)
+    desconto = re.search(r"Desconto Solar Digital\s*\(\s*(\d+)\s*%\s*\)[^\n]*?R\$\s*" + DINHEIRO, t, re.I)
+    consumo = re.search(r"(\d+)\s*kWh", t[t.find("Consumo do m"):] if "Consumo do m" in t else "")
+    if not (ref and venc and total):
+        raise ValueError("layout da Solar não reconhecido (referência, vencimento ou total)")
+    dd, mm, aaaa = venc[0]
+    # Conferência: créditos − desconto = total (senão o layout mudou e é melhor não gravar).
+    if creditos and desconto and abs(_centavos(creditos.group(3)) - _centavos(desconto.group(2))
+                                     - _centavos(total.group(1))) > 2:
+        raise ValueError("créditos − desconto não fecha com o total")
+    referencia = f"{ref.group(2)}-{MESES_NOME[ref.group(1)]:02d}"
+    return Fatura(
+        emissor="EDP Solar", tipo="energia_solar", referencia=referencia, vencimento=f"{aaaa}-{mm}-{dd}",
+        total_centavos=_centavos(total.group(1)),
+        # O histórico da Solar usa outro rótulo de mês que a Escelsa; a série de consumo vem da Escelsa.
+        ficha={"tipo": "energia_solar", "referencia": referencia,
+               "kwh_compensado": _num(creditos.group(1)) if creditos else None,
+               "consumo": float(consumo.group(1)) if consumo else None,
+               "desconto_centavos": _centavos(desconto.group(2)) if desconto else None})
+
+
 LEITORES = [  # (como reconhecer o emissor no texto, leitor)
     (re.compile(r"EDP ES DISTRIB DE ENERGIA"), ler_escelsa),
+    (re.compile(r"(?i)solar digital"), ler_solar),
 ]
 # Descrição do lançamento no app, por emissor (o Mobills usou nomes variados).
-PADROES_LANCAMENTO = {"EDP Escelsa": "%ESCELSA%"}
+PADROES_LANCAMENTO = {"EDP Escelsa": "%ESCELSA%", "EDP Solar": "%SOLAR%"}
 
 
-def ler(caminho: Path, senha: str | None = None) -> Fatura | None:
+def ler(caminho: Path, senha: str | None = None, diagnostico: Path | None = None) -> Fatura | None:
     t = texto_do_pdf(caminho, senha)
     for reconhece, leitor in LEITORES:
         if reconhece.search(t):
-            f = leitor(t)
+            try:
+                f = leitor(t)
+            except Exception:
+                # Guarda o texto para ajustar o leitor (fica só no PC, na pasta das contas).
+                if diagnostico:
+                    diagnostico.mkdir(exist_ok=True)
+                    (diagnostico / f"{caminho.stem}.txt").write_text(t, encoding="utf-8")
+                raise
             f.arquivo = caminho.name
             return f
     return None
@@ -133,15 +179,15 @@ def achar_lancamento(con: sqlite3.Connection, f: Fatura) -> sqlite3.Row | None:
 
 
 def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
-             senhas: dict[str, str] | None = None) -> tuple[dict, str]:
+             senha: str | None = None, diagnostico: bool = False) -> tuple[dict, str]:
     linhas, cont = [], {"lidas": 0, "gravadas": 0, "sem_lancamento": 0, "ignoradas": 0, "com_senha": 0}
     historico: dict[tuple[str, str], tuple[float, int]] = {}
     for pdf in sorted(pasta.glob("*.pdf")):
         try:
-            f = ler(pdf, (senhas or {}).get(pdf.name))
+            f = ler(pdf, senha, pasta / "_texto" if diagnostico else None)
         except PermissionError:
             cont["com_senha"] += 1
-            linhas.append(f"  🔒 {pdf.name}: protegido por senha (fica para depois)")
+            linhas.append(f"  🔒 {pdf.name}: protegido por senha ({'a senha digitada não abre este' if senha else 'sem senha'})")
             continue
         except Exception as e:  # um PDF ruim não pode parar a carga dos outros
             cont["ignoradas"] += 1
@@ -157,8 +203,11 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
         fc = f.ficha
         resumo = (f"{f.emissor:12} {f.referencia}  vence {f.vencimento[8:]}/{f.vencimento[5:7]}  "
                   f"R$ {f.total_centavos / 100:>8.2f}  {fc.get('consumo') or 0:>5.0f} kWh  "
-                  f"Solar {fc.get('kwh_compensado') or 0:>5.0f} kWh  {fc.get('bandeira') or '':9}  "
-                  f"ilum. R$ {(fc.get('cip_centavos') or 0) / 100:.2f}")
+                  f"créditos Solar {fc.get('kwh_compensado') or 0:>5.0f} kWh  ")
+        if f.tipo == "energia":
+            resumo += f"{fc.get('bandeira') or '':9}  ilum. R$ {(fc.get('cip_centavos') or 0) / 100:.2f}"
+        elif fc.get("desconto_centavos"):
+            resumo += f"desconto (economia) R$ {fc['desconto_centavos'] / 100:.2f}"
         if t is None:
             cont["sem_lancamento"] += 1
             linhas.append(f"  ✗ {resumo}  → sem lançamento de mesmo valor no app")
@@ -175,7 +224,7 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
             con.executemany(
                 "INSERT INTO conta_historico (tipo, referencia, consumo, valor_centavos) VALUES (?, ?, ?, ?) "
                 "ON CONFLICT (tipo, referencia) DO UPDATE SET consumo = excluded.consumo, "
-                "valor_centavos = excluded.valor_centavos",
+                "valor_centavos = COALESCE(excluded.valor_centavos, conta_historico.valor_centavos)",
                 [(tipo, ref, c, v) for (tipo, ref), (c, v) in historico.items()])
     cab = "SIMULAÇÃO (nada gravado)" if simular else "GRAVADO"
     texto = "\n".join([
@@ -183,7 +232,7 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
         *linhas, "",
         f"Faturas lidas: {cont['lidas']} · fichas {'a gravar' if simular else 'gravadas'}: {cont['gravadas']} · "
         f"sem lançamento: {cont['sem_lancamento']} · com senha: {cont['com_senha']} · "
-        f"outros emissores (ainda sem leitor): {cont['ignoradas']}",
+        f"não lidas ou sem leitor ainda: {cont['ignoradas']}",
         f"Histórico de consumo (13 meses por fatura): {len(historico)} meses",
     ])
     return cont, texto
@@ -197,14 +246,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("pasta", type=Path)
     p.add_argument("--simular", action="store_true", help="não grava; só mostra o relatório")
     p.add_argument("--saida", type=Path, help="salva o relatório neste arquivo .txt")
+    p.add_argument("--diagnostico", action="store_true",
+                   help="se um PDF não for entendido, salva o texto dele em PASTA\\_texto")
     a = p.parse_args(argv)
+    import os
+    senha = os.environ.get("CF_SENHA_PDF") or None   # digitada no .bat; não fica gravada
     cfg = carregar()
     con = db.conectar(cfg.arquivo_banco)
     db.migrar(con)
     seed.popular(con)
     if not a.simular:
         print(f"Backup antes da leitura: {backup.fazer(con, cfg.pasta_backup)}")
-    _, texto = executar(con, a.pasta, simular=a.simular)
+    _, texto = executar(con, a.pasta, simular=a.simular, senha=senha, diagnostico=a.diagnostico)
     print(texto)
     if a.saida:
         a.saida.write_text(texto, encoding="utf-8")

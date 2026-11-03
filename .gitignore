@@ -19,3 +19,4 @@ dist/
 importacao_*.txt
 *.tsbuildinfo
 contas_resultado.txt
+_texto/

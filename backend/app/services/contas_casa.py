@@ -11,12 +11,12 @@ from .transacoes import RegraViolada
 
 TIPOS = ("energia", "energia_solar", "agua", "internet", "telefone", "saude", "outra")
 CAMPOS = ("tipo", "referencia", "consumo", "kwh_compensado", "bandeira", "bandeira_centavos",
-          "multa_juros_centavos", "vidas", "observacao", "cip_centavos", "terceiros_centavos", "arquivo")
+          "multa_juros_centavos", "vidas", "observacao", "cip_centavos", "terceiros_centavos", "arquivo", "desconto_centavos")
 # Campos que fazem sentido em cada tipo (o resto é limpo ao gravar).
 POR_TIPO = {
     "energia": {"consumo", "kwh_compensado", "bandeira", "bandeira_centavos", "cip_centavos",
                 "terceiros_centavos"},
-    "energia_solar": {"kwh_compensado"},
+    "energia_solar": {"kwh_compensado", "consumo", "desconto_centavos"},
     "agua": {"consumo"},
     "saude": {"vidas"},
 }

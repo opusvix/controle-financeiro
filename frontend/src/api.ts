@@ -30,7 +30,7 @@ export type Ficha = {
   consumo: number | null; kwh_compensado: number | null; bandeira: string | null;
   bandeira_centavos: number | null; multa_juros_centavos: number | null; vidas: number | null;
   observacao: string | null; cip_centavos: number | null; terceiros_centavos: number | null;
-  arquivo: string | null;
+  arquivo: string | null; desconto_centavos: number | null;
 };
 export type APagar = {
   id: number; tipo: "receita" | "despesa"; descricao: string; valor_centavos: number; data: string;
