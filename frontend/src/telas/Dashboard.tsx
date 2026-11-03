@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import { api, type APagar } from "../api";
 import Kpi from "../componentes/Kpi";
 import PagarConta from "../componentes/PagarConta";
+import PainelAgua from "../componentes/PainelAgua";
 import PainelEnergia from "../componentes/PainelEnergia";
+import PainelPlano from "../componentes/PainelPlano";
 import Rosca from "../componentes/Rosca";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
@@ -49,6 +51,8 @@ export default function Dashboard() {
           </section>
 
           <section className="largura-toda"><PainelEnergia /></section>
+          <section className="largura-toda"><PainelAgua /></section>
+          <section className="largura-toda"><PainelPlano /></section>
 
           <section className="grade-2">
             <div className="cartao-painel">

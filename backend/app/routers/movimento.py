@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..deps import con
-from ..services import contas_casa, energia, fatura_cartao, painel, transacoes
+from ..services import agua, contas_casa, energia, fatura_cartao, indices, painel, plano, transacoes
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -172,6 +172,24 @@ def dashboard(competencia: str | None = Query(default=None, pattern=COMPETENCIA)
 def painel_energia(meses: int = Query(default=12, ge=1, le=36), c=Depends(con)):
     """Luz da casa mês a mês: Escelsa + Solar, preço real do kWh, consumo × ano anterior, economia da Solar."""
     return energia.painel(c, meses)
+
+
+@router.get("/painel/agua")
+def painel_agua(meses: int = Query(default=12, ge=1, le=36), c=Depends(con)):
+    """Água da casa (CESAN): parte fixa × variável, preço médio do m³, consumo × ano anterior."""
+    return agua.painel(c, meses)
+
+
+@router.get("/painel/plano")
+def painel_plano(c=Depends(con)):
+    """Plano de saúde: mensalidades, reajustes (anual × faixa etária) e comparação com ANS e índices."""
+    return plano.painel(c)
+
+
+@router.post("/indices/atualizar")
+def atualizar_indices(c=Depends(con)):
+    """Baixa IPCA, INPC, IGP-M, IGP-DI e IPC-Fipe do Banco Central (precisa de internet)."""
+    return indices.atualizar(c)
 
 
 class FichaIn(BaseModel):

@@ -2,8 +2,8 @@
 
 Uso (Windows): scripts\\importar_contas.bat  (lê D:\\...\\Contas\\2026; simula, pede S, grava)
 
-Sem API paga: o texto sai do próprio PDF (pypdf). Hoje lê a EDP Escelsa; os outros
-emissores entram um a um, cada um com o seu leitor.
+Sem API paga: o texto sai do próprio PDF (pypdf). Lê EDP Escelsa, EDP Solar, CESAN e Unimed;
+os outros emissores entram um a um, cada um com o seu leitor.
 
 Ponte da conta de luz (o que o leitor separa):
     total = energia (consumo − créditos da Solar) + bandeira + iluminação pública
@@ -60,6 +60,7 @@ class Fatura:
     total_centavos: int
     ficha: dict = field(default_factory=dict)
     historico: list[tuple[str, float, int]] = field(default_factory=list)   # (AAAA-MM, consumo, valor)
+    itens: list[tuple[str, str, int]] = field(default_factory=list)        # plano: (beneficiário, item, valor)
     arquivo: str = ""
 
 
@@ -147,12 +148,77 @@ def ler_solar(t: str) -> Fatura:
                "desconto_centavos": _centavos(desconto.group(2)) if desconto else None})
 
 
+def ler_cesan(t: str) -> Fatura:
+    """Nota fiscal de água e esgoto da CESAN (dois layouts: até fev/2026 e o novo, de NFAG).
+
+    Valor = parte FIXA (água + esgoto, paga mesmo sem consumo) + parte VARIÁVEL (por m³).
+    """
+    # Layout novo: rodapé "R$ 147,51  13/10/2026  09/2026"; antigo: blocos "Vencimento" e "Mês/Ano".
+    rodape = re.search(r"R\$\s*" + DINHEIRO + r"\s+(\d{2})/(\d{2})/(\d{4})\s+(\d{2})/(\d{4})", t)
+    if rodape:
+        total, dd, mm, aaaa, rm, ra = rodape.groups()
+    else:
+        venc = re.search(r"Vencimento[^\n]*\n[^\n]*?(\d{2})/(\d{2})/(\d{4})", t)
+        ref = re.search(r"M[êe]s/Ano refer[êe]ncia[^\n]*\n[^\n]*?(?<![\d/])(\d{2})/(\d{4})", t, re.I)
+        tot = re.search(r"VALOR TOTAL \(R\$\)\s+" + DINHEIRO, t)
+        if not (venc and ref and tot):
+            raise ValueError("layout da CESAN não reconhecido (vencimento, referência ou total)")
+        (dd, mm, aaaa), (rm, ra), total = venc.groups(), ref.groups(), tot.group(1)
+    consumo = re.search(r"Vol\. Fat\. [ÁA]gua \(m³\):?\s+" + NUM, t)
+    fixo = variavel = 0
+    for _serv, f, v, _tot in re.findall(r"^\s*(Água|Esgoto)[^\n]*?" + DINHEIRO + r"\s+" + DINHEIRO
+                                        + r"\s+" + DINHEIRO, t, re.M):
+        fixo += _centavos(f)
+        variavel += _centavos(v)
+    multa = sum(_centavos(v) for v in re.findall(r"^\s*(?:Multa|Juros)[^\n]*?" + DINHEIRO, t, re.M))
+    # Histórico de consumo (m³) do quadro da fatura: pares "08/2026 17,0".
+    ini = t.find("ist") if "ISTÓRICO" not in t else t.find("ISTÓRICO")
+    fim = min([i for i in (t.find("INFORMAÇÕES DE LEITURA"), t.find("Consumo de água")) if i > 0] or [len(t)])
+    historico = [(f"{a}-{m}", _num(c), None)
+                 for m, a, c in re.findall(r"(?<![\d/])(\d{2})/(20\d{2})\s+(\d+,\d)", t[ini:fim])]
+    referencia = f"{ra}-{rm}"
+    if consumo:
+        historico.append((referencia, _num(consumo.group(1)), _centavos(total)))
+    return Fatura(
+        emissor="CESAN", tipo="agua", referencia=referencia, vencimento=f"{aaaa}-{mm}-{dd}",
+        total_centavos=_centavos(total), historico=historico,
+        ficha={"tipo": "agua", "referencia": referencia,
+               "consumo": _num(consumo.group(1)) if consumo else None,
+               "fixo_centavos": fixo or None, "multa_juros_centavos": multa or None})
+
+
+def ler_unimed(t: str) -> Fatura:
+    """Fatura do plano de saúde da Unimed Vitória: uma linha por beneficiário e item.
+
+    Guardar os itens separa o reajuste ANUAL (todos sobem o mesmo %) da mudança de
+    FAIXA ETÁRIA (só a mensalidade de uma pessoa sobe).
+    """
+    doc = re.search(r"Valor do Documento[^\n]*\n\s*R\$\s*" + DINHEIRO + r"\s+\S+\s+(\d{2})/(\d{2})/(\d{4})", t)
+    if not doc:
+        raise ValueError("layout da Unimed não reconhecido (valor do documento e vencimento)")
+    total, dd, mm, aaaa = doc.groups()
+    itens = [(nome.strip(), item.strip(), _centavos(valor)) for nome, item, valor in re.findall(
+        r"^(\S[^\n]*?\S) {2,}([A-ZÇÃÕÉÍÓÚ][A-ZÇÃÕÉÍÓÚ /.-]+?) {2,}(?:\d+ +)?\d{2}/\d{2}/\d{4} +R\$ *"
+        + DINHEIRO, t, re.M)]
+    if itens and abs(sum(v for _, _, v in itens) - _centavos(total)) > 2:
+        raise ValueError("a soma dos itens não fecha com o valor do documento")
+    vidas = len({n for n, i, _ in itens if i.startswith("MENSALIDADE")}) or None
+    referencia = f"{aaaa}-{mm}"
+    return Fatura(
+        emissor="Unimed", tipo="saude", referencia=referencia, vencimento=f"{aaaa}-{mm}-{dd}",
+        total_centavos=_centavos(total), itens=itens,
+        ficha={"tipo": "saude", "referencia": referencia, "vidas": vidas})
+
+
 LEITORES = [  # (como reconhecer o emissor no texto, leitor)
     (re.compile(r"EDP ES DISTRIB DE ENERGIA"), ler_escelsa),
     (re.compile(r"(?i)solar digital"), ler_solar),
+    (re.compile(r"(?i)COMPANHIA ESP[ÍI]RITO[ -]SANTENSE DE SANEAMENTO|28\.151\.363/0001-47"), ler_cesan),
+    (re.compile(r"UNIMED VIT[ÓO]RIA"), ler_unimed),
 ]
 # Descrição do lançamento no app, por emissor (o Mobills usou nomes variados).
-PADROES_LANCAMENTO = {"EDP Escelsa": "%ESCELSA%", "EDP Solar": "%SOLAR%"}
+PADROES_LANCAMENTO = {"EDP Escelsa": "%ESCELSA%", "EDP Solar": "%SOLAR%", "CESAN": "%CESAN%",
+                      "Unimed": "%UNIMED%"}
 
 
 def ler(caminho: Path, senha: str | None = None, diagnostico: Path | None = None) -> Fatura | None:
@@ -173,14 +239,14 @@ def ler(caminho: Path, senha: str | None = None, diagnostico: Path | None = None
 
 
 def achar_lancamento(con: sqlite3.Connection, f: Fatura) -> sqlite3.Row | None:
-    """O pagamento desta fatura: mesmo emissor e valor, perto do vencimento (atraso de até 40 dias)."""
+    """O pagamento desta fatura: mesmo emissor e valor, perto do vencimento (de 20 dias antes a 40 depois)."""
     venc = date.fromisoformat(f.vencimento)
     return con.execute(
         """SELECT * FROM transacao
            WHERE tipo IN ('despesa', 'despesa_cartao') AND upper(descricao) LIKE ?
              AND valor_centavos = ? AND date(COALESCE(vencimento, data)) BETWEEN ? AND ?
            ORDER BY abs(julianday(COALESCE(vencimento, data)) - julianday(?)) LIMIT 1""",
-        (PADROES_LANCAMENTO[f.emissor], f.total_centavos, (venc - timedelta(days=10)).isoformat(),
+        (PADROES_LANCAMENTO[f.emissor], f.total_centavos, (venc - timedelta(days=20)).isoformat(),
          (venc + timedelta(days=40)).isoformat(), f.vencimento)).fetchone()
 
 
@@ -208,9 +274,15 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
         t = achar_lancamento(con, f)
         fc = f.ficha
         resumo = (f"{f.emissor:12} {f.referencia}  vence {f.vencimento[8:]}/{f.vencimento[5:7]}  "
-                  f"R$ {f.total_centavos / 100:>8.2f}  {fc.get('consumo') or 0:>5.0f} kWh  "
-                  f"créditos Solar {fc.get('kwh_compensado') or 0:>5.0f} kWh  ")
-        if f.tipo == "energia":
+                  f"R$ {f.total_centavos / 100:>8.2f}  ")
+        if f.tipo in ("energia", "energia_solar"):
+            resumo += (f"{fc.get('consumo') or 0:>5.0f} kWh  "
+                       f"créditos Solar {fc.get('kwh_compensado') or 0:>5.0f} kWh  ")
+        if f.tipo == "agua":
+            resumo += f"{fc.get('consumo') or 0:>5.1f} m³  parte fixa R$ {(fc.get('fixo_centavos') or 0) / 100:.2f}"
+        elif f.tipo == "saude":
+            resumo += f"{fc.get('vidas') or 0} vidas · {len(f.itens)} itens"
+        elif f.tipo == "energia":
             resumo += f"{fc.get('bandeira') or '':9}  ilum. R$ {(fc.get('cip_centavos') or 0) / 100:.2f}"
         elif fc.get("desconto_centavos"):
             resumo += f"desconto (economia) R$ {fc['desconto_centavos'] / 100:.2f}"
@@ -222,6 +294,12 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
         linhas.append(f"  ✓ {resumo}  → lançamento de {t['data'][8:]}/{t['data'][5:7]}")
         if not simular:
             contas_casa.gravar(con, t["id"], {**fc, "arquivo": f.arquivo})
+            if f.itens:
+                with con:
+                    con.execute("DELETE FROM plano_item WHERE transacao_id = ?", (t["id"],))
+                    con.executemany(
+                        "INSERT OR REPLACE INTO plano_item (transacao_id, beneficiario, item, valor_centavos) "
+                        "VALUES (?, ?, ?, ?)", [(t["id"], n, i, v) for n, i, v in f.itens])
             if not t["vencimento"] and t["pago"] and t["data"] != f.vencimento:
                 with con:
                     con.execute("UPDATE transacao SET vencimento = ? WHERE id = ?", (f.vencimento, t["id"]))
@@ -239,7 +317,7 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
         f"Faturas lidas: {cont['lidas']} · fichas {'a gravar' if simular else 'gravadas'}: {cont['gravadas']} · "
         f"sem lançamento: {cont['sem_lancamento']} · com senha: {cont['com_senha']} · "
         f"não lidas ou sem leitor ainda: {cont['ignoradas']}",
-        f"Histórico de consumo (13 meses por fatura): {len(historico)} meses",
+        f"Histórico de consumo (lido das faturas): {len(historico)} meses",
     ])
     return cont, texto
 
