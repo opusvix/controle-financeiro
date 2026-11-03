@@ -8,7 +8,8 @@ from __future__ import annotations
 import sqlite3
 
 DESPESAS = {
-    "Alimentação": ("#16a34a", ["Mercado", "Hortifruti", "Carnes", "Laticínios", "Padaria",
+    "Alimentação": ("#16a34a", ["Mercado", "Hortifruti", "Frutas", "Legumes", "Verduras",
+                                "Carnes", "Laticínios", "Padaria",
                                 "Bebidas", "Restaurante e lanche"]),
     "Casa": ("#0ea5e9", ["Limpeza", "Manutenção", "Energia, água e gás", "Internet e telefone"]),
     "Transporte": ("#6366f1", ["Combustível", "Estacionamento", "Manutenção do veículo",
