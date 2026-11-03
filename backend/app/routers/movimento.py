@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..deps import con
-from ..services import agua, contas_casa, energia, fatura_cartao, indices, painel, plano, transacoes
+from ..services import (agua, contas_casa, energia, fatura_cartao, indices, painel, plano,
+                        precos, transacoes)
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -190,6 +191,12 @@ def painel_plano(c=Depends(con)):
 def atualizar_indices(c=Depends(con)):
     """Baixa IPCA, INPC, IGP-M, IGP-DI e IPC-Fipe do Banco Central (precisa de internet)."""
     return indices.atualizar(c)
+
+
+@router.get("/painel/precos")
+def painel_precos(meses: int = Query(default=24, ge=1, le=60), c=Depends(con)):
+    """Comparação de preços: cada produto dos cupons ao longo do tempo e entre lojas, sem marca."""
+    return precos.painel(c, meses)
 
 
 class FichaIn(BaseModel):
