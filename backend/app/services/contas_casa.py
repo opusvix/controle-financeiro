@@ -11,15 +11,16 @@ from .transacoes import RegraViolada
 
 TIPOS = ("energia", "energia_solar", "agua", "internet", "telefone", "saude", "outra")
 CAMPOS = ("tipo", "referencia", "consumo", "kwh_compensado", "bandeira", "bandeira_centavos",
-          "multa_juros_centavos", "vidas", "observacao")
+          "multa_juros_centavos", "vidas", "observacao", "cip_centavos", "terceiros_centavos", "arquivo")
 # Campos que fazem sentido em cada tipo (o resto é limpo ao gravar).
 POR_TIPO = {
-    "energia": {"consumo", "kwh_compensado", "bandeira", "bandeira_centavos"},
+    "energia": {"consumo", "kwh_compensado", "bandeira", "bandeira_centavos", "cip_centavos",
+                "terceiros_centavos"},
     "energia_solar": {"kwh_compensado"},
     "agua": {"consumo"},
     "saude": {"vidas"},
 }
-COMUNS = {"tipo", "referencia", "multa_juros_centavos", "observacao"}
+COMUNS = {"tipo", "referencia", "multa_juros_centavos", "observacao", "arquivo"}
 
 
 def _mes_anterior(data: str) -> str:
@@ -58,7 +59,10 @@ def gravar(con: sqlite3.Connection, transacao_id: int, dados: dict) -> dict:
     if t["tipo"] not in ("despesa", "despesa_cartao"):
         raise RegraViolada("A ficha da conta vale só para despesas")
     validos = COMUNS | POR_TIPO.get(dados["tipo"], set())
-    valores = {k: (dados.get(k) if k in validos else None) for k in CAMPOS}
+    # Campo que não veio (ex.: a tela não edita a iluminação pública lida do PDF) fica como estava.
+    atual = con.execute("SELECT * FROM conta_ficha WHERE transacao_id = ?", (transacao_id,)).fetchone()
+    valores = {k: (dados[k] if k in dados else (atual[k] if atual else None)) if k in validos else None
+               for k in CAMPOS}
     if valores["observacao"] is not None:
         valores["observacao"] = valores["observacao"].strip() or None
     cols = ", ".join(CAMPOS)
