@@ -6,12 +6,13 @@ cd /d "%RAIZ%\backend"
 if not exist .venv (
     echo Preparando o Python pela primeira vez...
     python -m venv .venv || goto erro
-    .venv\Scripts\python -m pip install -q -r requirements.txt || goto erro
+    call "%RAIZ%\scripts\dependencias.bat" || goto erro
 )
 if not exist "%RAIZ%\frontend\dist\index.html" (
     echo Compilando as telas pela primeira vez...
     pushd "%RAIZ%\frontend"
     call npm ci || goto erro
+    copy /y package-lock.json node_modules\.lock-instalado.json >nul
     call npm run build || goto erro
     popd
 )
