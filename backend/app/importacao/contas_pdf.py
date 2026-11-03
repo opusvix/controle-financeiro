@@ -37,12 +37,13 @@ def _num(txt: str) -> float:
 
 
 def texto_do_pdf(caminho: Path, senha: str | None = None) -> str:
-    """Texto do PDF mantendo o layout das colunas. Erro claro se pedir senha."""
+    """Texto do PDF mantendo o layout das colunas. Erro claro se pedir senha.
+    `senha` pode trazer várias, separadas por ";" (ex.: a da Solar e a da Claro): tenta uma a uma."""
     from pypdf import PdfReader
     from pypdf.errors import DependencyError
     try:
         r = PdfReader(str(caminho))
-        if r.is_encrypted and not r.decrypt(senha or ""):
+        if r.is_encrypted and not any(r.decrypt(s) for s in (senha or "").split(";") + [""]):
             raise PermissionError(f"{caminho.name}: PDF protegido por senha")
     except DependencyError as e:   # senha AES-256 sem a biblioteca cryptography instalada
         raise RuntimeError("falta a biblioteca 'cryptography' para abrir PDF com senha; "
@@ -192,7 +193,7 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
             f = ler(pdf, senha, pasta / "_texto" if diagnostico else None)
         except PermissionError:
             cont["com_senha"] += 1
-            linhas.append(f"  🔒 {pdf.name}: protegido por senha ({'a senha digitada não abre este' if senha else 'sem senha'})")
+            linhas.append(f"  🔒 {pdf.name}: protegido por senha ({'nenhuma das senhas digitadas abre este' if senha else 'sem senha'})")
             continue
         except Exception as e:  # um PDF ruim não pode parar a carga dos outros
             cont["ignoradas"] += 1
