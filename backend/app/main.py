@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config as config_mod
@@ -45,6 +45,10 @@ def criar_app(cfg: config_mod.Config | None = None, banco: str | None = None) ->
     return app
 
 
+DESATUALIZADO = ("Esta função ainda não existe no servidor que está ligado. "
+                 "Ele pode estar desatualizado: rode scripts\\parar.bat e abra o app de novo.")
+
+
 def _servir_telas(app: FastAPI) -> None:
     """Entrega as telas já compiladas (frontend/dist), se existirem."""
     dist = config_mod.RAIZ / "frontend" / "dist"
@@ -55,6 +59,8 @@ def _servir_telas(app: FastAPI) -> None:
     @app.get("/{caminho:path}", include_in_schema=False)
     def telas(caminho: str):
         # Qualquer rota que não seja /api abre o app (o React cuida da navegação).
+        if caminho == "api" or caminho.startswith("api/"):
+            return JSONResponse({"detail": DESATUALIZADO}, status_code=404)
         arquivo = (dist / caminho).resolve()
         if caminho and arquivo.is_file() and dist.resolve() in arquivo.parents:
             return FileResponse(arquivo)
