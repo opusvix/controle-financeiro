@@ -78,3 +78,21 @@ def test_pdf_nao_entendido_guarda_o_texto_para_diagnostico(tmp_path, monkeypatch
     with pytest.raises(ValueError):
         contas_pdf.ler(tmp_path / "x-EDP-SOLAR.pdf", diagnostico=tmp_path / "_texto")
     assert (tmp_path / "_texto" / "x-EDP-SOLAR.txt").read_text(encoding="utf-8").startswith("Solar")
+
+
+def test_abre_pdf_com_senha_aes256(tmp_path):
+    """A EDP Solar protege o PDF com AES-256: precisa da biblioteca cryptography."""
+    import pytest
+    from pypdf import PdfWriter
+    from pypdf.generic import DecodedStreamObject, NameObject
+    w = PdfWriter()
+    pg = w.add_blank_page(100, 100)
+    conteudo = DecodedStreamObject()
+    conteudo.set_data(b"")
+    pg[NameObject("/Contents")] = w._add_object(conteudo)
+    w.encrypt("segredo", algorithm="AES-256")
+    pdf = tmp_path / "solar.pdf"
+    w.write(pdf)
+    assert isinstance(contas_pdf.texto_do_pdf(pdf, "segredo"), str)
+    with pytest.raises(PermissionError):
+        contas_pdf.texto_do_pdf(pdf, "errada")
