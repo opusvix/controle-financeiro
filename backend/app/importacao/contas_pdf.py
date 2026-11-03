@@ -39,9 +39,14 @@ def _num(txt: str) -> float:
 def texto_do_pdf(caminho: Path, senha: str | None = None) -> str:
     """Texto do PDF mantendo o layout das colunas. Erro claro se pedir senha."""
     from pypdf import PdfReader
-    r = PdfReader(str(caminho))
-    if r.is_encrypted and not r.decrypt(senha or ""):
-        raise PermissionError(f"{caminho.name}: PDF protegido por senha")
+    from pypdf.errors import DependencyError
+    try:
+        r = PdfReader(str(caminho))
+        if r.is_encrypted and not r.decrypt(senha or ""):
+            raise PermissionError(f"{caminho.name}: PDF protegido por senha")
+    except DependencyError as e:   # senha AES-256 sem a biblioteca cryptography instalada
+        raise RuntimeError("falta a biblioteca 'cryptography' para abrir PDF com senha; "
+                           "rode scripts\\atualizar.bat") from e
     return "\n".join(p.extract_text(extraction_mode="layout") for p in r.pages)
 
 
