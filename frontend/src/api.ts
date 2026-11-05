@@ -127,6 +127,22 @@ export type PainelPrecos = {
   resumo: { produtos: number; compras: number; lojas: number; com_historico: number;
     subindo: number; caindo: number };
 };
+export type RelatorioMes = { competencia: string; receitas: number; despesas: number; resultado: number };
+export type RelatorioCategoria = {
+  categoria_id: number; categoria: string; cor: string; total: number; pct: number; serie: number[];
+};
+export type RelatorioTag = { tag: string; cor: string; total: number; lancamentos: number };
+export type Relatorio = {
+  ini: string; fim: string;
+  meses: RelatorioMes[];
+  por_categoria: RelatorioCategoria[];
+  por_tag: RelatorioTag[];
+  resumo: {
+    meses: number; receitas: number; despesas: number; resultado: number;
+    media_receitas_mes: number; media_despesas_mes: number;
+    taxa_poupanca_pct: number | null; mes_maior_despesa: string | null;
+  };
+};
 export type Saude = {
   ok: boolean; banco: string; leitura_ia_configurada: boolean;
   ultimo_backup: { arquivo: string; criado_em: string; copiado_drive: number } | null;
@@ -195,6 +211,8 @@ export const api = {
   agua: (meses = 12) => chamar<PainelAgua>(`/api/painel/agua?meses=${meses}`),
   plano: () => chamar<PainelPlano>("/api/painel/plano"),
   precos: (meses = 24) => chamar<PainelPrecos>(`/api/painel/precos?meses=${meses}`),
+  relatorio: (p: { ini: string; fim: string } | { meses: number }) =>
+    chamar<Relatorio>("ini" in p ? `/api/relatorios?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios?meses=${p.meses}`),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),
