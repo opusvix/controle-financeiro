@@ -260,3 +260,25 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .filtro-lista li { display: flex; align-items: center; gap: 10px; background: var(--painel-2); border-radius: 10px; padding: 10px 12px; }
 .filtro-lista li small { color: var(--suave); flex: 1; }
 .filtro-lista .apagar { color: var(--vermelho); }
+
+/* --- Relatórios: ações (exportar) e impressão/PDF --- */
+.rel-acoes { display: flex; gap: 8px; }
+.rel-acoes .botao { margin: 0; padding: 8px 14px; display: inline-block; font-size: 14px; line-height: 1.2; }
+.rel-intervalo { color: var(--suave); margin: -4px 0 14px; }
+
+@media print {
+  @page { margin: 12mm; }
+  .menu, .nao-imprimir { display: none !important; }
+  .app { display: block !important; }
+  main { padding: 0 !important; }
+  body, .app, main { background: #fff !important; color: #18181b !important; }
+  .cartao-painel, .tabela, .energia-kpis > div {
+    background: #fff !important; box-shadow: none !important; border: 1px solid #e5e7eb !important;
+  }
+  .tabela th { background: #f3f4f6 !important; color: #374151 !important; }
+  .chips li { background: #f3f4f6 !important; border: 1px solid #e5e7eb !important; }
+  h1, h3, strong, td, th, span, small, p, b, li { color: #18181b !important; }
+  .pos { color: #15803d !important; } .neg { color: #b91c1c !important; }
+  .rel-intervalo, .energia-kpis span, .energia-kpis small { color: #52525b !important; }
+  .cartao-painel, section, table, .energia-kpis { break-inside: avoid; }
+}

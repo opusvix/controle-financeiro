@@ -5,12 +5,12 @@ import re
 from datetime import date
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from ..deps import con
 from ..services import (agua, contas_casa, energia, fatura_cartao, indices, painel, plano,
-                        precos, relatorios, transacoes)
+                        precos, relatorio_export, relatorios, transacoes)
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -287,11 +287,33 @@ def relatorio_periodo(
 
     Passe ini e fim (AAAA-MM-DD) para um intervalo exato, ou só `meses` para os últimos N meses.
     """
+    return _relatorio(c, ini, fim, meses)
+
+
+def _relatorio(c, ini: str | None, fim: str | None, meses: int) -> dict:
     if ini and fim:
         if fim < ini:
             raise HTTPException(422, "A data final não pode ser antes da inicial")
         return relatorios.periodo(c, ini, fim)
     return relatorios.atalho(c, meses)
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.get("/relatorios/export.xlsx")
+def relatorio_xlsx(
+    ini: str | None = Query(default=None, pattern=DATA),
+    fim: str | None = Query(default=None, pattern=DATA),
+    meses: int = Query(default=12, ge=1, le=60),
+    c=Depends(con),
+):
+    """Mesmo relatório do período, como planilha Excel para baixar."""
+    dados = _relatorio(c, ini, fim, meses)
+    conteudo = relatorio_export.montar_xlsx(dados)
+    nome = f"relatorio_{dados['ini']}_a_{dados['fim']}.xlsx"
+    return Response(conteudo, media_type=XLSX,
+                    headers={"Content-Disposition": f'attachment; filename="{nome}"'})
 
 
 class FichaIn(BaseModel):

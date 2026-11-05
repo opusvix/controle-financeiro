@@ -232,6 +232,8 @@ export const api = {
   precos: (meses = 24) => chamar<PainelPrecos>(`/api/painel/precos?meses=${meses}`),
   relatorio: (p: { ini: string; fim: string } | { meses: number }) =>
     chamar<Relatorio>("ini" in p ? `/api/relatorios?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios?meses=${p.meses}`),
+  urlRelatorioXlsx: (p: { ini: string; fim: string } | { meses: number }) =>
+    "ini" in p ? `/api/relatorios/export.xlsx?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios/export.xlsx?meses=${p.meses}`,
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),

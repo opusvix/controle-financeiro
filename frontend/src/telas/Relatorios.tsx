@@ -5,7 +5,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type Relatorio, type RelatorioCategoria, type RelatorioMes } from "../api";
 import { useDados } from "../componentes/useDados";
-import { reais } from "../formato";
+import { dataBR, reais } from "../formato";
 
 echarts.use([BarChart, LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
 
@@ -24,14 +24,24 @@ export default function Relatorios() {
   const [filtro, setFiltro] = useState<Filtro>({ meses: 12 });
   const { dados, erro } = useDados(() => api.relatorio(filtro), [JSON.stringify(filtro)]);
 
+  const temDados = !!dados && (dados.resumo.receitas !== 0 || dados.resumo.despesas !== 0);
   return (
     <>
-      <header className="topo"><h1>Relatórios</h1></header>
-      <SeletorPeriodo filtro={filtro} aoMudar={setFiltro} />
+      <header className="topo">
+        <h1>Relatórios</h1>
+        {temDados && (
+          <div className="rel-acoes nao-imprimir">
+            <a className="botao" href={api.urlRelatorioXlsx(filtro)}>⬇ Excel</a>
+            <button className="botao" onClick={() => window.print()}>⎙ PDF</button>
+          </div>
+        )}
+      </header>
+      <div className="nao-imprimir"><SeletorPeriodo filtro={filtro} aoMudar={setFiltro} /></div>
+      {dados && <p className="rel-intervalo">Período: {dataBR(dados.ini)} a {dataBR(dados.fim)}</p>}
       {erro && <p className="erro">{erro}</p>}
-      {dados && (dados.resumo.receitas === 0 && dados.resumo.despesas === 0
-        ? <div className="cartao-painel espaco"><p className="vazio">Sem lançamentos nesse período.</p></div>
-        : <Conteudo dados={dados} />)}
+      {dados && (temDados
+        ? <Conteudo dados={dados} />
+        : <div className="cartao-painel espaco"><p className="vazio">Sem lançamentos nesse período.</p></div>)}
     </>
   );
 }
@@ -124,33 +134,46 @@ function GraficoFluxo({ meses }: { meses: RelatorioMes[] }) {
   useEffect(() => {
     if (!ref.current) return;
     const g = echarts.init(ref.current);
-    const eixo = { color: "#a1a1aa" };
-    g.setOption({
-      grid: { left: 60, right: 20, top: 36, bottom: 28 },
-      legend: { top: 0, textStyle: eixo, itemWidth: 14, itemHeight: 10 },
-      tooltip: {
-        trigger: "axis",
-        formatter: (ps: { dataIndex: number }[]) => {
-          const m = meses[ps[0].dataIndex];
-          return [`<b>${rotulo(m.competencia)}</b>`, `Receitas ${reais(m.receitas)}`,
-            `Despesas ${reais(m.despesas)}`, `Resultado ${reais(m.resultado)}`].join("<br/>");
+    // No PDF (fundo branco) a linha de resultado e os eixos precisam ficar escuros.
+    const opcoes = (claro: boolean) => {
+      const eixo = { color: claro ? "#52525b" : "#a1a1aa" };
+      return {
+        grid: { left: 60, right: 20, top: 36, bottom: 28 },
+        legend: { top: 0, textStyle: eixo, itemWidth: 14, itemHeight: 10 },
+        tooltip: {
+          trigger: "axis",
+          formatter: (ps: { dataIndex: number }[]) => {
+            const m = meses[ps[0].dataIndex];
+            return [`<b>${rotulo(m.competencia)}</b>`, `Receitas ${reais(m.receitas)}`,
+              `Despesas ${reais(m.despesas)}`, `Resultado ${reais(m.resultado)}`].join("<br/>");
+          },
         },
-      },
-      xAxis: { type: "category", data: meses.map((m) => rotulo(m.competencia)), axisLabel: eixo },
-      yAxis: { type: "value", axisLabel: { ...eixo, formatter: (c: number) => `R$ ${c / 100}` },
-        splitLine: { lineStyle: { color: "#3a3a41" } } },
-      series: [
-        { name: "Receitas", type: "bar", data: meses.map((m) => m.receitas),
-          itemStyle: { color: "#4ade80", borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 },
-        { name: "Despesas", type: "bar", data: meses.map((m) => m.despesas),
-          itemStyle: { color: "#f87171", borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 },
-        { name: "Resultado", type: "line", data: meses.map((m) => m.resultado),
-          itemStyle: { color: "#ececf1" }, symbolSize: 6, z: 3 },
-      ],
-    });
+        xAxis: { type: "category", data: meses.map((m) => rotulo(m.competencia)), axisLabel: eixo },
+        yAxis: { type: "value", axisLabel: { ...eixo, formatter: (c: number) => `R$ ${c / 100}` },
+          splitLine: { lineStyle: { color: claro ? "#e5e7eb" : "#3a3a41" } } },
+        series: [
+          { name: "Receitas", type: "bar", data: meses.map((m) => m.receitas),
+            itemStyle: { color: "#22c55e", borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 },
+          { name: "Despesas", type: "bar", data: meses.map((m) => m.despesas),
+            itemStyle: { color: "#ef4444", borderRadius: [4, 4, 0, 0] }, barMaxWidth: 22 },
+          { name: "Resultado", type: "line", data: meses.map((m) => m.resultado),
+            itemStyle: { color: claro ? "#27272a" : "#ececf1" }, symbolSize: 6, z: 3 },
+        ],
+      };
+    };
+    g.setOption(opcoes(false));
     const red = () => g.resize();
+    const antes = () => g.setOption(opcoes(true));
+    const depois = () => g.setOption(opcoes(false));
     window.addEventListener("resize", red);
-    return () => { window.removeEventListener("resize", red); g.dispose(); };
+    window.addEventListener("beforeprint", antes);
+    window.addEventListener("afterprint", depois);
+    return () => {
+      window.removeEventListener("resize", red);
+      window.removeEventListener("beforeprint", antes);
+      window.removeEventListener("afterprint", depois);
+      g.dispose();
+    };
   }, [meses]);
   return <div ref={ref} className="energia-grafico" />;
 }
@@ -171,23 +194,35 @@ function GraficoCategorias({ meses, categorias }: { meses: RelatorioMes[]; categ
   useEffect(() => {
     if (!ref.current) return;
     const g = echarts.init(ref.current);
-    const eixo = { color: "#a1a1aa" };
-    g.setOption({
-      grid: { left: 60, right: 20, top: 48, bottom: 28 },
-      legend: { top: 0, textStyle: eixo, itemWidth: 12, itemHeight: 8, type: "scroll" },
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
-        valueFormatter: (v: number) => reais(v) },
-      xAxis: { type: "category", data: meses.map((m) => rotulo(m.competencia)), axisLabel: eixo },
-      yAxis: { type: "value", axisLabel: { ...eixo, formatter: (c: number) => `R$ ${c / 100}` },
-        splitLine: { lineStyle: { color: "#3a3a41" } } },
-      series: series.map((s) => ({
-        name: s.nome, type: "bar", stack: "cat", data: s.dados,
-        itemStyle: { color: s.cor }, barMaxWidth: 34,
-      })),
-    });
+    const opcoes = (claro: boolean) => {
+      const eixo = { color: claro ? "#52525b" : "#a1a1aa" };
+      return {
+        grid: { left: 60, right: 20, top: 48, bottom: 28 },
+        legend: { top: 0, textStyle: eixo, itemWidth: 12, itemHeight: 8, type: "scroll" },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          valueFormatter: (v: number) => reais(v) },
+        xAxis: { type: "category", data: meses.map((m) => rotulo(m.competencia)), axisLabel: eixo },
+        yAxis: { type: "value", axisLabel: { ...eixo, formatter: (c: number) => `R$ ${c / 100}` },
+          splitLine: { lineStyle: { color: claro ? "#e5e7eb" : "#3a3a41" } } },
+        series: series.map((s) => ({
+          name: s.nome, type: "bar", stack: "cat", data: s.dados,
+          itemStyle: { color: s.cor }, barMaxWidth: 34,
+        })),
+      };
+    };
+    g.setOption(opcoes(false));
     const red = () => g.resize();
+    const antes = () => g.setOption(opcoes(true));
+    const depois = () => g.setOption(opcoes(false));
     window.addEventListener("resize", red);
-    return () => { window.removeEventListener("resize", red); g.dispose(); };
+    window.addEventListener("beforeprint", antes);
+    window.addEventListener("afterprint", depois);
+    return () => {
+      window.removeEventListener("resize", red);
+      window.removeEventListener("beforeprint", antes);
+      window.removeEventListener("afterprint", depois);
+      g.dispose();
+    };
   }, [series, legenda, meses]);
   return <div ref={ref} className="energia-grafico" />;
 }
