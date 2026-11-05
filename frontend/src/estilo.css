@@ -221,3 +221,10 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .preco-colunas b { font-weight: 500; font-size: 13px; color: var(--suave); display: block; margin-bottom: 4px; }
 .preco-colunas .chips li.melhor { background: color-mix(in srgb, var(--verde) 22%, var(--painel-2)); }
 .tabela tr.grupo-cartao td small.dica-linha { font-weight: 400; }
+
+/* Tela Relatórios (Fase 4) */
+.rel-periodo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rel-periodo .rel-custom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.rel-periodo .rel-custom label { color: var(--suave); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.rel-periodo .rel-custom input { background: var(--painel-2); border: 1px solid var(--borda); border-radius: 8px; padding: 6px 8px; color: var(--texto); }
+.ponto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }

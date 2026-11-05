@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from ..deps import con
 from ..services import (agua, contas_casa, energia, fatura_cartao, indices, painel, plano,
-                        precos, transacoes)
+                        precos, relatorios, transacoes)
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -197,6 +197,27 @@ def atualizar_indices(c=Depends(con)):
 def painel_precos(meses: int = Query(default=24, ge=1, le=60), c=Depends(con)):
     """Comparação de preços: cada produto dos cupons ao longo do tempo e entre lojas, sem marca."""
     return precos.painel(c, meses)
+
+
+DATA = r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$"
+
+
+@router.get("/relatorios")
+def relatorio_periodo(
+    ini: str | None = Query(default=None, pattern=DATA),
+    fim: str | None = Query(default=None, pattern=DATA),
+    meses: int = Query(default=12, ge=1, le=60),
+    c=Depends(con),
+):
+    """Relatório de um período: evolução mensal, despesas por categoria e por projeto (tag).
+
+    Passe ini e fim (AAAA-MM-DD) para um intervalo exato, ou só `meses` para os últimos N meses.
+    """
+    if ini and fim:
+        if fim < ini:
+            raise HTTPException(422, "A data final não pode ser antes da inicial")
+        return relatorios.periodo(c, ini, fim)
+    return relatorios.atalho(c, meses)
 
 
 class FichaIn(BaseModel):
