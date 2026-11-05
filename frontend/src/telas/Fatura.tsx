@@ -206,11 +206,13 @@ function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
   const [valor, setValor] = useState(sugestao(dif > 0));
   const [data, setData] = useState(hojeISO() < f.data_fechamento ? hojeISO() : vespera);
   const [categoria, setCategoria] = useState("");
+  const [parcelas, setParcelas] = useState("1");
   const [erro, setErro] = useState<string | null>(null);
 
   function escolher(id: (typeof MODELOS)[number]["id"]) {
     const m = MODELOS.find((x) => x.id === id)!;
     setModelo(id); setDescricao(m.descricao); setValor(sugestao(id === "credito"));
+    setParcelas("1");
     const cat = m.categoria && categorias.find((c) => c.nome === m.categoria);
     setCategoria(cat ? String(cat.id) : "");
   }
@@ -222,6 +224,7 @@ function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
     try {
       const [t] = await api.criarTransacao({ tipo: ehCredito ? "credito_cartao" : "despesa_cartao", descricao, valor_centavos: v, data,
         cartao_id: f.cartao.id, fatura_competencia: f.competencia,
+        parcelas: ehCredito ? 1 : Number(parcelas) || 1,
         categoria_id: categoria ? Number(categoria) : null });
       await api.editarTransacao(t.id, { conferido: true });
       setErro(null);
@@ -242,6 +245,12 @@ function LancarNaFatura({ fatura: f, aoFechar, aoSalvar }: {
           <label>Valor (R$)<input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" /></label>
           <label>Data<input type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
         </div>
+        {!ehCredito && (
+          <label>Parcelas<input type="number" min={1} max={72} value={parcelas}
+            onChange={(e) => setParcelas(e.target.value)} /></label>
+        )}
+        {!ehCredito && Number(parcelas) > 1 && <p className="dica">O <b>valor total</b> é dividido em {Number(parcelas)}x.
+          A 1ª parcela entra nesta fatura; as demais caem uma por mês nas faturas seguintes.</p>}
         {sugestao(ehCredito) && <p className="dica">O valor já vem com a diferença para o banco. Ajuste se
           for só parte dela.</p>}
         {ehCredito && <p className="dica">Crédito <b>diminui</b> a fatura. Escolha a categoria da compra
