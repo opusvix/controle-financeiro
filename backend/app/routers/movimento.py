@@ -14,6 +14,7 @@ from ..services import (agua, contas_casa, energia, fatura_cartao, indices, pain
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
+DATA = r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$"
 
 
 class TransacaoIn(BaseModel):
@@ -38,9 +39,24 @@ class TransacaoIn(BaseModel):
 
 
 @router.get("/transacoes")
-def listar(competencia: str = Query(pattern=COMPETENCIA), conta_id: int | None = None,
-           tipo: str | None = None, c=Depends(con)):
-    ano, mes = competencia.split("-")
+def listar(
+    competencia: str | None = Query(default=None, pattern=COMPETENCIA),
+    ini: str | None = Query(default=None, pattern=DATA),
+    fim: str | None = Query(default=None, pattern=DATA),
+    conta_id: int | None = None,
+    tipo: str | None = None,
+    categorias: list[int] = Query(default=[]),
+    contas: list[int] = Query(default=[]),
+    tags: list[int] = Query(default=[]),
+    situacoes: list[Literal["pago", "pendente"]] = Query(default=[]),
+    tipos: list[str] = Query(default=[]),
+    c=Depends(con),
+):
+    """Transações filtradas. Sem nenhum filtro de data, usa o mês corrente (como o seletor de mês).
+
+    - competencia: um mês ('AAAA-MM'); ini/fim: um intervalo de datas (têm prioridade sobre competencia).
+    - categorias: inclui a categoria-mãe e suas subcategorias. contas/tags/tipos: listas. situacoes: pago/pendente.
+    """
     sql = """
         SELECT t.*, c.nome AS categoria, co.nome AS conta, ca.nome AS cartao,
                COALESCE(c.fixa, 0) OR COALESCE(mae.fixa, 0) AS fixa,
@@ -53,17 +69,76 @@ def listar(competencia: str = Query(pattern=COMPETENCIA), conta_id: int | None =
         LEFT JOIN categoria mae ON mae.id = c.pai_id
         LEFT JOIN conta co ON co.id = t.conta_id
         LEFT JOIN cartao ca ON ca.id = t.cartao_id
-        WHERE strftime('%Y-%m', t.data) = ?
+        WHERE 1 = 1
     """
-    args: list = [f"{ano}-{mes}"]
+    args: list = []
+    if ini and fim:
+        if fim < ini:
+            raise HTTPException(422, "A data final não pode ser antes da inicial")
+        sql += " AND t.data BETWEEN ? AND ?"
+        args += [ini, fim]
+    else:
+        mes = competencia if competencia and not (ini or fim) else f"{date.today():%Y-%m}"
+        sql += " AND strftime('%Y-%m', t.data) = ?"
+        args.append(mes)
     if conta_id:
         sql += " AND t.conta_id = ?"
         args.append(conta_id)
     if tipo:
         sql += " AND t.tipo = ?"
         args.append(tipo)
+    if categorias:
+        marks = ", ".join("?" for _ in categorias)
+        sql += f" AND (t.categoria_id IN ({marks}) OR c.pai_id IN ({marks}))"
+        args += [*categorias, *categorias]
+    if contas:
+        sql += f" AND t.conta_id IN ({', '.join('?' for _ in contas)})"
+        args += contas
+    if tags:
+        sql += (f" AND EXISTS (SELECT 1 FROM transacao_tag tt WHERE tt.transacao_id = t.id "
+                f"AND tt.tag_id IN ({', '.join('?' for _ in tags)}))")
+        args += tags
+    if tipos:
+        sql += f" AND t.tipo IN ({', '.join('?' for _ in tipos)})"
+        args += tipos
+    if situacoes and set(situacoes) != {"pago", "pendente"}:
+        sql += " AND t.pago = ?"
+        args.append(1 if situacoes[0] == "pago" else 0)
     sql += " ORDER BY t.data DESC, t.id DESC"
     return [dict(r) for r in c.execute(sql, args)]
+
+
+class FiltroIn(BaseModel):
+    nome: str = Field(min_length=1, max_length=60)
+    criterios: dict
+
+
+@router.get("/filtros")
+def listar_filtros(c=Depends(con)):
+    """Filtros salvos da tela Transações, do mais recente ao mais antigo."""
+    import json
+    return [{**dict(r), "criterios": json.loads(r["criterios"])}
+            for r in c.execute("SELECT * FROM filtro_salvo ORDER BY id DESC")]
+
+
+@router.post("/filtros", status_code=201)
+def salvar_filtro(dados: FiltroIn, c=Depends(con)):
+    """Cria ou atualiza (pelo nome) um filtro salvo."""
+    import json
+    crit = json.dumps(dados.criterios, ensure_ascii=False)
+    with c:
+        c.execute("INSERT INTO filtro_salvo (nome, criterios) VALUES (?, ?) "
+                  "ON CONFLICT(nome) DO UPDATE SET criterios = excluded.criterios",
+                  (dados.nome, crit))
+    r = c.execute("SELECT * FROM filtro_salvo WHERE nome = ?", (dados.nome,)).fetchone()
+    return {**dict(r), "criterios": json.loads(r["criterios"])}
+
+
+@router.delete("/filtros/{id_}", status_code=204)
+def apagar_filtro(id_: int, c=Depends(con)):
+    with c:
+        if c.execute("DELETE FROM filtro_salvo WHERE id = ?", (id_,)).rowcount == 0:
+            raise HTTPException(404, "Filtro não encontrado")
 
 
 @router.post("/transacoes", status_code=201)
@@ -199,7 +274,6 @@ def painel_precos(meses: int = Query(default=24, ge=1, le=60), c=Depends(con)):
     return precos.painel(c, meses)
 
 
-DATA = r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$"
 
 
 @router.get("/relatorios")
