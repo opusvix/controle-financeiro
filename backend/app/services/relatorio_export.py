@@ -15,7 +15,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
-MOEDA = 'R$ #,##0.00'          # em Excel pt-BR aparece como R$ 1.234,56
+MOEDA = '#,##0.00'             # só número: em Excel pt-BR aparece como 1.234,56 (sem R$)
 PCT = '0.0"%"'
 
 _NEGRITO = Font(bold=True)

@@ -15,6 +15,12 @@ const pct = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits:
 
 type Filtro = { meses: number } | { ini: string; fim: string };
 
+// Tipo mínimo da File System Access API (não está nos tipos padrão do TS).
+type SalvarArquivo = (opcoes: {
+  suggestedName?: string;
+  types?: { description: string; accept: Record<string, string[]> }[];
+}) => Promise<{ createWritable: () => Promise<{ write: (d: Blob) => Promise<void>; close: () => Promise<void> }> }>;
+
 /**
  * Relatórios (Fase 4): a visão ao longo do tempo. O Dashboard mostra o mês; aqui
  * vemos a evolução de receitas × despesas, para onde o dinheiro foi por categoria
@@ -25,13 +31,45 @@ export default function Relatorios() {
   const { dados, erro } = useDados(() => api.relatorio(filtro), [JSON.stringify(filtro)]);
 
   const temDados = !!dados && (dados.resumo.receitas !== 0 || dados.resumo.despesas !== 0);
+
+  // Excel: abre uma janela "Salvar como" (onde o navegador suporta — Chrome/Edge),
+  // para o João escolher pasta e nome. Se não suportar, cai no download normal.
+  async function baixarExcel() {
+    if (!dados) return;
+    const nome = `relatorio_${dados.ini}_a_${dados.fim}.xlsx`;
+    const resp = await fetch(api.urlRelatorioXlsx(filtro));
+    const blob = await resp.blob();
+    const picker = (window as unknown as { showSaveFilePicker?: SalvarArquivo }).showSaveFilePicker;
+    if (picker) {
+      try {
+        const handle = await picker({
+          suggestedName: nome,
+          types: [{ description: "Planilha Excel (.xlsx)",
+            accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+        });
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        return;
+      } catch (e) {
+        if ((e as DOMException).name === "AbortError") return;   // o usuário cancelou
+        // outro erro (ex.: permissão): segue para o download normal
+      }
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nome;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   return (
     <>
       <header className="topo">
         <h1>Relatórios</h1>
         {temDados && (
           <div className="rel-acoes nao-imprimir">
-            <a className="botao" href={api.urlRelatorioXlsx(filtro)}>⬇ Excel</a>
+            <button className="botao" onClick={baixarExcel}>⬇ Excel</button>
             <button className="botao" onClick={() => window.print()}>⎙ PDF</button>
           </div>
         )}
