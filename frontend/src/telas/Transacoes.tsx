@@ -1,7 +1,8 @@
 import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Transacao } from "../api";
+import { api, type FiltroTransacoes as Filtro, type Transacao } from "../api";
 import EditarTransacao from "../componentes/EditarTransacao";
+import FiltroTransacoes from "../componentes/FiltroTransacoes";
 import SeletorCategoria from "../componentes/SeletorCategoria";
 import Kpi from "../componentes/Kpi";
 import Modal from "../componentes/Modal";
@@ -9,6 +10,22 @@ import PagarConta from "../componentes/PagarConta";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
 import { dataBR, hojeISO, mesAtual, paraCentavos, reais } from "../formato";
+
+const ultimoDia = (mes: string) => {
+  const [a, m] = mes.split("-").map(Number);
+  return new Date(a, m, 0).getDate();
+};
+
+function resumoFiltro(f: Filtro): string {
+  const p: string[] = [];
+  if (f.ini && f.fim) p.push(`${dataBR(f.ini)} a ${dataBR(f.fim)}`);
+  if (f.categorias?.length) p.push(`${f.categorias.length} categoria(s)`);
+  if (f.contas?.length) p.push(`${f.contas.length} conta(s)`);
+  if (f.tags?.length) p.push(`${f.tags.length} tag(s)`);
+  if (f.tipos?.length) p.push(`${f.tipos.length} tipo(s)`);
+  if (f.situacoes?.length === 1) p.push(f.situacoes[0] === "pago" ? "pagas" : "pendentes");
+  return p.length ? `: ${p.join(" · ")}` : "";
+}
 
 type Tipo = "despesa" | "receita" | "despesa_cartao" | "credito_cartao" | "transferencia" | "pagamento_fatura";
 
@@ -30,7 +47,10 @@ function efeito(t: Transacao) {
 
 export default function Transacoes() {
   const [mes, setMes] = useState(mesAtual());
-  const lista = useDados(() => api.transacoes(mes), [mes]);
+  const [filtro, setFiltro] = useState<Filtro | null>(null);
+  const [abrindoFiltro, setAbrindoFiltro] = useState(false);
+  const lista = useDados(() => filtro ? api.transacoesFiltradas(filtro) : api.transacoes(mes),
+    [mes, JSON.stringify(filtro)]);
   const painel = useDados(() => api.painel(mes), [mes]);
   const [novo, setNovo] = useState<Tipo | null>(null);
   const [escolhendo, setEscolhendo] = useState(false);
@@ -130,7 +150,8 @@ export default function Transacoes() {
     <>
       <header className="topo">
         <h1>Transações</h1>
-        <SeletorMes mes={mes} aoMudar={setMes} />
+        {!filtro && <SeletorMes mes={mes} aoMudar={setMes} />}
+        <button onClick={() => setAbrindoFiltro(true)}>⚲ Filtrar</button>
         <div className="menu-novo">
           <button className="primario" onClick={() => setEscolhendo(!escolhendo)}>+ Nova</button>
           {escolhendo && (
@@ -141,13 +162,34 @@ export default function Transacoes() {
           )}
         </div>
       </header>
-      {painel.dados && (
+      {filtro && (
+        <div className="filtro-ativo">
+          <span>🔎 Filtro aplicado{resumoFiltro(filtro)}</span>
+          <button className="link" onClick={() => setAbrindoFiltro(true)}>Editar</button>
+          <button className="link" onClick={() => setFiltro(null)}>Limpar filtro</button>
+        </div>
+      )}
+      {!filtro && painel.dados && (
         <section className="kpis">
           <Kpi titulo="Saldo disponível" valor={painel.dados.saldo_disponivel} cor="#3b82f6" />
           <Kpi titulo="Receitas" valor={painel.dados.receitas} cor="#22c55e" />
           <Kpi titulo="Despesas" valor={painel.dados.despesas} cor="#ef4444" />
           <Kpi titulo="Balanço do mês" valor={painel.dados.receitas - painel.dados.despesas} cor="#14b8a6" />
         </section>
+      )}
+      {filtro && lista.dados && (
+        <section className="kpis">
+          <Kpi titulo="Lançamentos" valor={0} texto={String(lista.dados.length)} cor="#3b82f6" />
+          <Kpi titulo="Entrou" valor={lista.dados.filter((t) => efeito(t) > 0).reduce((s, t) => s + t.valor_centavos, 0)} cor="#22c55e" />
+          <Kpi titulo="Saiu" valor={lista.dados.filter((t) => efeito(t) < 0).reduce((s, t) => s + t.valor_centavos, 0)} cor="#ef4444" />
+          <Kpi titulo="Resultado" valor={lista.dados.reduce((s, t) => s + efeito(t) * t.valor_centavos, 0)} cor="#14b8a6" />
+        </section>
+      )}
+      {abrindoFiltro && (
+        <FiltroTransacoes
+          inicial={filtro ?? { ini: `${mes}-01`, fim: `${mes}-${String(ultimoDia(mes)).padStart(2, "0")}` }}
+          aoAplicar={(f) => { setFiltro(f); setAbrindoFiltro(false); }}
+          aoFechar={() => setAbrindoFiltro(false)} />
       )}
       <label className="chave agrupar"><input type="checkbox" checked={agrupar} onChange={(e) => setAgrupar(e.target.checked)} />
         Agrupar compras de cartão por cartão</label>

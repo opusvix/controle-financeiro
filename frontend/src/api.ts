@@ -24,6 +24,12 @@ export type Transacao = {
   categoria_id: number | null; observacao: string | null; conferido: number;
   recorrencia_id: string | null; vencimento: string | null; fixa: number; tem_ficha: number;
 };
+export type FiltroTransacoes = {
+  competencia?: string; ini?: string; fim?: string;
+  categorias?: number[]; contas?: number[]; tags?: number[];
+  situacoes?: ("pago" | "pendente")[]; tipos?: string[];
+};
+export type FiltroSalvo = { id: number; nome: string; criterios: FiltroTransacoes; criado_em: string };
 export type TipoFicha = "energia" | "energia_solar" | "agua" | "internet" | "telefone" | "saude" | "outra";
 export type Ficha = {
   transacao_id: number; gravada: boolean; tipo: TipoFicha | null; referencia: string | null;
@@ -173,6 +179,19 @@ async function chamar<T>(caminho: string, opcoes?: RequestInit): Promise<T> {
 const enviar = (metodo: string, dados: unknown): RequestInit =>
   ({ method: metodo, body: JSON.stringify(dados) });
 
+/** Monta a query string de um filtro de transações (listas viram chaves repetidas). */
+function qsFiltro(f: FiltroTransacoes): string {
+  const q = new URLSearchParams();
+  if (f.ini && f.fim) { q.set("ini", f.ini); q.set("fim", f.fim); }
+  else if (f.competencia) q.set("competencia", f.competencia);
+  for (const n of f.categorias ?? []) q.append("categorias", String(n));
+  for (const n of f.contas ?? []) q.append("contas", String(n));
+  for (const n of f.tags ?? []) q.append("tags", String(n));
+  for (const s of f.situacoes ?? []) q.append("situacoes", s);
+  for (const t of f.tipos ?? []) q.append("tipos", t);
+  return q.toString();
+}
+
 export type ItemCupom = {
   seq: number; descricao: string; codigo: string | null; quantidade_milesimos: number;
   unidade: string; preco_unitario_centavos: number; valor_total_centavos: number;
@@ -232,6 +251,11 @@ export const api = {
   tags: () => chamar<Tag[]>("/api/tags"),
   criarTag: (d: Partial<Tag>) => chamar<Tag>("/api/tags", enviar("POST", d)),
   transacoes: (comp: string) => chamar<Transacao[]>(`/api/transacoes?competencia=${comp}`),
+  transacoesFiltradas: (f: FiltroTransacoes) => chamar<Transacao[]>(`/api/transacoes?${qsFiltro(f)}`),
+  filtrosSalvos: () => chamar<FiltroSalvo[]>("/api/filtros"),
+  salvarFiltro: (nome: string, criterios: FiltroTransacoes) =>
+    chamar<FiltroSalvo>("/api/filtros", enviar("POST", { nome, criterios })),
+  apagarFiltro: (id: number) => chamar<void>(`/api/filtros/${id}`, { method: "DELETE" }),
   criarTransacao: (d: Record<string, unknown>) =>
     chamar<Transacao[]>("/api/transacoes", enviar("POST", d)),
   editarTransacao: (id: number, d: Record<string, unknown>) =>
