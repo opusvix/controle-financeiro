@@ -37,6 +37,8 @@ def test_montar_xlsx_abas_e_valores():
     mm = wb["Mês a mês"]
     assert mm["A1"].value == "Mês" and mm["A2"].value == "set/26"
     assert mm["B2"].value == 5000.0 and mm["C2"].value == 300.0 and mm["D2"].value == 4700.0
+    # Número com separador de milhar, SEM "R$" (pedido do João).
+    assert "R$" not in mm["B2"].number_format and mm["B2"].number_format == "#,##0.00"
     total = mm[mm.max_row]
     assert total[0].value == "Total" and total[2].value == 380.0
 
