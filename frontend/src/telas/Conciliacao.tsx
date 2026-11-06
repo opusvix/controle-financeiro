@@ -17,7 +17,7 @@ export default function Conciliacao() {
   const ativas = contas.filter((c) => c.ativa);
 
   const [contaId, setContaId] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivos, setArquivos] = useState<File[]>([]);
   const [res, setRes] = useState<Resultado | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
@@ -31,11 +31,11 @@ export default function Conciliacao() {
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
 
-  async function analisar(file = arquivo) {
-    if (!contaId || !file) return;
+  async function analisar(files = arquivos) {
+    if (!contaId || !files.length) return;
     setCarregando(true); setErro(null); setFeito(null);
     try {
-      const r = await api.analisarConciliacao(file, Number(contaId));
+      const r = await api.analisarConciliacao(files, Number(contaId));
       setRes(r);
       setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
       setLancar({}); setDescr({}); setDescrApp({});
@@ -43,9 +43,9 @@ export default function Conciliacao() {
     finally { setCarregando(false); }
   }
 
-  function escolherArquivo(f: File | null) {
-    setArquivo(f); setRes(null); setFeito(null);
-    if (f && contaId) analisar(f);
+  function escolherArquivos(fs: File[]) {
+    setArquivos(fs); setRes(null); setFeito(null);
+    if (fs.length && contaId) analisar(fs);
   }
 
   const totalLancar = Object.values(lancar).filter((v) => v !== "").length;
@@ -84,16 +84,18 @@ export default function Conciliacao() {
             {ativas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
         </label>
-        <label>Extrato (.ofx)
-          <input ref={inputArquivo} type="file" accept=".ofx,.OFX,text/*,application/x-ofx"
+        <label>Extrato (.ofx) — pode escolher vários meses
+          <input ref={inputArquivo} type="file" multiple accept=".ofx,.OFX,text/*,application/x-ofx"
             disabled={!contaId}
-            onChange={(e) => escolherArquivo(e.target.files?.[0] ?? null)} />
+            onChange={(e) => escolherArquivos(Array.from(e.target.files ?? []))} />
         </label>
+        {arquivos.length > 1 && <span className="dica">{arquivos.length} arquivos selecionados.</span>}
         {carregando && <span className="dica">Lendo o extrato…</span>}
       </div>
 
       <p className="dica">
-        Exporte o extrato da conta em <b>OFX</b> pelo app/internet banking. O app casa cada linha
+        Exporte o extrato da conta em <b>OFX</b> pelo app/internet banking. Se o banco só deixa baixar
+        um mês por vez, selecione <b>vários arquivos de uma vez</b> aqui. O app casa cada linha
         por <b>data (± {res?.tolerancia_dias ?? 3} dias)</b> e <b>valor</b>. Nada é gravado até você clicar em
         "Aplicar".
       </p>

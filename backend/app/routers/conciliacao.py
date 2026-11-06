@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ..deps import con
@@ -14,15 +14,20 @@ router = APIRouter(prefix="/api/conciliacao", tags=["conciliacao"])
 
 
 @router.post("/analisar")
-async def analisar(arquivo: UploadFile, conta_id: int = Form(...),
+async def analisar(arquivos: list[UploadFile] = File(...), conta_id: int = Form(...),
                    tolerancia_dias: int = Form(3), c=Depends(con)):
-    """Não grava nada: lê o OFX e devolve os quatro baldes para a tela revisar."""
+    """Não grava nada: lê um ou vários OFX (vários meses) e devolve os quatro baldes.
+
+    Junta os arquivos num texto só — o leitor varre todos os STMTTRN — e remove
+    duplicatas por FITID, caso os períodos se sobreponham.
+    """
     try:
-        linhas = conciliacao.ler_ofx(await arquivo.read())
+        conteudo = b"\n".join([await a.read() for a in arquivos])
+        linhas = conciliacao.ler_ofx(conteudo)
         resultado = conciliacao.conciliar(c, conta_id, linhas, tolerancia_dias)
     except conciliacao.OFXInvalido as e:
         raise HTTPException(422, str(e)) from e
-    return {**resultado, "arquivo": arquivo.filename}
+    return {**resultado, "arquivos": [a.filename for a in arquivos]}
 
 
 class CriarLinha(BaseModel):

@@ -94,11 +94,30 @@ def test_endpoint_analisar_e_aplicar(cliente):
     con = cliente.app.state.con
     conta = _conta(con)
     r = cliente.post("/api/conciliacao/analisar",
-                     files={"arquivo": ("extrato.ofx", OFX.encode("latin-1"), "application/x-ofx")},
+                     files={"arquivos": ("extrato.ofx", OFX.encode("latin-1"), "application/x-ofx")},
                      data={"conta_id": str(conta), "tolerancia_dias": "3"})
     assert r.status_code == 200
     corpo = r.json()
     assert corpo["resumo"]["linhas_extrato"] == 4 and corpo["resumo"]["so_banco"] == 4
+
+
+def test_endpoint_varios_arquivos_sem_duplicar(cliente):
+    """Vários OFX (meses diferentes) viram uma conciliação só; FITID repetido não duplica."""
+    con = cliente.app.state.con
+    conta = _conta(con)
+    mes1 = ("<OFX><BANKTRANLIST>"
+            "<STMTTRN><DTPOSTED>20260110<TRNAMT>-10.00<FITID>m1<MEMO>A</STMTTRN>"
+            "</BANKTRANLIST></OFX>").encode("latin-1")
+    mes2 = ("<OFX><BANKTRANLIST>"
+            "<STMTTRN><DTPOSTED>20260210<TRNAMT>-20.00<FITID>m2<MEMO>B</STMTTRN>"
+            "<STMTTRN><DTPOSTED>20260110<TRNAMT>-10.00<FITID>m1<MEMO>A</STMTTRN>"   # repetido
+            "</BANKTRANLIST></OFX>").encode("latin-1")
+    r = cliente.post("/api/conciliacao/analisar",
+                     files=[("arquivos", ("jan.ofx", mes1, "application/x-ofx")),
+                            ("arquivos", ("fev.ofx", mes2, "application/x-ofx"))],
+                     data={"conta_id": str(conta)})
+    assert r.status_code == 200
+    assert r.json()["resumo"]["linhas_extrato"] == 2   # m1 não duplicou
 
     ap = cliente.post("/api/conciliacao/aplicar", json={
         "conta_id": conta, "conferir_ids": [],

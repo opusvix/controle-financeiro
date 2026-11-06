@@ -40,6 +40,7 @@ def ler_ofx(conteudo: bytes) -> list[dict]:
         raise OFXInvalido("Não encontrei lançamentos (STMTTRN) no arquivo. "
                           "Confira se é um extrato exportado em OFX.")
     linhas: list[dict] = []
+    vistos: set[str] = set()
     for i, b in enumerate(blocos):
         dt = _tag(b, "DTPOSTED")[:8]
         valor = _tag(b, "TRNAMT").replace(",", ".")
@@ -50,8 +51,12 @@ def ler_ofx(conteudo: bytes) -> list[dict]:
             centavos = round(float(valor) * 100)
         except ValueError:
             continue
+        fitid = _tag(b, "FITID") or f"linha{i}"
+        if fitid in vistos:      # mesmo lançamento em dois arquivos (períodos sobrepostos)
+            continue
+        vistos.add(fitid)
         descricao = _tag(b, "MEMO") or _tag(b, "NAME") or "(sem descrição)"
-        linhas.append({"fitid": _tag(b, "FITID") or f"linha{i}", "data": d.isoformat(),
+        linhas.append({"fitid": fitid, "data": d.isoformat(),
                        "valor_centavos": centavos, "descricao": descricao})
     if not linhas:
         raise OFXInvalido("O arquivo parece OFX, mas nenhuma linha tinha data e valor válidos.")
