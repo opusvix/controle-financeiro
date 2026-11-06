@@ -282,3 +282,12 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
   .rel-intervalo, .energia-kpis span, .energia-kpis small { color: #52525b !important; }
   .cartao-painel, section, table, .energia-kpis { break-inside: avoid; }
 }
+
+/* --- Conciliação bancária --- */
+.conc-topo { display: flex; flex-wrap: wrap; gap: 20px; align-items: end; }
+.conc-topo label { display: grid; gap: 6px; color: var(--suave); font-size: 13px; }
+.conc-topo select, .conc-topo input[type=file] { color: var(--texto); }
+.conc-ok { background: #14321f; border: 1px solid #22c55e; color: #d1fae5; border-radius: 10px; padding: 10px 14px; }
+.conc-aplicar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+  gap: 14px; margin: 16px 0 40px; }
+.conc-aplicar .dica { margin: 0; }

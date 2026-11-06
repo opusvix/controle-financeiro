@@ -2,6 +2,7 @@ import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import Cadastros from "./telas/Cadastros";
 import Fatura from "./telas/Fatura";
 import Cartoes from "./telas/Cartoes";
+import Conciliacao from "./telas/Conciliacao";
 import Configuracoes from "./telas/Configuracoes";
 import Contas from "./telas/Contas";
 import Cupons from "./telas/Cupons";
@@ -13,7 +14,7 @@ import Transacoes from "./telas/Transacoes";
 const MENU = [
   ["/", "Dashboard"], ["/contas", "Contas"], ["/transacoes", "Transações"], ["/cupons", "Cupons"],
   ["/precos", "Preços"], ["/relatorios", "Relatórios"], ["/cartoes", "Cartões de crédito"],
-  ["/cadastros", "Cadastros"], ["/configuracoes", "Configurações"],
+  ["/conciliacao", "Conciliação"], ["/cadastros", "Cadastros"], ["/configuracoes", "Configurações"],
 ] as const;
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/relatorios" element={<Relatorios />} />
           <Route path="/cartoes" element={<Cartoes />} />
           <Route path="/cartoes/:id" element={<Fatura />} />
+          <Route path="/conciliacao" element={<Conciliacao />} />
           <Route path="/cadastros" element={<Cadastros />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="*" element={<Navigate to="/" />} />
