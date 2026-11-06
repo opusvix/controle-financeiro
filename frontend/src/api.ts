@@ -250,9 +250,9 @@ export const api = {
     chamar<Relatorio>("ini" in p ? `/api/relatorios?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios?meses=${p.meses}`),
   urlRelatorioXlsx: (p: { ini: string; fim: string } | { meses: number }) =>
     "ini" in p ? `/api/relatorios/export.xlsx?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios/export.xlsx?meses=${p.meses}`,
-  analisarConciliacao: (arquivo: File, conta_id: number, tolerancia_dias = 3) => {
+  analisarConciliacao: (arquivos: File | File[], conta_id: number, tolerancia_dias = 3) => {
     const f = new FormData();
-    f.append("arquivo", arquivo);
+    (Array.isArray(arquivos) ? arquivos : [arquivos]).forEach((a) => f.append("arquivos", a));
     f.append("conta_id", String(conta_id));
     f.append("tolerancia_dias", String(tolerancia_dias));
     return chamar<Conciliacao>("/api/conciliacao/analisar", { method: "POST", body: f });
