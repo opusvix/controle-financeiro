@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config as config_mod
 from . import db, seed
-from .routers import cadastros, cupons, movimento, sistema
+from .routers import cadastros, conciliacao, cupons, movimento, sistema
 from .services import backup
 
 INTERVALO_BACKUP = timedelta(hours=20)
@@ -39,7 +39,7 @@ def criar_app(cfg: config_mod.Config | None = None, banco: str | None = None) ->
         con.close()
 
     app = FastAPI(title="Controle Financeiro", lifespan=ciclo)
-    for r in (cadastros.router, cupons.router, movimento.router, sistema.router):
+    for r in (cadastros.router, conciliacao.router, cupons.router, movimento.router, sistema.router):
         app.include_router(r)
     _servir_telas(app)
     return app

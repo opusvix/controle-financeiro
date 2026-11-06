@@ -212,6 +212,22 @@ export type CupomLido = {
 };
 export type NotaQR = { chave: string; numero: number; cnpj: string; valida: boolean; url_consulta: string | null };
 
+export type ConcBanco = { fitid: string; data: string; valor_centavos: number; descricao: string };
+export type ConcApp = {
+  id: number; data: string; descricao: string; valor_centavos: number; tipo: string; conferido: number;
+};
+export type Conciliacao = {
+  conta_id: number; ini: string; fim: string; tolerancia_dias: number; arquivo: string;
+  casados: { banco: ConcBanco; app: ConcApp }[];
+  divergencias: { banco: ConcBanco; app: ConcApp; diferenca_centavos: number }[];
+  so_banco: ConcBanco[];
+  so_app: ConcApp[];
+  resumo: { linhas_extrato: number; casados: number; divergencias: number; so_banco: number; so_app: number };
+};
+export type CriarDoExtrato = {
+  data: string; valor_centavos: number; descricao: string; categoria_id?: number | null;
+};
+
 const comArquivo = (arquivo: File): RequestInit => {
   const f = new FormData();
   f.append("arquivo", arquivo);
@@ -234,6 +250,15 @@ export const api = {
     chamar<Relatorio>("ini" in p ? `/api/relatorios?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios?meses=${p.meses}`),
   urlRelatorioXlsx: (p: { ini: string; fim: string } | { meses: number }) =>
     "ini" in p ? `/api/relatorios/export.xlsx?ini=${p.ini}&fim=${p.fim}` : `/api/relatorios/export.xlsx?meses=${p.meses}`,
+  analisarConciliacao: (arquivo: File, conta_id: number, tolerancia_dias = 3) => {
+    const f = new FormData();
+    f.append("arquivo", arquivo);
+    f.append("conta_id", String(conta_id));
+    f.append("tolerancia_dias", String(tolerancia_dias));
+    return chamar<Conciliacao>("/api/conciliacao/analisar", { method: "POST", body: f });
+  },
+  aplicarConciliacao: (body: { conta_id: number; conferir_ids: number[]; criar: CriarDoExtrato[] }) =>
+    chamar<{ conferidos: number; criados: number }>("/api/conciliacao/aplicar", enviar("POST", body)),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),
