@@ -68,7 +68,7 @@ def _dias(a: str, b: str) -> int:
 
 
 def conciliar(con: sqlite3.Connection, conta_id: int, linhas: list[dict],
-              tolerancia_dias: int = 3) -> dict:
+              tolerancia_dias: int = 5) -> dict:
     """Cruza as linhas do extrato com os lançamentos da conta no período do extrato."""
     if not linhas:
         raise OFXInvalido("Extrato sem linhas para conciliar.")

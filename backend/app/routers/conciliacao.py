@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/conciliacao", tags=["conciliacao"])
 
 @router.post("/analisar")
 async def analisar(arquivos: list[UploadFile] = File(...), conta_id: int = Form(...),
-                   tolerancia_dias: int = Form(3), c=Depends(con)):
+                   tolerancia_dias: int = Form(5), c=Depends(con)):
     """Não grava nada: lê um ou vários OFX (vários meses) e devolve os quatro baldes.
 
     Junta os arquivos num texto só — o leitor varre todos os STMTTRN — e remove

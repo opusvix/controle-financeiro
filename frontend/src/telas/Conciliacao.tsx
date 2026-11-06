@@ -21,7 +21,7 @@ export default function Conciliacao() {
   const [res, setRes] = useState<Resultado | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const [tolerancia, setTolerancia] = useState(3);   // dias de folga entre data da compra e a do banco
+  const [tolerancia, setTolerancia] = useState(5);   // dias de folga entre data da compra e a do banco (cobre feriados/fins de semana)
   const inputArquivo = useRef<HTMLInputElement>(null);
 
   // Seleções do usuário sobre o resultado.
