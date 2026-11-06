@@ -124,13 +124,14 @@ export default function Conciliacao() {
             <Kpi titulo="Só no app" n={res.resumo.so_app} cor="#a1a1aa" />
           </div>
 
-          <SecaoCasados res={res} conferir={conferir} setConferir={setConferir}
-            descrApp={descrApp} setDescrApp={setDescrApp} />
+          {/* O que precisa de atenção vem primeiro; os casados (já conferidos) ficam por último. */}
           <SecaoDivergencias res={res} conferir={conferir} setConferir={setConferir}
             descrApp={descrApp} setDescrApp={setDescrApp} />
           <SecaoSoBanco res={res} categorias={categorias} lancar={lancar} setLancar={setLancar}
             descr={descr} setDescr={setDescr} aoCriarCategoria={(c) => setExtraCats((e) => [...e, c])} />
           <SecaoSoApp res={res} />
+          <SecaoCasados res={res} conferir={conferir} setConferir={setConferir}
+            descrApp={descrApp} setDescrApp={setDescrApp} />
 
           <div className="conc-aplicar">
             <span className="dica">Vai marcar <b>{conferir.size}</b> como conferido(s) e lançar <b>{totalLancar}</b>.</span>
