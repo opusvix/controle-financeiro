@@ -287,7 +287,7 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
         <label>Descrição<input value={f.descricao} onChange={(e) => muda("descricao", e.target.value)}
           placeholder={tipo === "transferencia" ? "Ex.: Aplicação no CDB" : "Ex.: SUPERMERCADO PERIM"} /></label>
         {usaCategoria && <SeletorCategoria categorias={categorias.filter((c) => c.tipo === tipoCategoria)}
-          valor={f.categoria_id} aoMudar={(v) => muda("categoria_id", v)} />}
+          valor={f.categoria_id} aoMudar={(v) => muda("categoria_id", v)} tipo={tipoCategoria} />}
         {usaConta && (
           <label>{tipo === "transferencia" ? "Sai da conta" : tipo === "receita" ? "Entra na conta" : "Conta"}
             <select value={f.conta_id} onChange={(e) => muda("conta_id", e.target.value)}>

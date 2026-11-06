@@ -132,8 +132,14 @@ def conciliar(con: sqlite3.Connection, conta_id: int, linhas: list[dict],
 
 
 def aplicar(con: sqlite3.Connection, conta_id: int, conferir_ids: list[int],
-            criar: list[dict]) -> dict:
-    """Marca como conferidos os lançamentos casados e cria os que faltavam (do extrato)."""
+            criar: list[dict], renomear: list[dict] | None = None) -> dict:
+    """Marca como conferidos os lançamentos casados, renomeia os ajustados e cria os que faltavam."""
+    renomeados = 0
+    for item in (renomear or []):
+        novo = (item.get("descricao") or "").strip()
+        if novo:
+            tx.editar(con, int(item["id"]), {"descricao": novo})
+            renomeados += 1
     conferidos = 0
     for id_ in conferir_ids:
         tx.editar(con, id_, {"conferido": 1})
@@ -156,7 +162,7 @@ def aplicar(con: sqlite3.Connection, conta_id: int, conferir_ids: list[int],
         for id_ in ids:
             tx.editar(con, id_, {"conferido": 1})
         criados += 1
-    return {"conferidos": conferidos, "criados": criados}
+    return {"conferidos": conferidos, "criados": criados, "renomeados": renomeados}
 
 
 def _ofx_pub(ln: dict) -> dict:

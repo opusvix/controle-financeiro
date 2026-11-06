@@ -70,11 +70,24 @@ def test_aplicar_confere_e_cria(con):
                                         data=date(2026, 11, 3), conta_id=conta, categoria_id=merc))
     saida = conciliacao.aplicar(con, conta, conferir_ids=[tid], criar=[
         {"data": "2026-11-04", "valor_centavos": -9999, "descricao": "TARIFA", "categoria_id": merc}])
-    assert saida == {"conferidos": 1, "criados": 1}
+    assert saida == {"conferidos": 1, "criados": 1, "renomeados": 0}
     assert con.execute("SELECT conferido FROM transacao WHERE id = ?", (tid,)).fetchone()[0] == 1
     nova = con.execute("SELECT tipo, valor_centavos, conferido FROM transacao "
                        "WHERE descricao = 'TARIFA'").fetchone()
     assert tuple(nova) == ("despesa", 9999, 1)
+
+
+def test_aplicar_renomeia_lancamento_existente(con):
+    conta = _conta(con)
+    merc = _cat(con, "Mercado")
+    [tid] = tx.criar(con, NovaTransacao(tipo="despesa", descricao="COMPRA DEBITO 123",
+                                        valor_centavos=5000, data=date(2026, 11, 3),
+                                        conta_id=conta, categoria_id=merc))
+    saida = conciliacao.aplicar(con, conta, conferir_ids=[tid], criar=[],
+                                renomear=[{"id": tid, "descricao": "  Mercado da esquina  "}])
+    assert saida == {"conferidos": 1, "criados": 0, "renomeados": 1}
+    row = con.execute("SELECT descricao, conferido FROM transacao WHERE id = ?", (tid,)).fetchone()
+    assert tuple(row) == ("Mercado da esquina", 1)   # texto aparado e conferido
 
 
 def test_endpoint_analisar_e_aplicar(cliente):

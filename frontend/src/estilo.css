@@ -291,3 +291,10 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .conc-aplicar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
   gap: 14px; margin: 16px 0 40px; }
 .conc-aplicar .dica { margin: 0; }
+
+/* --- Criar categoria na hora (seletor) e editar descrição na conciliação --- */
+.nova-categoria { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px;
+  background: var(--painel-2); border: 1px solid var(--borda); border-radius: 10px; padding: 10px; }
+.nova-categoria input, .nova-categoria select { width: auto; flex: 1 1 140px; }
+.nova-categoria .erro { flex-basis: 100%; margin: 0; }
+.conc-descr { width: 100%; min-width: 180px; }

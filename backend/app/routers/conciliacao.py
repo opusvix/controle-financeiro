@@ -32,17 +32,24 @@ class CriarLinha(BaseModel):
     categoria_id: int | None = None
 
 
+class RenomearItem(BaseModel):
+    id: int
+    descricao: str
+
+
 class AplicarIn(BaseModel):
     conta_id: int
     conferir_ids: list[int] = []
     criar: list[CriarLinha] = []
+    renomear: list[RenomearItem] = []
 
 
 @router.post("/aplicar")
 def aplicar(dados: AplicarIn, c=Depends(con)):
-    """Marca os casados como conferidos e cria os lançamentos que faltavam."""
+    """Marca os casados como conferidos, renomeia os ajustados e cria os que faltavam."""
     try:
         return conciliacao.aplicar(c, dados.conta_id, dados.conferir_ids,
-                                   [l.model_dump() for l in dados.criar])
+                                   [l.model_dump() for l in dados.criar],
+                                   [r.model_dump() for r in dados.renomear])
     except RegraViolada as e:
         raise HTTPException(422, str(e)) from e
