@@ -26,7 +26,8 @@ export default function Conciliacao() {
   // Seleções do usuário sobre o resultado.
   const [conferir, setConferir] = useState<Set<number>>(new Set());          // ids de lançamentos a marcar conferido
   const [lancar, setLancar] = useState<Record<string, number | "">>({});      // fitid -> categoria escolhida (lançar)
-  const [descr, setDescr] = useState<Record<string, string>>({});             // fitid -> descrição ajustada
+  const [descr, setDescr] = useState<Record<string, string>>({});             // fitid -> descrição ajustada (só no banco)
+  const [descrApp, setDescrApp] = useState<Record<number, string>>({});       // id do lançamento -> descrição ajustada (casado/divergência)
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
 
@@ -37,7 +38,7 @@ export default function Conciliacao() {
       const r = await api.analisarConciliacao(file, Number(contaId));
       setRes(r);
       setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
-      setLancar({}); setDescr({});
+      setLancar({}); setDescr({}); setDescrApp({});
     } catch (e) { setErro((e as Error).message); setRes(null); }
     finally { setCarregando(false); }
   }
@@ -58,9 +59,15 @@ export default function Conciliacao() {
         .map((b) => ({ data: b.data, valor_centavos: b.valor_centavos,
                        descricao: (descr[b.fitid] ?? b.descricao).trim() || b.descricao,
                        categoria_id: Number(lancar[b.fitid]) }));
+      // Renomeia os lançamentos que vou conferir e cuja descrição foi ajustada na tela.
+      const renomear = [...res.casados, ...res.divergencias]
+        .filter((m) => conferir.has(m.app.id))
+        .map((m) => ({ id: m.app.id, orig: m.app.descricao, novo: (descrApp[m.app.id] ?? m.app.descricao).trim() }))
+        .filter((m) => m.novo && m.novo !== m.orig)
+        .map((m) => ({ id: m.id, descricao: m.novo }));
       const saida = await api.aplicarConciliacao({
-        conta_id: Number(contaId), conferir_ids: [...conferir], criar });
-      setFeito(`Pronto: ${saida.conferidos} conferido(s) e ${saida.criados} lançado(s).`);
+        conta_id: Number(contaId), conferir_ids: [...conferir], criar, renomear });
+      setFeito(`Pronto: ${saida.conferidos} conferido(s), ${saida.renomeados} renomeado(s) e ${saida.criados} lançado(s).`);
       await analisar();   // recarrega para mostrar o estado novo
     } catch (e) { setErro((e as Error).message); }
     finally { setAplicando(false); }
@@ -104,8 +111,10 @@ export default function Conciliacao() {
             <Kpi titulo="Só no app" n={res.resumo.so_app} cor="#a1a1aa" />
           </div>
 
-          <SecaoCasados res={res} conferir={conferir} setConferir={setConferir} />
-          <SecaoDivergencias res={res} conferir={conferir} setConferir={setConferir} />
+          <SecaoCasados res={res} conferir={conferir} setConferir={setConferir}
+            descrApp={descrApp} setDescrApp={setDescrApp} />
+          <SecaoDivergencias res={res} conferir={conferir} setConferir={setConferir}
+            descrApp={descrApp} setDescrApp={setDescrApp} />
           <SecaoSoBanco res={res} categorias={categorias} lancar={lancar} setLancar={setLancar}
             descr={descr} setDescr={setDescr} aoCriarCategoria={(c) => setExtraCats((e) => [...e, c])} />
           <SecaoSoApp res={res} />
@@ -129,8 +138,9 @@ function Valor({ centavos }: { centavos: number }) {
   return <span className={centavos < 0 ? "neg" : "pos"}>{reais(centavos)}</span>;
 }
 
-function SecaoCasados({ res, conferir, setConferir }: {
+function SecaoCasados({ res, conferir, setConferir, descrApp, setDescrApp }: {
   res: Resultado; conferir: Set<number>; setConferir: (s: Set<number>) => void;
+  descrApp: Record<number, string>; setDescrApp: (m: Record<number, string>) => void;
 }) {
   if (!res.casados.length) return null;
   const alternar = (id: number) => {
@@ -148,7 +158,7 @@ function SecaoCasados({ res, conferir, setConferir }: {
       <table className="tabela">
         <thead><tr>
           <th><input type="checkbox" checked={todos} onChange={marcarTodos} /></th>
-          <th>Data</th><th>Extrato</th><th className="num">Valor</th><th>Lançamento no app</th>
+          <th>Data</th><th>Extrato</th><th className="num">Valor</th><th>Lançamento no app (edite se quiser)</th>
         </tr></thead>
         <tbody>
           {res.casados.map((c) => (
@@ -158,17 +168,21 @@ function SecaoCasados({ res, conferir, setConferir }: {
               <td>{dataBR(c.banco.data)}</td>
               <td>{c.banco.descricao}</td>
               <td className="num"><Valor centavos={c.banco.valor_centavos} /></td>
-              <td>{c.app.descricao}{c.app.conferido ? " ✓" : ""}</td>
+              <td><input className="conc-descr" value={descrApp[c.app.id] ?? c.app.descricao}
+                onChange={(e) => setDescrApp({ ...descrApp, [c.app.id]: e.target.value })} />
+                {c.app.conferido ? " ✓" : ""}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="dica">Marque o que confere. Pode ajustar a descrição do lançamento do app — o texto editado é salvo só nos que você conferir.</p>
     </section>
   );
 }
 
-function SecaoDivergencias({ res, conferir, setConferir }: {
+function SecaoDivergencias({ res, conferir, setConferir, descrApp, setDescrApp }: {
   res: Resultado; conferir: Set<number>; setConferir: (s: Set<number>) => void;
+  descrApp: Record<number, string>; setDescrApp: (m: Record<number, string>) => void;
 }) {
   if (!res.divergencias.length) return null;
   const alternar = (id: number) => {
@@ -180,7 +194,7 @@ function SecaoDivergencias({ res, conferir, setConferir }: {
       <table className="tabela">
         <thead><tr>
           <th>Data</th><th>Extrato</th><th className="num">Banco</th>
-          <th>No app</th><th className="num">App</th><th className="num">Diferença</th>
+          <th>No app (edite se quiser)</th><th className="num">App</th><th className="num">Diferença</th>
           <th>É o mesmo?</th>
         </tr></thead>
         <tbody>
@@ -189,7 +203,8 @@ function SecaoDivergencias({ res, conferir, setConferir }: {
               <td>{dataBR(d.banco.data)}</td>
               <td>{d.banco.descricao}</td>
               <td className="num"><Valor centavos={d.banco.valor_centavos} /></td>
-              <td>{d.app.descricao}</td>
+              <td><input className="conc-descr" value={descrApp[d.app.id] ?? d.app.descricao}
+                onChange={(e) => setDescrApp({ ...descrApp, [d.app.id]: e.target.value })} /></td>
               <td className="num"><Valor centavos={d.app.valor_centavos} /></td>
               <td className="num">{reais(d.diferenca_centavos)}</td>
               <td><input type="checkbox" checked={conferir.has(d.app.id)}

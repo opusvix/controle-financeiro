@@ -257,8 +257,10 @@ export const api = {
     f.append("tolerancia_dias", String(tolerancia_dias));
     return chamar<Conciliacao>("/api/conciliacao/analisar", { method: "POST", body: f });
   },
-  aplicarConciliacao: (body: { conta_id: number; conferir_ids: number[]; criar: CriarDoExtrato[] }) =>
-    chamar<{ conferidos: number; criados: number }>("/api/conciliacao/aplicar", enviar("POST", body)),
+  aplicarConciliacao: (body: { conta_id: number; conferir_ids: number[]; criar: CriarDoExtrato[];
+                               renomear?: { id: number; descricao: string }[] }) =>
+    chamar<{ conferidos: number; criados: number; renomeados: number }>(
+      "/api/conciliacao/aplicar", enviar("POST", body)),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),
