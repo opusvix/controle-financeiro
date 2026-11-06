@@ -21,6 +21,7 @@ export default function Conciliacao() {
   const [res, setRes] = useState<Resultado | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [tolerancia, setTolerancia] = useState(3);   // dias de folga entre data da compra e a do banco
   const inputArquivo = useRef<HTMLInputElement>(null);
 
   // Seleções do usuário sobre o resultado.
@@ -31,11 +32,11 @@ export default function Conciliacao() {
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
 
-  async function analisar(files = arquivos) {
+  async function analisar(files = arquivos, tol = tolerancia) {
     if (!contaId || !files.length) return;
     setCarregando(true); setErro(null); setFeito(null);
     try {
-      const r = await api.analisarConciliacao(files, Number(contaId));
+      const r = await api.analisarConciliacao(files, Number(contaId), tol);
       setRes(r);
       setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
       setLancar({}); setDescr({}); setDescrApp({});
@@ -89,6 +90,14 @@ export default function Conciliacao() {
             disabled={!contaId}
             onChange={(e) => escolherArquivos(Array.from(e.target.files ?? []))} />
         </label>
+        <label>Tolerância (dias)
+          <input type="number" min={0} max={30} value={tolerancia} disabled={!contaId}
+            onChange={(e) => {
+              const v = Math.max(0, Math.min(30, Number(e.target.value) || 0));
+              setTolerancia(v);
+              if (arquivos.length && contaId) analisar(arquivos, v);
+            }} />
+        </label>
         {arquivos.length > 1 && <span className="dica">{arquivos.length} arquivos selecionados.</span>}
         {carregando && <span className="dica">Lendo o extrato…</span>}
       </div>
@@ -96,8 +105,10 @@ export default function Conciliacao() {
       <p className="dica">
         Exporte o extrato da conta em <b>OFX</b> pelo app/internet banking. Se o banco só deixa baixar
         um mês por vez, selecione <b>vários arquivos de uma vez</b> aqui. O app casa cada linha
-        por <b>data (± {res?.tolerancia_dias ?? 3} dias)</b> e <b>valor</b>. Nada é gravado até você clicar em
-        "Aplicar".
+        por <b>data (± {res?.tolerancia_dias ?? tolerancia} dias)</b> e <b>valor</b>. Você lança a compra pela
+        data em que ela aconteceu, mas o banco mostra a data em que o dinheiro saiu — por isso há uma
+        <b> tolerância de dias</b>. Se um mesmo lançamento cair em "Só no banco" e "Só no app", aumente a
+        tolerância para ele virar casado/divergência. Nada é gravado até você clicar em "Aplicar".
       </p>
 
       {erro && <p className="erro">{erro}</p>}
