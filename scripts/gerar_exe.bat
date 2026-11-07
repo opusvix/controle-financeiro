@@ -27,8 +27,10 @@ cd /d "%RAIZ%"
 backend\.venv\Scripts\pyinstaller --noconfirm --clean controle-financeiro.spec || goto erro
 
 echo.
-echo Pronto! O aplicativo esta em:  "%RAIZ%\dist\ControleFinanceiro.exe"
-echo Entregue esse arquivo ao usuario: ele da dois cliques e o app abre numa janela propria.
+echo Pronto! Foram gerados DOIS programas na pasta "%RAIZ%\dist":
+echo   - ControleFinanceiro.exe             (app normal, dados reais)
+echo   - ControleFinanceiro-Demonstracao.exe (abre em modo DEMONSTRACAO, dados ficticios)
+echo Entregue o arquivo desejado ao usuario: ele da dois cliques e o app abre numa janela propria.
 echo.
 pause
 goto :eof

@@ -16,6 +16,7 @@ import urllib.request
 
 import uvicorn
 
+from . import config as config_mod
 from .main import criar_app
 
 TITULO = "Controle Financeiro"
@@ -59,8 +60,11 @@ def main() -> None:
     if not _esperar_servidor(base + "api/saude"):
         raise SystemExit("O servidor não respondeu a tempo.")
 
+    # No modo demonstração a janela avisa no título, para não confundir com os dados reais.
+    titulo = TITULO + (" — Demonstração" if config_mod.carregar().modo_demo else "")
+
     import webview  # importado aqui: o módulo carrega mesmo sem a janela instalada
-    webview.create_window(TITULO, base, width=1280, height=860, min_size=(900, 600))
+    webview.create_window(titulo, base, width=1280, height=860, min_size=(900, 600))
     webview.start()                 # bloqueia até a janela fechar
     servidor.should_exit = True     # fecha o servidor junto com a janela
 
