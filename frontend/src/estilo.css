@@ -16,6 +16,13 @@ input, select { background: var(--fundo); border: 1px solid var(--borda); border
 .menu .marca { font-weight: 700; font-size: 20px; color: var(--roxo); padding: 0 12px 24px; line-height: 1.1; }
 .menu a { color: var(--suave); text-decoration: none; padding: 10px 12px; border-radius: 8px; }
 .menu a.active { color: var(--texto); background: var(--painel-2); border-left: 3px solid var(--roxo); }
+.bloco-demo { display: flex; flex-direction: column; gap: 8px; margin: 0 4px 16px; }
+.selo-demo { align-self: flex-start; background: #F38433; color: #111; font-weight: 700;
+  font-size: 11px; letter-spacing: .5px; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+.btn-demo { background: #F3843322; border: 1px solid #F38433; color: #F38433; font-weight: 600;
+  font-size: 13px; padding: 6px 10px; border-radius: 8px; }
+.btn-demo:hover:not(:disabled) { background: #F3843333; }
+.btn-demo:disabled { opacity: .6; cursor: default; }
 main { padding: 24px 32px; max-width: 1400px; }
 
 .topo { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }

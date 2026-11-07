@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { api } from "./api";
+import { useDados } from "./componentes/useDados";
 import Cadastros from "./telas/Cadastros";
 import Fatura from "./telas/Fatura";
 import Cartoes from "./telas/Cartoes";
@@ -17,11 +20,40 @@ const MENU = [
   ["/conciliacao", "Conciliação"], ["/cadastros", "Cadastros"], ["/configuracoes", "Configurações"],
 ] as const;
 
+function SeloDemo() {
+  const saude = useDados(api.saude);
+  const [reiniciando, setReiniciando] = useState(false);
+  if (!saude.dados?.modo_demo) return null;
+
+  async function reiniciar() {
+    if (!confirm("Isto apaga tudo que você mexeu e volta a demonstração ao estado de exemplo. Continuar?"))
+      return;
+    setReiniciando(true);
+    try {
+      await api.reiniciarDemo();
+      location.reload();   // recarrega para todas as telas pegarem os dados novos
+    } catch (e) {
+      alert((e as Error).message);
+      setReiniciando(false);
+    }
+  }
+
+  return (
+    <div className="bloco-demo">
+      <span className="selo-demo">Demonstração</span>
+      <button className="btn-demo" onClick={reiniciar} disabled={reiniciando}>
+        {reiniciando ? "Reiniciando…" : "↺ Reiniciar demonstração"}
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <div className="app">
       <nav className="menu">
         <div className="marca">Controle<br />Financeiro</div>
+        <SeloDemo />
         {MENU.map(([rota, nome]) => (
           <NavLink key={rota} to={rota} end={rota === "/"}>{nome}</NavLink>
         ))}
