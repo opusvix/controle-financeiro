@@ -30,7 +30,7 @@ export default function Dashboard() {
           <section className="kpis">
             <Kpi titulo="Saldo disponível" valor={p.saldo_disponivel} cor="#3b82f6"
                  dica="Contas correntes e carteira. Investimentos ficam no Patrimônio." />
-            <Kpi titulo="Patrimônio" valor={p.patrimonio} cor="#8b5cf6"
+            <Kpi titulo="Patrimônio" valor={p.patrimonio} cor="#F38433"
                  dica="Saldo disponível + investimentos." />
             <Kpi titulo="Receitas" valor={p.receitas} cor="#22c55e" />
             <Kpi titulo="Despesas" valor={p.despesas} cor="#ef4444"
