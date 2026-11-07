@@ -44,3 +44,21 @@ exe = EXE(
     console=False,              # sem janela preta de terminal
     icon="scripts/icone.ico",
 )
+
+# Segundo executável, da MESMA base: abre em modo DEMONSTRAÇÃO.
+# O modo é detectado pelo nome do arquivo (ver backend/run_desktop.py),
+# por isso reaproveita o mesmo Analysis e PYZ — só muda o nome.
+exe_demo = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name="ControleFinanceiro-Demonstracao",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=False,
+    icon="scripts/icone.ico",
+)
