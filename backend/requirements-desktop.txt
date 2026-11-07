@@ -1,0 +1,5 @@
+# Bibliotecas para o app standalone (janela nativa e geração do .exe).
+# Só é preciso para o modo desktop; o app web normal não usa.
+-r requirements.txt
+pywebview>=5.0      # janela nativa (no Windows usa o WebView2 do Edge)
+pyinstaller>=6.0    # gera o .exe único

@@ -16,6 +16,10 @@ __pycache__/
 # Node
 node_modules/
 dist/
+
+# PyInstaller (geração do .exe)
+build/
+*.manifest
 importacao_*.txt
 *.tsbuildinfo
 contas_resultado.txt
