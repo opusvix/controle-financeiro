@@ -51,7 +51,7 @@ export default function Fatura() {
             <Kpi titulo="Pago" valor={f.pago} cor="#22c55e" />
             <Kpi titulo="A pagar" valor={f.a_pagar} cor="#ef4444" />
             <Kpi titulo={`Conferido (${f.lancamentos.filter((t) => t.conferido).length} de ${f.lancamentos.length})`}
-              valor={f.conferido} cor="#8b5cf6" />
+              valor={f.conferido} cor="#F38433" />
           </section>
           <ConferenciaBanco key={`${f.cartao.id}-${f.competencia}`} fatura={f} aoMudar={fatura.recarregar} />
           <div className="acoes-fatura">

@@ -30,7 +30,7 @@ export default function Contas() {
         <section className="kpis">
           <div className="kpi"><i style={{ background: "#3b82f6" }} />
             <div><span>Saldo disponível</span><strong>{reais(painel.dados.saldo_disponivel)}</strong></div></div>
-          <div className="kpi"><i style={{ background: "#8b5cf6" }} />
+          <div className="kpi"><i style={{ background: "#F38433" }} />
             <div><span>Patrimônio</span><strong>{reais(painel.dados.patrimonio)}</strong></div></div>
         </section>
       )}

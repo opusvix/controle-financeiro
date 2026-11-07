@@ -75,7 +75,7 @@ function Evento({ e }: { e: EventoPlano }) {
     </div>);
   const barras = [
     { nome: "Unimed", v: e.percentual, cor: "#f87171" },
-    ...(e.teto_ans ? [{ nome: "Teto ANS", v: e.teto_ans.percentual, cor: "#8b5cf6" }] : []),
+    ...(e.teto_ans ? [{ nome: "Teto ANS", v: e.teto_ans.percentual, cor: "#F38433" }] : []),
     ...(e.comparacao ?? []).filter((c) => c.percentual != null).map((c) => ({ nome: c.indice, v: c.percentual!, cor: "#60a5fa" })),
   ];
   const max = Math.max(...barras.map((b) => Math.abs(b.v)), 1);

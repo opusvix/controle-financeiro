@@ -35,7 +35,7 @@ const TIPOS: { tipo: Tipo; nome: string; cor: string }[] = [
   { tipo: "despesa_cartao", nome: "Despesa no cartão", cor: "#14b8a6" },
   { tipo: "credito_cartao", nome: "Crédito na fatura (estorno)", cor: "#84cc16" },
   { tipo: "transferencia", nome: "Transferência", cor: "#3b82f6" },
-  { tipo: "pagamento_fatura", nome: "Pagamento de fatura", cor: "#8b5cf6" },
+  { tipo: "pagamento_fatura", nome: "Pagamento de fatura", cor: "#F38433" },
 ];
 
 /** Sinal do valor na lista: o que entra é +, o que sai é −. */
