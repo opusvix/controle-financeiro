@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { api } from "./api";
 import { useDados } from "./componentes/useDados";
+import Ajuda from "./telas/Ajuda";
 import Cadastros from "./telas/Cadastros";
 import Fatura from "./telas/Fatura";
 import Cartoes from "./telas/Cartoes";
@@ -18,6 +19,7 @@ const MENU = [
   ["/", "Dashboard"], ["/contas", "Contas"], ["/transacoes", "Transações"], ["/cupons", "Cupons"],
   ["/precos", "Preços"], ["/relatorios", "Relatórios"], ["/cartoes", "Cartões de crédito"],
   ["/conciliacao", "Conciliação"], ["/cadastros", "Cadastros"], ["/configuracoes", "Configurações"],
+  ["/ajuda", "Ajuda"],
 ] as const;
 
 function SeloDemo() {
@@ -71,6 +73,7 @@ export default function App() {
           <Route path="/conciliacao" element={<Conciliacao />} />
           <Route path="/cadastros" element={<Cadastros />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/ajuda" element={<Ajuda />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
