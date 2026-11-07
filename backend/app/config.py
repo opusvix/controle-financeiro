@@ -2,10 +2,24 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parents[2]
+
+def _empacotado() -> bool:
+    """True quando rodando dentro do .exe gerado pelo PyInstaller."""
+    return getattr(sys, "frozen", False)
+
+
+if _empacotado():
+    # No .exe: as telas e migrações vêm do bundle temporário (_MEIPASS);
+    # já os dados (banco, backup, .env) ficam AO LADO do executável, para persistir.
+    RAIZ = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    _PASTA_PADRAO = Path(sys.executable).resolve().parent
+else:
+    RAIZ = Path(__file__).resolve().parents[2]
+    _PASTA_PADRAO = RAIZ
 
 
 def _carregar_env(arquivo: Path) -> None:
@@ -40,11 +54,11 @@ class Config:
 
 
 def carregar() -> Config:
-    _carregar_env(RAIZ / ".env")
+    _carregar_env(_PASTA_PADRAO / ".env")
     drive = os.environ.get("CF_PASTA_BACKUP_DRIVE", "").strip()
     return Config(
-        pasta_dados=Path(os.environ.get("CF_PASTA_DADOS", RAIZ / "data")),
-        pasta_backup=Path(os.environ.get("CF_PASTA_BACKUP", RAIZ / "BackUp")),
+        pasta_dados=Path(os.environ.get("CF_PASTA_DADOS", _PASTA_PADRAO / "data")),
+        pasta_backup=Path(os.environ.get("CF_PASTA_BACKUP", _PASTA_PADRAO / "BackUp")),
         pasta_backup_drive=Path(drive) if drive else None,
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
         modo_demo=_verdadeiro(os.environ.get("CF_MODO_DEMO") or os.environ.get("MODO_DEMO")),
