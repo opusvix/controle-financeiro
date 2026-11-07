@@ -152,6 +152,7 @@ export type Relatorio = {
 export type Saude = {
   ok: boolean; banco: string; leitura_ia_configurada: boolean;
   ultimo_backup: { arquivo: string; criado_em: string; copiado_drive: number } | null;
+  modo_demo: boolean;
 };
 
 async function chamar<T>(caminho: string, opcoes?: RequestInit): Promise<T> {
@@ -262,6 +263,7 @@ export const api = {
     chamar<{ transacao_id: number | null; valor_centavos: number; itens: number; so_precos: boolean }>(
       "/api/cupons/lancar", enviar("POST", d)),
   saude: () => chamar<Saude>("/api/saude"),
+  reiniciarDemo: () => chamar<{ ok: boolean }>("/api/demo/reiniciar", { method: "POST" }),
   painel: (comp: string) => chamar<Painel>(`/api/dashboard?competencia=${comp}`),
   energia: (meses = 12) => chamar<PainelEnergia>(`/api/painel/energia?meses=${meses}`),
   agua: (meses = 12) => chamar<PainelAgua>(`/api/painel/agua?meses=${meses}`),

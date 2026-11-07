@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
+from .. import seed_demo
 from ..deps import cfg, con
 from ..services import backup, nfce
 
@@ -16,7 +17,17 @@ def saude(c=Depends(con), config=Depends(cfg)):
         "banco": str(config.arquivo_banco),
         "ultimo_backup": backup.ultimo(c),
         "leitura_ia_configurada": config.anthropic_api_key is not None,
+        "modo_demo": config.modo_demo,
     }
+
+
+@router.post("/demo/reiniciar")
+def reiniciar_demo(c=Depends(con), config=Depends(cfg)):
+    """Devolve a demonstração ao estado de exemplo. Só existe no modo demo."""
+    if not config.modo_demo:
+        raise HTTPException(404, "Disponível apenas na versão de demonstração")
+    seed_demo.reiniciar(c)
+    return {"ok": True}
 
 
 @router.post("/backup")

@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config as config_mod
-from . import db, seed
+from . import db, seed, seed_demo
 from .routers import cadastros, conciliacao, cupons, movimento, sistema
 from .services import backup
 
@@ -31,9 +31,13 @@ def criar_app(cfg: config_mod.Config | None = None, banco: str | None = None) ->
     async def ciclo(app: FastAPI):
         con = db.conectar(banco or cfg.arquivo_banco)
         db.migrar(con)
-        seed.popular(con)
-        if banco is None:
-            _backup_se_preciso(con, cfg)
+        if cfg.modo_demo:
+            # Demonstração: banco próprio, dados fictícios e nenhum backup.
+            seed_demo.garantir(con)
+        else:
+            seed.popular(con)
+            if banco is None:
+                _backup_se_preciso(con, cfg)
         app.state.con, app.state.cfg = con, cfg
         yield
         con.close()

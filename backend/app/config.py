@@ -20,16 +20,23 @@ def _carregar_env(arquivo: Path) -> None:
         os.environ.setdefault(chave.strip(), valor.strip().strip('"'))
 
 
+def _verdadeiro(valor: str | None) -> bool:
+    return (valor or "").strip().lower() in ("1", "true", "sim", "yes", "on")
+
+
 @dataclass(frozen=True)
 class Config:
     pasta_dados: Path
     pasta_backup: Path
     pasta_backup_drive: Path | None
     anthropic_api_key: str | None
+    modo_demo: bool = False
 
     @property
     def arquivo_banco(self) -> Path:
-        return self.pasta_dados / "financeiro.db"
+        # No modo demonstração o banco é SEPARADO: nunca toca nos dados reais.
+        nome = "financeiro_demo.db" if self.modo_demo else "financeiro.db"
+        return self.pasta_dados / nome
 
 
 def carregar() -> Config:
@@ -40,4 +47,5 @@ def carregar() -> Config:
         pasta_backup=Path(os.environ.get("CF_PASTA_BACKUP", RAIZ / "BackUp")),
         pasta_backup_drive=Path(drive) if drive else None,
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
+        modo_demo=_verdadeiro(os.environ.get("CF_MODO_DEMO") or os.environ.get("MODO_DEMO")),
     )
