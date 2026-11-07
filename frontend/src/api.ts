@@ -228,6 +228,27 @@ export type CriarDoExtrato = {
   data: string; valor_centavos: number; descricao: string; categoria_id?: number | null;
 };
 
+export type ConcFaturaLinha = {
+  chave: string; data: string; descricao: string; valor_centavos: number;
+  parcela: number | null; total_parcelas: number | null; final: string;
+};
+export type ConcFaturaApp = {
+  id: number; data: string; descricao: string; valor_centavos: number; tipo: string;
+  parcela: number | null; total_parcelas: number | null; conferido: number;
+};
+export type ConciliacaoFatura = {
+  cartao: { id: number; nome: string; final: string; bandeira: string; conta_pagamento_id: number | null };
+  competencia: string; fatura_id: number | null; arquivo?: string;
+  casados: { fatura: ConcFaturaLinha; app: ConcFaturaApp }[];
+  divergencias: { fatura: ConcFaturaLinha; app: ConcFaturaApp; diferenca_centavos: number }[];
+  so_fatura: ConcFaturaLinha[];
+  so_app: ConcFaturaApp[];
+  pagamentos: { data: string; descricao: string; valor_centavos: number }[];
+  totais: { app: number; extrato: number; diferenca: number };
+  resumo: { linhas_fatura: number; casados: number; divergencias: number;
+            so_fatura: number; so_app: number; pagamentos: number };
+};
+
 const comArquivo = (arquivo: File): RequestInit => {
   const f = new FormData();
   f.append("arquivo", arquivo);
@@ -261,6 +282,17 @@ export const api = {
                                renomear?: { id: number; descricao: string }[] }) =>
     chamar<{ conferidos: number; criados: number; renomeados: number }>(
       "/api/conciliacao/aplicar", enviar("POST", body)),
+  analisarConciliacaoFatura: (arquivo: File, cartao_id: number, competencia: string) => {
+    const f = new FormData();
+    f.append("arquivo", arquivo);
+    f.append("cartao_id", String(cartao_id));
+    f.append("competencia", competencia);
+    return chamar<ConciliacaoFatura>("/api/conciliacao/fatura/analisar", { method: "POST", body: f });
+  },
+  aplicarConciliacaoFatura: (body: { cartao_id: number; competencia: string; conferir_ids: number[];
+                                     criar: CriarDoExtrato[]; valor_banco?: number | null }) =>
+    chamar<{ conferidos: number; criados: number; valor_banco_gravado: boolean }>(
+      "/api/conciliacao/fatura/aplicar", enviar("POST", body)),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),

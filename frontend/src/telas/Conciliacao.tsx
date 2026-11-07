@@ -3,6 +3,7 @@ import { api, type Categoria, type Conciliacao as Resultado } from "../api";
 import SeletorCategoria from "../componentes/SeletorCategoria";
 import { useDados } from "../componentes/useDados";
 import { dataBR, reais } from "../formato";
+import ConciliacaoFatura from "./ConciliacaoFatura";
 
 /**
  * Conciliação bancária: sobe um extrato OFX de uma conta e cruza com os lançamentos
@@ -30,6 +31,7 @@ export default function Conciliacao() {
   const [descrApp, setDescrApp] = useState<Record<number, string>>({});       // id do lançamento -> descrição ajustada (casado/divergência)
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
+  const [modo, setModo] = useState<"conta" | "cartao">("conta");
 
   async function analisar(files = arquivos) {
     if (!contaId || !files.length) return;
@@ -75,8 +77,20 @@ export default function Conciliacao() {
 
   return (
     <>
-      <header className="topo"><h1>Conciliação bancária</h1></header>
+      <header className="topo">
+        <h1>Conciliação {modo === "conta" ? "bancária" : "de fatura"}</h1>
+        <div className="abas">
+          <button className={modo === "conta" ? "sel" : ""} onClick={() => setModo("conta")}>Conta (banco)</button>
+          <button className={modo === "cartao" ? "sel" : ""} onClick={() => setModo("cartao")}>Cartão (fatura)</button>
+        </div>
+      </header>
 
+      {modo === "cartao" && (
+        <ConciliacaoFatura categorias={categorias}
+          aoCriarCategoria={(c) => setExtraCats((e) => [...e, c])} />
+      )}
+
+      {modo === "conta" && (<>
       <div className="cartao-painel espaco conc-topo">
         <label>Conta
           <select value={contaId} onChange={(e) => { setContaId(e.target.value); setRes(null); }}>
@@ -128,6 +142,7 @@ export default function Conciliacao() {
           </div>
         </>
       )}
+      </>)}
     </>
   );
 }
