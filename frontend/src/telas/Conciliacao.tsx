@@ -32,12 +32,13 @@ export default function Conciliacao() {
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
   const [modo, setModo] = useState<"conta" | "cartao">("conta");
+  const [tolerancia, setTolerancia] = useState(5);
 
-  async function analisar(files = arquivos) {
+  async function analisar(files = arquivos, tol = tolerancia) {
     if (!contaId || !files.length) return;
     setCarregando(true); setErro(null); setFeito(null);
     try {
-      const r = await api.analisarConciliacao(files, Number(contaId));
+      const r = await api.analisarConciliacao(files, Number(contaId), tol);
       setRes(r);
       setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
       setLancar({}); setDescr({}); setDescrApp({});
@@ -103,6 +104,14 @@ export default function Conciliacao() {
             disabled={!contaId}
             onChange={(e) => escolherArquivos(Array.from(e.target.files ?? []))} />
         </label>
+        <label>Tolerância (dias)
+          <input type="number" min={0} max={30} value={tolerancia}
+            onChange={(e) => {
+              const t = Math.max(0, Math.min(30, Number(e.target.value) || 0));
+              setTolerancia(t);
+              if (arquivos.length && contaId) analisar(arquivos, t);
+            }} />
+        </label>
         {arquivos.length > 1 && <span className="dica">{arquivos.length} arquivos selecionados.</span>}
         {carregando && <span className="dica">Lendo o extrato…</span>}
       </div>
@@ -110,7 +119,7 @@ export default function Conciliacao() {
       <p className="dica">
         Exporte o extrato da conta em <b>OFX</b> pelo app/internet banking. Se o banco só deixa baixar
         um mês por vez, selecione <b>vários arquivos de uma vez</b> aqui. O app casa cada linha
-        por <b>data (± {res?.tolerancia_dias ?? 3} dias)</b> e <b>valor</b>. Nada é gravado até você clicar em
+        por <b>data (± {res?.tolerancia_dias ?? tolerancia} dias)</b> e <b>valor</b>. Nada é gravado até você clicar em
         "Aplicar".
       </p>
 

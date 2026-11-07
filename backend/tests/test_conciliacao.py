@@ -101,6 +101,16 @@ def test_endpoint_analisar_e_aplicar(cliente):
     assert corpo["resumo"]["linhas_extrato"] == 4 and corpo["resumo"]["so_banco"] == 4
 
 
+def test_endpoint_tolerancia_padrao_cinco(cliente):
+    """Sem informar a tolerância, o padrão é 5 dias (feriados como o Carnaval atrasam a compensação)."""
+    con = cliente.app.state.con
+    conta = _conta(con)
+    r = cliente.post("/api/conciliacao/analisar",
+                     files={"arquivos": ("extrato.ofx", OFX.encode("latin-1"), "application/x-ofx")},
+                     data={"conta_id": str(conta)})
+    assert r.status_code == 200 and r.json()["tolerancia_dias"] == 5
+
+
 def test_endpoint_varios_arquivos_sem_duplicar(cliente):
     """Vários OFX (meses diferentes) viram uma conciliação só; FITID repetido não duplica."""
     con = cliente.app.state.con
