@@ -9,6 +9,7 @@ Empacotar num .exe: ver scripts\\gerar_exe.bat (PyInstaller).
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
 import urllib.request
@@ -18,6 +19,14 @@ import uvicorn
 from .main import criar_app
 
 TITULO = "Controle Financeiro"
+
+
+def _garantir_saida() -> None:
+    """No .exe sem console (PyInstaller windowed), sys.stdout/stderr são None e o
+    log do uvicorn quebra ao chamar None.isatty(). Manda a saída para o 'nada'."""
+    for nome in ("stdout", "stderr"):
+        if getattr(sys, nome, None) is None:
+            setattr(sys, nome, open(os.devnull, "w", encoding="utf-8"))
 
 
 def _esperar_servidor(url: str, tentativas: int = 80) -> bool:
@@ -41,6 +50,7 @@ def iniciar_servidor(host: str, port: int) -> uvicorn.Server:
 
 
 def main() -> None:
+    _garantir_saida()
     host = os.environ.get("CF_HOST", "127.0.0.1")
     port = int(os.environ.get("CF_PORT", "8000"))
     base = f"http://{host}:{port}/"
