@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Controle Financeiro</title>
     <link rel="icon" type="image/svg+xml" href="/icone.svg" />
+    <script>
+      // Aplica o tema salvo antes do React subir, para não "piscar".
+      try { if (localStorage.getItem("cf-tema") === "claro") document.documentElement.setAttribute("data-tema", "claro"); } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

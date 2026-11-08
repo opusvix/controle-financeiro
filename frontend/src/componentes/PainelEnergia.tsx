@@ -5,6 +5,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import { api, type MesEnergia } from "../api";
 import { reais } from "../formato";
+import { coresGrafico, useTema } from "../tema";
 import { useDados } from "./useDados";
 
 echarts.use([BarChart, LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
@@ -71,10 +72,12 @@ export default function PainelEnergia() {
 
 function GraficoEnergia({ meses }: { meses: MesEnergia[] }) {
   const ref = useRef<HTMLDivElement>(null);
+  const tema = useTema();
   useEffect(() => {
     if (!ref.current) return;
     const g = echarts.init(ref.current);
-    const eixoTexto = { color: "#a1a1aa" };
+    const c = coresGrafico();
+    const eixoTexto = { color: c.suave };
     g.setOption({
       grid: { left: 56, right: 56, top: 36, bottom: 28 },
       legend: { top: 0, textStyle: eixoTexto, itemWidth: 14, itemHeight: 10 },
@@ -95,8 +98,8 @@ function GraficoEnergia({ meses }: { meses: MesEnergia[] }) {
       },
       xAxis: { type: "category", data: meses.map((m) => rotulo(m.referencia)), axisLabel: eixoTexto },
       yAxis: [
-        { type: "value", axisLabel: { ...eixoTexto, formatter: (c: number) => `R$ ${c / 100}` },
-          splitLine: { lineStyle: { color: "#3a3a41" } } },
+        { type: "value", axisLabel: { ...eixoTexto, formatter: (valor: number) => `R$ ${valor / 100}` },
+          splitLine: { lineStyle: { color: c.borda } } },
         { type: "value", axisLabel: { ...eixoTexto, formatter: "{value} kWh" }, splitLine: { show: false } },
       ],
       series: [
@@ -105,15 +108,16 @@ function GraficoEnergia({ meses }: { meses: MesEnergia[] }) {
         { name: "Solar", type: "bar", stack: "luz", data: meses.map((m) => m.solar_centavos),
           itemStyle: { color: COR.solar, borderRadius: [4, 4, 0, 0] } },
         { name: "Consumo", type: "line", yAxisIndex: 1, data: meses.map((m) => m.consumo),
-          itemStyle: { color: COR.consumo }, symbolSize: 6 },
+          itemStyle: { color: c.texto }, symbolSize: 6 },
         { name: "Mesmo mês, ano anterior", type: "line", yAxisIndex: 1,
           data: meses.map((m) => m.consumo_ano_anterior),
           itemStyle: { color: COR.anterior }, lineStyle: { type: "dashed" }, symbol: "none" },
       ],
     });
     const redimensionar = () => g.resize();
+    // (tema entra nas deps para redesenhar ao trocar claro/escuro)
     window.addEventListener("resize", redimensionar);
     return () => { window.removeEventListener("resize", redimensionar); g.dispose(); };
-  }, [meses]);
+  }, [meses, tema]);
   return <div ref={ref} className="energia-grafico" />;
 }

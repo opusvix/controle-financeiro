@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { api } from "./api";
+import { alternarTema, useTema } from "./tema";
 import { useDados } from "./componentes/useDados";
 import Ajuda from "./telas/Ajuda";
 import Cadastros from "./telas/Cadastros";
@@ -51,6 +52,7 @@ function SeloDemo() {
 }
 
 export default function App() {
+  const tema = useTema();
   return (
     <div className="app">
       <nav className="menu">
@@ -59,6 +61,10 @@ export default function App() {
         {MENU.map(([rota, nome]) => (
           <NavLink key={rota} to={rota} end={rota === "/"}>{nome}</NavLink>
         ))}
+        <button className="btn-tema" onClick={alternarTema}
+          title="Alternar entre tema claro e escuro">
+          {tema === "claro" ? "☾ Tema escuro" : "☀ Tema claro"}
+        </button>
       </nav>
       <main>
         <Routes>
