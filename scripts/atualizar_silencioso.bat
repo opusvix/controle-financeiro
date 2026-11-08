@@ -12,6 +12,11 @@ rem So da para atualizar se for um clone do Git com o git instalado.
 if not exist ".git" exit /b 0
 where git >nul 2>&1 || exit /b 0
 
+rem So atualiza automaticamente quando voce esta no main (o branch publicado).
+rem Num branch de trabalho (ex.: feat/...), nao mexe em nada: sai e abre direto.
+for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "BRANCH=%%B"
+if /i not "%BRANCH%"=="main" exit /b 0
+
 git fetch origin main --quiet 2>nul || exit /b 0
 for /f "delims=" %%H in ('git rev-parse HEAD 2^>nul') do set "LOCAL=%%H"
 for /f "delims=" %%H in ('git rev-parse origin/main 2^>nul') do set "REMOTE=%%H"
@@ -41,5 +46,10 @@ fc /b package-lock.json node_modules\.lock-instalado.json >nul 2>&1 || (
     copy /y package-lock.json node_modules\.lock-instalado.json >nul
 )
 call npm run build >nul 2>&1
+if errorlevel 1 (
+    echo   Aviso: nao consegui recompilar as telas desta vez. Abrindo assim mesmo;
+    echo   se alguma tela parecer antiga, rode scripts\atualizar.bat manualmente.
+    exit /b 0
+)
 echo   Pronto! Abrindo o Controle Financeiro...
 exit /b 0
