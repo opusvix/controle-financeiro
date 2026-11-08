@@ -7,6 +7,19 @@ BackUp/
 *.db-wal
 *.db-shm
 
+# Documentos reais (contas, faturas, extratos, planilhas) — nunca versionar.
+# As amostras de teste em backend/tests/dados/ são .txt/.html ANONIMIZADAS e continuam versionadas.
+*.pdf
+*.xlsx
+*.xls
+*.ofx
+*.csv
+Notas/
+Contas/
+Fatura_Cartao/
+# Exceção: amostras de teste (anonimizadas) continuam versionadas, de qualquer tipo.
+!backend/tests/dados/**
+
 # Python
 __pycache__/
 *.pyc
