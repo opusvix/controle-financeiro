@@ -256,6 +256,15 @@ const comArquivo = (arquivo: File): RequestInit => {
   return { method: "POST", body: f };
 };
 
+export type LinhaOrcamento = {
+  categoria_id: number; categoria: string; cor: string;
+  orcado_centavos: number; realizado_centavos: number; saldo_centavos: number; pct: number | null;
+};
+export type Orcamento = {
+  competencia: string; linhas: LinhaOrcamento[];
+  total: { orcado_centavos: number; realizado_centavos: number; saldo_centavos: number; pct: number | null };
+};
+
 export const api = {
   lerQR: (arquivo: File) => chamar<{ notas: NotaQR[] }>("/api/nfce/qr", comArquivo(arquivo)),
   lerCupom: (arquivo: File) => chamar<CupomLido>("/api/cupons/ler", comArquivo(arquivo)),
@@ -265,6 +274,11 @@ export const api = {
   saude: () => chamar<Saude>("/api/saude"),
   reiniciarDemo: () => chamar<{ ok: boolean }>("/api/demo/reiniciar", { method: "POST" }),
   painel: (comp: string) => chamar<Painel>(`/api/dashboard?competencia=${comp}`),
+  orcamento: (comp: string) => chamar<Orcamento>(`/api/orcamento?competencia=${comp}`),
+  definirOrcamento: (categoria_id: number, competencia: string, valor_centavos: number) =>
+    chamar<{ ok: boolean }>("/api/orcamento", enviar("PUT", { categoria_id, competencia, valor_centavos })),
+  copiarOrcamento: (comp: string) =>
+    chamar<{ copiados: number }>(`/api/orcamento/copiar?competencia=${comp}`, { method: "POST" }),
   energia: (meses = 12) => chamar<PainelEnergia>(`/api/painel/energia?meses=${meses}`),
   agua: (meses = 12) => chamar<PainelAgua>(`/api/painel/agua?meses=${meses}`),
   plano: () => chamar<PainelPlano>("/api/painel/plano"),

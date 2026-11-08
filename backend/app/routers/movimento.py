@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from ..deps import con
-from ..services import (agua, contas_casa, energia, fatura_cartao, indices, painel, plano,
-                        precos, relatorio_export, relatorios, transacoes)
+from ..services import (agua, contas_casa, energia, fatura_cartao, indices, orcamento, painel,
+                        plano, precos, relatorio_export, relatorios, transacoes)
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -242,6 +242,35 @@ def dashboard(competencia: str | None = Query(default=None, pattern=COMPETENCIA)
     if not re.match(COMPETENCIA, competencia):
         raise HTTPException(422, "Competência inválida")
     return painel.resumo(c, competencia)
+
+
+class OrcamentoIn(BaseModel):
+    categoria_id: int
+    competencia: str = Field(pattern=COMPETENCIA)
+    valor_centavos: int = Field(ge=0)   # 0 remove o teto
+
+
+@router.get("/orcamento")
+def ver_orcamento(competencia: str | None = Query(default=None, pattern=COMPETENCIA), c=Depends(con)):
+    """Orçado × realizado por categoria de despesa na competência."""
+    competencia = competencia or f"{date.today():%Y-%m}"
+    return orcamento.ver(c, competencia)
+
+
+@router.put("/orcamento")
+def definir_orcamento(dados: OrcamentoIn, c=Depends(con)):
+    """Define (ou remove, com valor 0) o teto de uma categoria na competência."""
+    with c:
+        orcamento.definir(c, dados.categoria_id, dados.competencia, dados.valor_centavos)
+    return {"ok": True}
+
+
+@router.post("/orcamento/copiar")
+def copiar_orcamento(competencia: str = Query(pattern=COMPETENCIA), c=Depends(con)):
+    """Copia os tetos do mês anterior para esta competência (os que ainda faltam)."""
+    with c:
+        copiados = orcamento.copiar_do_mes_anterior(c, competencia)
+    return {"copiados": copiados}
 
 
 @router.get("/painel/energia")

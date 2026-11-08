@@ -12,13 +12,15 @@ import Configuracoes from "./telas/Configuracoes";
 import Contas from "./telas/Contas";
 import Cupons from "./telas/Cupons";
 import Dashboard from "./telas/Dashboard";
+import Orcamento from "./telas/Orcamento";
 import Precos from "./telas/Precos";
 import Relatorios from "./telas/Relatorios";
 import Transacoes from "./telas/Transacoes";
 
 const MENU = [
   ["/", "Dashboard"], ["/contas", "Contas"], ["/transacoes", "Transações"], ["/cupons", "Cupons"],
-  ["/precos", "Preços"], ["/relatorios", "Relatórios"], ["/cartoes", "Cartões de crédito"],
+  ["/precos", "Preços"], ["/orcamento", "Orçamento"], ["/relatorios", "Relatórios"],
+  ["/cartoes", "Cartões de crédito"],
   ["/conciliacao", "Conciliação"], ["/cadastros", "Cadastros"], ["/configuracoes", "Configurações"],
   ["/ajuda", "Ajuda"],
 ] as const;
@@ -73,6 +75,7 @@ export default function App() {
           <Route path="/transacoes" element={<Transacoes />} />
           <Route path="/cupons" element={<Cupons />} />
           <Route path="/precos" element={<Precos />} />
+          <Route path="/orcamento" element={<Orcamento />} />
           <Route path="/relatorios" element={<Relatorios />} />
           <Route path="/cartoes" element={<Cartoes />} />
           <Route path="/cartoes/:id" element={<Fatura />} />
