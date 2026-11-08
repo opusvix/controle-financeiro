@@ -5,17 +5,20 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import type { Fatia } from "../api";
 import { reais } from "../formato";
+import { coresGrafico, useTema } from "../tema";
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
 
 /** Gráfico de rosca com o total no centro. O total é a soma das fatias. */
 export default function Rosca({ fatias }: { fatias: Fatia[] }) {
   const ref = useRef<HTMLDivElement>(null);
+  const tema = useTema();
   const total = fatias.reduce((s, f) => s + f.total, 0);
 
   useEffect(() => {
     if (!ref.current) return;
     const grafico = echarts.init(ref.current);
+    const c = coresGrafico();
     grafico.setOption({
       tooltip: {
         trigger: "item",
@@ -24,14 +27,14 @@ export default function Rosca({ fatias }: { fatias: Fatia[] }) {
       },
       series: [{
         type: "pie", radius: ["58%", "80%"], label: { show: false },
-        itemStyle: { borderColor: "#26262b", borderWidth: 2 },
+        itemStyle: { borderColor: c.painel, borderWidth: 2 },
         data: fatias.map((f) => ({ name: f.categoria, value: f.total, itemStyle: { color: f.cor } })),
       }],
     });
     const redimensionar = () => grafico.resize();
     window.addEventListener("resize", redimensionar);
     return () => { window.removeEventListener("resize", redimensionar); grafico.dispose(); };
-  }, [fatias]);
+  }, [fatias, tema]);
 
   if (!fatias.length) return <p className="vazio">Sem lançamentos neste mês.</p>;
   return (

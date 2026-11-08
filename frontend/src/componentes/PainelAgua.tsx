@@ -5,6 +5,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import { api, type MesAgua } from "../api";
 import { reais } from "../formato";
+import { coresGrafico, useTema } from "../tema";
 import { useDados } from "./useDados";
 
 echarts.use([BarChart, LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
@@ -56,10 +57,12 @@ export default function PainelAgua() {
 
 function GraficoAgua({ meses }: { meses: MesAgua[] }) {
   const ref = useRef<HTMLDivElement>(null);
+  const tema = useTema();
   useEffect(() => {
     if (!ref.current) return;
     const g = echarts.init(ref.current);
-    const eixo = { color: "#a1a1aa" };
+    const c = coresGrafico();
+    const eixo = { color: c.suave };
     g.setOption({
       grid: { left: 56, right: 56, top: 36, bottom: 28 },
       legend: { top: 0, textStyle: eixo, itemWidth: 14, itemHeight: 10 },
@@ -77,8 +80,8 @@ function GraficoAgua({ meses }: { meses: MesAgua[] }) {
       },
       xAxis: { type: "category", data: meses.map((m) => rotulo(m.referencia)), axisLabel: eixo },
       yAxis: [
-        { type: "value", axisLabel: { ...eixo, formatter: (c: number) => `R$ ${c / 100}` },
-          splitLine: { lineStyle: { color: "#3a3a41" } } },
+        { type: "value", axisLabel: { ...eixo, formatter: (valor: number) => `R$ ${valor / 100}` },
+          splitLine: { lineStyle: { color: c.borda } } },
         { type: "value", axisLabel: { ...eixo, formatter: "{value} m³" }, splitLine: { show: false } },
       ],
       series: [
@@ -87,7 +90,7 @@ function GraficoAgua({ meses }: { meses: MesAgua[] }) {
         { name: "Parte variável", type: "bar", stack: "agua", data: meses.map((m) => m.variavel_centavos),
           itemStyle: { color: "#22d3ee", borderRadius: [4, 4, 0, 0] } },
         { name: "Consumo", type: "line", yAxisIndex: 1, data: meses.map((m) => m.consumo),
-          itemStyle: { color: "#ececf1" }, symbolSize: 6 },
+          itemStyle: { color: c.texto }, symbolSize: 6 },
         { name: "Mesmo mês, ano anterior", type: "line", yAxisIndex: 1,
           data: meses.map((m) => m.consumo_ano_anterior),
           itemStyle: { color: "#71717a" }, lineStyle: { type: "dashed" }, symbol: "none" },
@@ -96,6 +99,6 @@ function GraficoAgua({ meses }: { meses: MesAgua[] }) {
     const redimensionar = () => g.resize();
     window.addEventListener("resize", redimensionar);
     return () => { window.removeEventListener("resize", redimensionar); g.dispose(); };
-  }, [meses]);
+  }, [meses, tema]);
   return <div ref={ref} className="energia-grafico" />;
 }
