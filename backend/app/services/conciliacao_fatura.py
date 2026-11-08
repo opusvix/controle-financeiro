@@ -104,8 +104,19 @@ def conciliar(con: sqlite3.Connection, cartao_id: int, competencia: str, lido: d
 
 
 def aplicar(con: sqlite3.Connection, cartao_id: int, competencia: str,
-            conferir_ids: list[int], criar: list[dict], valor_banco: int | None = None) -> dict:
-    """Marca casados como conferidos, lança o que faltou NA FATURA e grava o total do extrato."""
+            conferir_ids: list[int], criar: list[dict], valor_banco: int | None = None,
+            ajustar: list[dict] | None = None) -> dict:
+    """Marca casados como conferidos, ajusta valores divergentes, lança o que faltou
+    NA FATURA e grava o total do extrato."""
+    # Ajuste de valor (ex.: diferença de R$ 0,01 numa divergência): acerta o valor
+    # do lançamento para o da fatura e já o dá por conferido. O valor vem COM SINAL
+    # do ponto de vista da fatura; guardamos o módulo (o tipo despesa/crédito não muda,
+    # pois uma divergência só casa linhas de mesmo sinal).
+    ajustados = 0
+    for item in (ajustar or []):
+        alvo = int(item["valor_centavos"])
+        tx.editar(con, int(item["id"]), {"valor_centavos": abs(alvo), "conferido": 1})
+        ajustados += 1
     conferidos = 0
     for id_ in conferir_ids:
         tx.editar(con, id_, {"conferido": 1})
@@ -133,4 +144,5 @@ def aplicar(con: sqlite3.Connection, cartao_id: int, competencia: str,
             gravou_banco = True
         except Exception:
             gravou_banco = False
-    return {"conferidos": conferidos, "criados": criados, "valor_banco_gravado": gravou_banco}
+    return {"conferidos": conferidos, "ajustados": ajustados, "criados": criados,
+            "valor_banco_gravado": gravou_banco}

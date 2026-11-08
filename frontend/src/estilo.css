@@ -316,6 +316,10 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .nova-categoria input, .nova-categoria select { width: auto; flex: 1 1 140px; }
 .nova-categoria .erro { flex-basis: 100%; margin: 0; }
 .conc-descr { width: 100%; min-width: 180px; }
+.conc-valor { width: 90px; text-align: right; }
+.conc-igualar { margin-left: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;
+  border: 1px solid var(--borda); border-radius: 6px; background: var(--fundo-card);
+  color: var(--laranja-texto); white-space: nowrap; }
 .conc-sugerida { display: inline-block; margin-top: 4px; font-size: 11px; color: var(--laranja-texto);
   font-weight: 600; white-space: nowrap; }
 

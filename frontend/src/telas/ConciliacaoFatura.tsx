@@ -3,7 +3,7 @@ import { api, type Categoria, type ConciliacaoFatura as Resultado } from "../api
 import SeletorCategoria from "../componentes/SeletorCategoria";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
-import { dataBR, mesAtual, reais } from "../formato";
+import { dataBR, mesAtual, paraCentavos, reais } from "../formato";
 
 /**
  * Conciliação da FATURA do cartão: sobe o arquivo da fatura (CSV do C6, por ora) e
@@ -24,6 +24,7 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
   const [conferir, setConferir] = useState<Set<number>>(new Set());
   const [lancar, setLancar] = useState<Set<string>>(new Set());
   const [cat, setCat] = useState<Record<string, number | "">>({});
+  const [ajuste, setAjuste] = useState<Record<number, string>>({});   // id do app -> valor editado
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
 
@@ -35,7 +36,7 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
       setRes(r);
       setConferir(new Set(r.casados.map((c) => c.app.id)));
       setLancar(new Set(r.so_fatura.map((l) => l.chave)));   // por padrão, lança o que falta
-      setCat({});
+      setCat({}); setAjuste({});
     } catch (e) { setErro((e as Error).message); setRes(null); }
     finally { setCarregando(false); }
   }
@@ -53,10 +54,22 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
         data: l.data, valor_centavos: l.valor_centavos, descricao: l.descricao,
         categoria_id: cat[l.chave] ? Number(cat[l.chave]) : null,
       }));
+      // Divergências em que o usuário acertou o valor: manda o novo valor (com o sinal
+      // do lançamento) só quando mudou de verdade e é um número válido.
+      const ajustar = res.divergencias.flatMap((x) => {
+        const txt = ajuste[x.app.id];
+        if (txt === undefined || txt.trim() === "") return [];
+        const mag = paraCentavos(txt);
+        if (mag === null || mag <= 0 || mag === Math.abs(x.app.valor_centavos)) return [];
+        const sinal = x.app.valor_centavos < 0 ? -1 : 1;
+        return [{ id: x.app.id, valor_centavos: sinal * mag }];
+      });
       const saida = await api.aplicarConciliacaoFatura({
         cartao_id: Number(cartaoId), competencia, conferir_ids: [...conferir],
-        criar, valor_banco: res.totais.extrato });
-      setFeito(`Pronto: ${saida.conferidos} conferido(s), ${saida.criados} lançado(s)`
+        criar, ajustar, valor_banco: res.totais.extrato });
+      setFeito(`Pronto: ${saida.conferidos} conferido(s)`
+        + (saida.ajustados ? `, ${saida.ajustados} valor(es) acertado(s)` : "")
+        + `, ${saida.criados} lançado(s)`
         + (saida.valor_banco_gravado ? " e total da fatura gravado." : "."));
       await analisar();
     } catch (e) { setErro((e as Error).message); }
@@ -115,7 +128,8 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
             <Kpi titulo="Só no app" n={res.resumo.so_app} cor="#a1a1aa" />
           </div>
 
-          <SecaoDivergencias res={res} conferir={conferir} setConferir={setConferir} />
+          <SecaoDivergencias res={res} conferir={conferir} setConferir={setConferir}
+            ajuste={ajuste} setAjuste={setAjuste} />
           <SecaoSoFatura res={res} categorias={categorias} lancar={lancar} setLancar={setLancar}
             cat={cat} setCat={setCat} aoCriarCategoria={aoCriarCategoria} />
           <SecaoSoApp res={res} />
@@ -184,12 +198,20 @@ function SecaoCasados({ res, conferir, setConferir }: {
   );
 }
 
-function SecaoDivergencias({ res, conferir, setConferir }: {
+const _mag = (centavos: number) => (Math.abs(centavos) / 100).toFixed(2).replace(".", ",");
+
+function SecaoDivergencias({ res, conferir, setConferir, ajuste, setAjuste }: {
   res: Resultado; conferir: Set<number>; setConferir: (s: Set<number>) => void;
+  ajuste: Record<number, string>; setAjuste: (m: Record<number, string>) => void;
 }) {
   if (!res.divergencias.length) return null;
   const alternar = (id: number) => {
     const s = new Set(conferir); s.has(id) ? s.delete(id) : s.add(id); setConferir(s);
+  };
+  // Editar o valor acerta o lançamento e já o dá por conferido ao aplicar.
+  const editar = (id: number, texto: string) => {
+    setAjuste({ ...ajuste, [id]: texto });
+    if (!conferir.has(id)) { const s = new Set(conferir); s.add(id); setConferir(s); }
   };
   return (
     <section className="cartao-painel espaco">
@@ -197,23 +219,36 @@ function SecaoDivergencias({ res, conferir, setConferir }: {
       <table className="tabela">
         <thead><tr>
           <th>Compra</th><th>Fatura</th><th className="num">Fatura</th>
-          <th>No app</th><th className="num">App</th><th className="num">Diferença</th><th>É a mesma?</th>
+          <th>No app</th><th className="num">Valor no app (edite p/ acertar)</th>
+          <th className="num">Diferença</th><th>É a mesma?</th>
         </tr></thead>
         <tbody>
-          {res.divergencias.map((x) => (
-            <tr key={x.fatura.chave}>
-              <td>{dataBR(x.fatura.data)}</td>
-              <td>{x.fatura.descricao}<Parcela p={x.fatura.parcela} t={x.fatura.total_parcelas} /></td>
-              <td className="num"><Valor centavos={x.fatura.valor_centavos} /></td>
-              <td>{x.app.descricao}</td>
-              <td className="num"><Valor centavos={x.app.valor_centavos} /></td>
-              <td className="num">{reais(x.diferenca_centavos)}</td>
-              <td><input type="checkbox" checked={conferir.has(x.app.id)}
-                onChange={() => alternar(x.app.id)} /> conferir</td>
-            </tr>
-          ))}
+          {res.divergencias.map((x) => {
+            const txt = ajuste[x.app.id] ?? _mag(x.app.valor_centavos);
+            const mudou = (paraCentavos(txt) ?? -1) !== Math.abs(x.app.valor_centavos);
+            return (
+              <tr key={x.fatura.chave}>
+                <td>{dataBR(x.fatura.data)}</td>
+                <td>{x.fatura.descricao}<Parcela p={x.fatura.parcela} t={x.fatura.total_parcelas} /></td>
+                <td className="num"><Valor centavos={x.fatura.valor_centavos} /></td>
+                <td>{x.app.descricao}</td>
+                <td className="num">
+                  <input className="conc-valor" inputMode="decimal" value={txt}
+                    onChange={(e) => editar(x.app.id, e.target.value)} />
+                  <button type="button" className="conc-igualar"
+                    title="Usar o valor da fatura"
+                    onClick={() => editar(x.app.id, _mag(x.fatura.valor_centavos))}>= fatura</button>
+                </td>
+                <td className="num">{mudou ? "—" : reais(x.diferenca_centavos)}</td>
+                <td><input type="checkbox" checked={conferir.has(x.app.id)}
+                  onChange={() => alternar(x.app.id)} /> conferir</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
+      <p className="dica">Se a diferença é só um arredondamento (ex.: R$ 0,01), edite o valor no app —
+        ou clique em <b>= fatura</b> — e marque <b>conferir</b>. Ao aplicar, o valor é acertado.</p>
     </section>
   );
 }
