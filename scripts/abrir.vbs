@@ -31,6 +31,14 @@ If Not fs.FileExists(raiz & "\backend\.venv\Scripts\python.exe") Or _
   WScript.Quit
 End If
 
+' Atualizacao automatica: verifica (rapidinho e sem janela) se ha versao nova no GitHub.
+' So quando houver, roda a atualizacao mostrando o progresso; senao, abre direto.
+Dim rc
+rc = sh.Run("cmd /c """ & raiz & "\scripts\atualizar_silencioso.bat"" check", 0, True)
+If rc = 10 Then
+  sh.Run "cmd /c """ & raiz & "\scripts\atualizar_silencioso.bat""", 1, True
+End If
+
 ' 0 = janela escondida. O registro do servidor vai para %TEMP%\controle-financeiro.log
 sh.CurrentDirectory = raiz & "\backend"
 sh.Run "cmd /c "".venv\Scripts\python.exe -m app > ""%TEMP%\controle-financeiro.log"" 2>&1""", 0, False
