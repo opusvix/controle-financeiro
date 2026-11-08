@@ -83,11 +83,17 @@ class CriarLinhaFatura(BaseModel):
     categoria_id: int | None = None
 
 
+class AjusteFatura(BaseModel):
+    id: int
+    valor_centavos: int           # com sinal (ponto de vista da fatura)
+
+
 class AplicarFaturaIn(BaseModel):
     cartao_id: int
     competencia: str
     conferir_ids: list[int] = []
     criar: list[CriarLinhaFatura] = []
+    ajustar: list[AjusteFatura] = []
     valor_banco: int | None = None
 
 
@@ -98,6 +104,7 @@ def aplicar_fatura(dados: AplicarFaturaIn, c=Depends(con)):
         return conciliacao_fatura.aplicar(c, dados.cartao_id, dados.competencia,
                                           dados.conferir_ids,
                                           [l.model_dump() for l in dados.criar],
-                                          dados.valor_banco)
+                                          dados.valor_banco,
+                                          [a.model_dump() for a in dados.ajustar])
     except RegraViolada as e:
         raise HTTPException(422, str(e)) from e

@@ -307,8 +307,10 @@ export const api = {
     return chamar<ConciliacaoFatura>("/api/conciliacao/fatura/analisar", { method: "POST", body: f });
   },
   aplicarConciliacaoFatura: (body: { cartao_id: number; competencia: string; conferir_ids: number[];
-                                     criar: CriarDoExtrato[]; valor_banco?: number | null }) =>
-    chamar<{ conferidos: number; criados: number; valor_banco_gravado: boolean }>(
+                                     criar: CriarDoExtrato[];
+                                     ajustar?: { id: number; valor_centavos: number }[];
+                                     valor_banco?: number | null }) =>
+    chamar<{ conferidos: number; ajustados: number; criados: number; valor_banco_gravado: boolean }>(
       "/api/conciliacao/fatura/aplicar", enviar("POST", body)),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),

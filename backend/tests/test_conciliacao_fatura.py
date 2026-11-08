@@ -149,3 +149,24 @@ def test_aplicar_lanca_confere_e_grava_total(cliente):
     assert f["valor_banco"] == 36766 + 3621 + 2050 + 12975
     r2 = _analisar(cliente, cartao).json()
     assert r2["resumo"]["so_fatura"] == 0 and r2["resumo"]["casados"] == 4
+
+
+def test_ajustar_valor_de_divergencia_acerta_e_confere(cliente):
+    cartao = _cartao(cliente)
+    compra = _compra(cliente, cartao, "Barraca da Marlene", 2000)["id"]   # 20,00 no app
+    r = _analisar(cliente, cartao).json()
+    assert r["resumo"]["divergencias"] == 1
+    div = r["divergencias"][0]
+    assert div["app"]["id"] == compra and div["fatura"]["valor_centavos"] == 2050
+
+    # Acerta o valor do lançamento para o da fatura (20,50).
+    saida = cliente.post("/api/conciliacao/fatura/aplicar", json={
+        "cartao_id": cartao, "competencia": "2026-11", "conferir_ids": [],
+        "criar": [], "ajustar": [{"id": compra, "valor_centavos": 2050}]}).json()
+    assert saida["ajustados"] == 1
+
+    # O lançamento passou a 20,50, conferido, e agora casa exato (zero divergências).
+    r2 = _analisar(cliente, cartao).json()
+    assert r2["resumo"]["divergencias"] == 0 and r2["resumo"]["casados"] == 1
+    casado = r2["casados"][0]
+    assert casado["app"]["valor_centavos"] == 2050 and casado["app"]["conferido"] == 1
