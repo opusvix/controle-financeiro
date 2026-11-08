@@ -41,7 +41,10 @@ export default function Conciliacao() {
       const r = await api.analisarConciliacao(files, Number(contaId), tol);
       setRes(r);
       setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
-      setLancar({}); setDescr({}); setDescrApp({});
+      // Categoria sugerida pelo histórico já vem escolhida (você revisa antes de aplicar).
+      const sugeridas: Record<string, number | ""> = {};
+      r.so_banco.forEach((b) => { if (b.categoria_sugerida) sugeridas[b.fitid] = b.categoria_sugerida; });
+      setLancar(sugeridas); setDescr({}); setDescrApp({});
     } catch (e) { setErro((e as Error).message); setRes(null); }
     finally { setCarregando(false); }
   }
@@ -275,14 +278,18 @@ function SecaoSoBanco({ res, categorias, lancar, setLancar, descr, setDescr, aoC
                     categorias={categorias.filter((c) => c.tipo === tipo)}
                     valor={lancar[b.fitid] ? String(lancar[b.fitid]) : ""}
                     aoMudar={(v) => mudarCat(b.fitid, v)} aoCriar={aoCriarCategoria} />
+                  {b.categoria_sugerida && lancar[b.fitid] === b.categoria_sugerida && (
+                    <span className="conc-sugerida" title="Sugestão a partir dos seus lançamentos anteriores com descrição parecida">✨ sugerida</span>
+                  )}
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p className="dica">Edite a descrição se quiser, escolha uma categoria e a linha é lançada ao aplicar.
-        Deixe a categoria em branco para pular por enquanto. Use "+ Nova categoria…" para criar uma na hora.</p>
+      <p className="dica">As linhas já vêm com a categoria <b>✨ sugerida</b> pelo seu histórico (lançamentos
+        anteriores com descrição parecida) — revise e ajuste se preciso. Edite a descrição se quiser;
+        deixe a categoria em branco (<i>— não lançar —</i>) para pular por enquanto. Use "+ Nova categoria…" para criar uma na hora.</p>
     </section>
   );
 }

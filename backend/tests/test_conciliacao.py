@@ -63,6 +63,29 @@ def test_conciliar_quatro_baldes(con):
     assert all("id" in c["app"] for c in r["casados"])
 
 
+def test_sugere_categoria_pela_descricao(con):
+    """Uma linha 'só no banco' vem com categoria_sugerida quando já houve um lançamento
+    de mesmo tipo e descrição parecida (dígitos/acentos ignorados)."""
+    conta = _conta(con)
+    cat = _cat(con, "Mercado")
+    # Histórico FORA da janela do extrato (não casa por data/valor), só para ensinar a
+    # categoria da descrição "TARIFA". "Tarifa 2025" normaliza para a mesma chave de "TARIFA".
+    tx.criar(con, NovaTransacao(tipo="despesa", descricao="Tarifa 2025", valor_centavos=1234,
+                                data=date(2026, 9, 1), conta_id=conta, categoria_id=cat))
+
+    r = conciliacao.conciliar(con, conta, conciliacao.ler_ofx(OFX.encode("latin-1")))
+    tarifa = next(b for b in r["so_banco"] if b["fitid"] == "a4")   # MEMO "TARIFA"
+    assert tarifa["categoria_sugerida"] == cat
+    # Descrições sem histórico não recebem palpite.
+    semcat = [b for b in r["so_banco"] if b["fitid"] != "a4"]
+    assert semcat and all(b["categoria_sugerida"] is None for b in semcat)
+
+
+def test_chave_descricao_ignora_numeros_e_acentos():
+    assert conciliacao._chave_descricao("TED 12345 Aluguel") == "TED ALUGUEL"
+    assert conciliacao._chave_descricao("PIX enviado Padrão 09/11") == "PIX ENVIADO PADRAO"
+
+
 def test_aplicar_confere_e_cria(con):
     conta = _conta(con)
     merc = _cat(con, "Mercado")

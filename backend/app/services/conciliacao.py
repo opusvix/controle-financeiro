@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import unicodedata
+from collections import Counter
 from datetime import date
 
 from . import transacoes as tx
@@ -117,7 +119,7 @@ def conciliar(con: sqlite3.Connection, conta_id: int, linhas: list[dict],
                 usados.add(a["id"])
                 ln["_div"] = a
 
-    casados, divergencias, so_banco = [], [], []
+    casados, divergencias, so_banco_src = [], [], []
     for ln in linhas:
         if "_app" in ln:
             casados.append({"banco": _ofx_pub(ln), "app": _app_pub(ln["_app"])})
@@ -125,7 +127,10 @@ def conciliar(con: sqlite3.Connection, conta_id: int, linhas: list[dict],
             divergencias.append({"banco": _ofx_pub(ln), "app": _app_pub(ln["_div"]),
                                  "diferenca_centavos": ln["valor_centavos"] - ln["_div"]["efeito"]})
         else:
-            so_banco.append(_ofx_pub(ln))
+            so_banco_src.append(ln)
+    _sugerir_categorias(con, so_banco_src)
+    so_banco = [{**_ofx_pub(ln), "categoria_sugerida": ln.get("categoria_sugerida")}
+                for ln in so_banco_src]
     so_app = [_app_pub(a) for a in app if a["id"] not in usados]
 
     return {"conta_id": conta_id, "ini": ini, "fim": fim, "tolerancia_dias": tolerancia_dias,
@@ -168,6 +173,38 @@ def aplicar(con: sqlite3.Connection, conta_id: int, conferir_ids: list[int],
             tx.editar(con, id_, {"conferido": 1})
         criados += 1
     return {"conferidos": conferidos, "criados": criados, "renomeados": renomeados}
+
+
+def _chave_descricao(texto: str) -> str:
+    """Normaliza uma descrição para casar textos parecidos de extrato: sem acentos,
+    sem dígitos nem pontuação, espaços colapsados, maiúsculas. Assim 'TED 12345 Aluguel'
+    e 'TED 67890 ALUGUEL' viram ambas 'TED ALUGUEL' e caem na mesma categoria aprendida."""
+    t = unicodedata.normalize("NFKD", texto or "").encode("ascii", "ignore").decode()
+    t = re.sub(r"[0-9]+", " ", t)
+    t = re.sub(r"[^A-Za-z ]+", " ", t)
+    return re.sub(r"\s+", " ", t).strip().upper()
+
+
+def _sugerir_categorias(con: sqlite3.Connection, linhas: list[dict]) -> None:
+    """Preenche 'categoria_sugerida' em cada linha 'só no banco', aprendendo com o histórico:
+    a categoria mais usada em lançamentos com a MESMA descrição normalizada e o mesmo tipo
+    (receita/despesa). Não grava nada — é só um palpite para a tela já vir preenchida.
+
+    Como cada linha lançada guarda a sua descrição, o acerto melhora sozinho: da próxima vez
+    que um 'PIX MERCADO X' aparecer, ele já vem na categoria que você usou antes."""
+    if not linhas:
+        return
+    historico: dict[tuple[str, str], Counter] = {}
+    for r in con.execute(
+            "SELECT descricao, tipo, categoria_id FROM transacao "
+            "WHERE categoria_id IS NOT NULL AND tipo IN ('receita', 'despesa')"):
+        chave = _chave_descricao(r["descricao"])
+        if chave:
+            historico.setdefault((chave, r["tipo"]), Counter())[r["categoria_id"]] += 1
+    for ln in linhas:
+        tipo = "receita" if ln["valor_centavos"] > 0 else "despesa"
+        contagem = historico.get((_chave_descricao(ln["descricao"]), tipo))
+        ln["categoria_sugerida"] = contagem.most_common(1)[0][0] if contagem else None
 
 
 def _ofx_pub(ln: dict) -> dict:
