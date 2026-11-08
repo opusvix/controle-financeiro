@@ -319,6 +319,22 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .conc-sugerida { display: inline-block; margin-top: 4px; font-size: 11px; color: var(--laranja-texto);
   font-weight: 600; white-space: nowrap; }
 
+/* Tela de Orçamento × realizado */
+.orc-acoes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.orc-acoes h3 { margin: 0; }
+.orc-acoes-dir { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.orc-tabela td { vertical-align: middle; }
+.orc-cat { display: inline-flex; align-items: center; gap: 8px; }
+.orc-cat i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.orc-input { width: 120px; }
+.orc-col-barra { width: 180px; }
+.orc-barra { position: relative; height: 18px; border-radius: 9px; background: var(--painel-2);
+  overflow: hidden; border: 1px solid var(--borda); }
+.orc-barra > i { display: block; height: 100%; border-radius: 9px 0 0 9px; transition: width .2s; }
+.orc-barra > i.estourou { background: var(--vermelho); border-radius: 9px; }
+.orc-barra > span { position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; color: var(--texto); }
+
 /* Tela de Ajuda (guia de uso) */
 .guia { display: flex; flex-direction: column; gap: 12px; max-width: 820px; }
 .guia-intro p { margin-top: 0; }
