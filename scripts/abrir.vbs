@@ -1,11 +1,13 @@
 ' Abre o Controle Financeiro SEM a janela preta do terminal.
-' - Se o app ja esta ligado, so abre o navegador.
 ' - Na primeira vez (falta preparar Python ou compilar as telas), usa o iniciar.bat visivel,
 '   para voce acompanhar a instalacao.
+' - Sempre verifica (rapidinho e sem janela) se ha versao nova no GitHub. Se houver, atualiza
+'   mostrando o progresso -- fechando o app antes, se ele ja estiver aberto, para trocar o codigo.
+' - Se o app ja esta ligado e esta em dia, so abre o navegador.
 ' - Senao, liga o servidor escondido, espera ele responder e abre o navegador.
 ' Para desligar: scripts\parar.bat
 Option Explicit
-Dim sh, fs, raiz, url, i
+Dim sh, fs, raiz, url, i, rc
 Set sh = CreateObject("WScript.Shell")
 Set fs = CreateObject("Scripting.FileSystemObject")
 raiz = fs.GetParentFolderName(fs.GetParentFolderName(WScript.ScriptFullName))
@@ -20,23 +22,28 @@ Function Ligado()
   Ligado = (Err.Number = 0 And http.Status = 200)
 End Function
 
-If Ligado() Then
-  sh.Run url
-  WScript.Quit
-End If
-
+' Primeira vez: falta preparar o Python ou compilar as telas -> instalacao visivel.
 If Not fs.FileExists(raiz & "\backend\.venv\Scripts\python.exe") Or _
    Not fs.FileExists(raiz & "\frontend\dist\index.html") Then
   sh.Run """" & raiz & "\scripts\iniciar.bat""", 1, False
   WScript.Quit
 End If
 
-' Atualizacao automatica: verifica (rapidinho e sem janela) se ha versao nova no GitHub.
-' So quando houver, roda a atualizacao mostrando o progresso; senao, abre direto.
-Dim rc
+' Atualizacao automatica: checa ANTES de abrir, mesmo com o app ja rodando.
+' "check" devolve 10 so quando ha versao nova no main (rapido e sem janela).
 rc = sh.Run("cmd /c """ & raiz & "\scripts\atualizar_silencioso.bat"" check", 0, True)
 If rc = 10 Then
+  ' Ha versao nova: se o app esta aberto, fecha para poder trocar o codigo.
+  If Ligado() Then
+    sh.Run "cmd /c """ & raiz & "\scripts\parar.bat""", 0, True
+  End If
   sh.Run "cmd /c """ & raiz & "\scripts\atualizar_silencioso.bat""", 1, True
+End If
+
+' Ja esta ligado e em dia -> so abre o navegador.
+If Ligado() Then
+  sh.Run url
+  WScript.Quit
 End If
 
 ' 0 = janela escondida. O registro do servidor vai para %TEMP%\controle-financeiro.log

@@ -41,8 +41,8 @@ Passo a passo completo no [Guia de Uso](docs/GUIA.md#1-baixar-instalar-e-abrir).
    1 a 2 minutos) e abra `http://127.0.0.1:8000/`.
 3. Opcional: `scripts\criar_atalho.bat` cria o atalho **Controle Financeiro** na Área de
    Trabalho (abre escondido, sem janela preta). **O atalho se atualiza sozinho:** ao abrir,
-   verifica se há versão nova no GitHub e, se houver, baixa e recompila antes de abrir — sem
-   precisar rodar nada. Quando já está em dia, abre na hora.
+   verifica se há versão nova no GitHub e, se houver, baixa e recompila antes de abrir — mesmo
+   que o app já esteja aberto (ele fecha, atualiza e reabre). Quando já está em dia, abre na hora.
 4. Para desligar: `scripts\parar.bat`. Para atualizar na mão (sem abrir), ainda há o
    `scripts\atualizar.bat`, que desliga sozinho antes de atualizar.
 
