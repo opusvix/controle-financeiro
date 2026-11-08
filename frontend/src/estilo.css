@@ -316,6 +316,8 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .nova-categoria input, .nova-categoria select { width: auto; flex: 1 1 140px; }
 .nova-categoria .erro { flex-basis: 100%; margin: 0; }
 .conc-descr { width: 100%; min-width: 180px; }
+.conc-sugerida { display: inline-block; margin-top: 4px; font-size: 11px; color: var(--laranja-texto);
+  font-weight: 600; white-space: nowrap; }
 
 /* Tela de Orçamento × realizado */
 .orc-acoes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }

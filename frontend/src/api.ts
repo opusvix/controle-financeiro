@@ -213,7 +213,8 @@ export type CupomLido = {
 };
 export type NotaQR = { chave: string; numero: number; cnpj: string; valida: boolean; url_consulta: string | null };
 
-export type ConcBanco = { fitid: string; data: string; valor_centavos: number; descricao: string };
+export type ConcBanco = { fitid: string; data: string; valor_centavos: number; descricao: string;
+  categoria_sugerida?: number | null };
 export type ConcApp = {
   id: number; data: string; descricao: string; valor_centavos: number; tipo: string; conferido: number;
 };
