@@ -32,10 +32,69 @@ def test_ler_c6_separa_pagamento_e_normaliza():
     assert lido["total_compras"] == 36766 + 3621 + 2050 + 12975
 
 
-def test_pdf_ainda_nao_lido():
+def test_pdf_corrompido_recusado():
     import pytest
     with pytest.raises(fatura_leitor.FaturaInvalida):
-        fatura_leitor.ler("fatura.pdf", b"%PDF-1.4 ...")
+        fatura_leitor.ler("fatura.pdf", b"%PDF-1.4 nao e um pdf de verdade")
+
+
+# --- Leitura de PDF (texto anonimizado; o pypdf extrai texto como o abaixo) ---
+# Formato real do Banco do Brasil: "DD/MM  loja cidade BR  R$ valor".
+TEXTO_BB = """\
+Ola, Fulano, esta e sua fatura de novembro          OUROCARD FACIL VISA  Final 0000
+Vencimento  10/11/2026        Saldo fatura anterior  R$ 639,74
+Compras nacionais
+26/10     LOJA EXEMPLO UM        CIDADE EXEMPLO BR R$ 79,90
+21/10     FULANO DE TAL          CIDADE EXEMPLO BR R$ 63,21
+Compras parceladas
+02/03     COMERCIO EXEMPLO PARC 08/12 CIDADE BR R$ 9,00
+13/10     PGTO. CASH AG. 0000 000000000 000 BR R$ -639,74
+Total da Fatura R$ 152,11
+"""
+
+# Formato real do Mercado Pago: "DD/MM  descricao  Parcela N de M  R$ valor".
+TEXTO_MP = """\
+Mercado Pago - fatura de novembro   Vencimento: 10/11/2026
+Movimentacoes na fatura
+16/10       Pagamento da fatura de outubro/2026      R$ 234,36
+06/11       IOF do rotativo                          R$ 0,96
+Cartao Visa [************0000]
+16/09       LOJA EXEMPLO*MULTI       Parcela 2 de 2  R$ 55,50
+Total                                                R$ 56,46
+"""
+
+
+def test_bb_texto_le_compras_parcela_e_pagamento():
+    linhas, pagamentos = fatura_leitor._linhas_de_texto(TEXTO_BB, "2026-11")
+    assert len(linhas) == 3                       # a linha de Vencimento (DD/MM/AAAA) é ignorada
+    assert len(pagamentos) == 1
+    assert pagamentos[0]["valor_centavos"] == -63974
+    assert sum(l["valor_centavos"] for l in linhas) == 15211
+    parc = next(l for l in linhas if l["parcela"])
+    assert (parc["parcela"], parc["total_parcelas"]) == (8, 12)
+    assert "PARC" not in parc["descricao"] and "BR" not in parc["descricao"].split()
+    assert parc["data"] == "2026-03-02"           # mês 3 < vencimento 11 -> mesmo ano
+
+
+def test_mp_texto_separa_pagamento_e_detecta_parcela():
+    linhas, pagamentos = fatura_leitor._linhas_de_texto(TEXTO_MP, "2026-11")
+    assert len(pagamentos) == 1 and pagamentos[0]["valor_centavos"] == -23436
+    assert sum(l["valor_centavos"] for l in linhas) == 5646   # IOF 0,96 + compra 55,50
+    compra = next(l for l in linhas if l["parcela"])
+    assert (compra["parcela"], compra["total_parcelas"]) == (2, 2)
+    assert compra["data"] == "2026-09-16"
+
+
+def test_ano_da_compra_vira_anterior_quando_mes_passa_do_vencimento():
+    assert fatura_leitor._ano_da_compra(12, "2026-01") == 2025   # dez compra, jan fatura
+    assert fatura_leitor._ano_da_compra(1, "2026-01") == 2026
+    assert fatura_leitor._ano_da_compra(3, "2026-11") == 2026
+
+
+def test_banco_do_pdf_reconhece_bb_e_mp():
+    assert fatura_leitor._banco_do_pdf(TEXTO_BB) == "Banco do Brasil"
+    assert fatura_leitor._banco_do_pdf(TEXTO_MP) == "Mercado Pago"
+    assert fatura_leitor._banco_do_pdf("extrato qualquer") is None
 
 
 def _cartao(cliente):

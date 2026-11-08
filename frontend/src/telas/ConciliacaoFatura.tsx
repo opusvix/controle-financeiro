@@ -77,18 +77,19 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
         <label>Competência (mês de vencimento)
           <SeletorMes mes={competencia} aoMudar={(m) => { setCompetencia(m); setRes(null); }} />
         </label>
-        <label>Arquivo da fatura (.csv do C6)
-          <input type="file" accept=".csv,text/csv" disabled={!cartaoId}
+        <label>Arquivo da fatura (CSV do C6 ou PDF do BB / Mercado Pago)
+          <input type="file" accept=".csv,text/csv,.pdf,application/pdf" disabled={!cartaoId}
             onChange={(e) => escolherArquivo(e.target.files?.[0] ?? null)} />
         </label>
         {carregando && <span className="dica">Lendo a fatura…</span>}
       </div>
 
       <p className="dica">
-        Exporte a fatura do cartão em <b>CSV</b> (no C6: Faturas → Exportar). O app casa cada linha
+        Suba a fatura: <b>CSV</b> do C6 (Faturas → Exportar) ou <b>PDF</b> do Banco do Brasil ou do
+        Mercado Pago (como você baixa do app/internet banking). O app casa cada linha
         pelo <b>valor</b> dentro da competência escolhida — a data da compra e a parcela servem só de
         desempate. A linha de pagamento da fatura fica de fora (ela é o "Pagamento de fatura" na conta).
-        Nada é gravado até você clicar em "Aplicar". Faturas em PDF ainda não são lidas.
+        Nada é gravado até você clicar em "Aplicar".
       </p>
 
       {erro && <p className="erro">{erro}</p>}

@@ -67,7 +67,7 @@ async def analisar_fatura(arquivo: UploadFile = File(...), cartao_id: int = Form
                           competencia: str = Form(...), c=Depends(con)):
     """Não grava nada: lê o arquivo da fatura e cruza com a fatura do cartão na competência."""
     try:
-        lido = fatura_leitor.ler(arquivo.filename or "", await arquivo.read())
+        lido = fatura_leitor.ler(arquivo.filename or "", await arquivo.read(), competencia)
         resultado = conciliacao_fatura.conciliar(c, cartao_id, competencia, lido)
     except fatura_leitor.FaturaInvalida as e:
         raise HTTPException(422, str(e)) from e
