@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Categoria, type CupomLido } from "../api";
 import { useDados } from "../componentes/useDados";
-import { dataBR, reais } from "../formato";
+import { dataBR, paraCentavos, reais } from "../formato";
 
-/** Quantidade em milésimos -> "0,172 KG" ou "2 UN". */
-const qtd = (mil: number, un: string) =>
-  `${(mil / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${un}`;
+/** Centavos -> "4,99" (sem o R$), para editar dentro da tabela. */
+const valorEdit = (centavos: number) => (centavos / 100).toFixed(2).replace(".", ",");
 
 export default function Cupons() {
   const categorias = useDados(api.categorias);
@@ -67,7 +66,15 @@ export default function Cupons() {
     finally { setOcupado(false); }
   }
 
+  /** Corrige um item na tela antes de salvar (OCR pode errar nome, quantidade ou valor). */
+  function editarItem(seq: number, campo: Partial<CupomLido["cupom"]["itens"][number]>) {
+    setLido((l) => l && { ...l, cupom: { ...l.cupom, itens: l.cupom.itens.map((i) => (i.seq === seq ? { ...i, ...campo } : i)) } });
+  }
+
   const c = lido?.cupom;
+  // Conferência AO VIVO: recalcula enquanto o João corrige os itens.
+  const somaItens = c ? c.itens.reduce((s, i) => s + i.valor_total_centavos - i.desconto_centavos, 0) : 0;
+  const confere = c ? somaItens === c.valor_pagar_centavos : false;
   return (
     <>
       <header className="topo"><h1>Cupons</h1></header>
@@ -88,6 +95,14 @@ export default function Cupons() {
           <p className="suave">Escolha o arquivo salvo no passo 1, ou o .json que o Claude gerou de um pedido sem QR.</p>
           <input type="file" accept=".html,.htm,.json" onChange={(e) => enviarPagina(e.target.files?.[0])} />
         </div>
+        <div className="cartao-painel">
+          <h3>📷 Cupom sem QR (foto ou PDF)</h3>
+          <p className="suave">Pedido impresso sem QR (ex.: Frescor): mande a foto (.jpg/.png) ou o PDF. O app lê os
+            itens sozinho e você confere/corrige antes de salvar.</p>
+          <input type="file" accept="image/*,.pdf" onChange={(e) => enviarPagina(e.target.files?.[0])} />
+          <p className="suave"><small>Primeira vez? Rode uma vez <code>scripts\ler_cupom_por_foto.bat</code> para ligar a
+            leitura por foto (grátis e offline).</small></p>
+        </div>
       </section>
 
       {msg && <p className={msg.ok ? "aviso-ok" : "erro"}>{msg.texto}</p>}
@@ -99,11 +114,13 @@ export default function Cupons() {
             {c.emissao && dataBR(c.emissao.slice(0, 10))}</small>
           {lido.ja_lancado && <p className="erro">Este cupom já foi {lido.ja_lancado.so_precos ? "registrado (só preços)" : "lançado"}
             {lido.ja_lancado.data ? ` em ${dataBR(lido.ja_lancado.data)}` : ""}.</p>}
-          <p className={lido.conferencia.confere ? "aviso-ok" : "erro"}>
-            {lido.conferencia.confere
-              ? `✓ Itens conferem com o total: ${reais(lido.conferencia.valor_pagar)}`
-              : `Atenção: itens somam ${reais(lido.conferencia.liquido_itens)}, mas o cupom diz ${reais(lido.conferencia.valor_pagar)}.`}
+          <p className={confere ? "aviso-ok" : "erro"}>
+            {confere
+              ? `✓ Itens conferem com o total: ${reais(c.valor_pagar_centavos)}`
+              : `Atenção: itens somam ${reais(somaItens)}, mas o cupom diz ${reais(c.valor_pagar_centavos)} (diferença de ${reais(Math.abs(somaItens - c.valor_pagar_centavos))}).`}
           </p>
+          {c.origem === "foto" && <p className="dica">Li o cupom por foto. Confira os itens abaixo e
+            <b> corrija o que o leitor errou</b> (nome, quantidade ou valor) antes de salvar.</p>}
           <fieldset className="modo-cupom">
             <label className="chave"><input type="radio" checked={!soPrecos} onChange={() => setSoPrecos(false)} />
               <span><b>Lançar como despesa</b> · compra nova, ainda não está no app</span></label>
@@ -128,15 +145,23 @@ export default function Cupons() {
               </select></label>
             {cartoes.dados?.length === 0 && <p className="suave">Nenhum cartão cadastrado ainda. <Link to="/cartoes">Cadastrar cartão de crédito</Link></p>}
           </div>}
-          <table className="tabela">
-            <thead><tr><th>Item</th><th>Qtde.</th><th>Unit.</th><th>Total</th><th>Categoria</th></tr></thead>
+          <table className="tabela cupom-itens">
+            <thead><tr><th>Item</th><th>Qtde.</th><th>Un.</th><th>Unit.</th><th>Total</th><th>Categoria</th></tr></thead>
             <tbody>
               {c.itens.map((i) => (
-                <tr key={i.seq}>
-                  <td>{i.descricao}{i.codigo && <small> · cód. {i.codigo}</small>}</td>
-                  <td>{qtd(i.quantidade_milesimos, i.unidade)}</td>
-                  <td>{reais(i.preco_unitario_centavos)}</td>
-                  <td>{reais(i.valor_total_centavos - i.desconto_centavos)}
+                <tr key={`${lido.arquivo}-${i.seq}`}>
+                  <td><input className="cel-nome" defaultValue={i.descricao}
+                    onChange={(e) => editarItem(i.seq, { descricao: e.target.value })} />
+                    {i.codigo && <small> cód. {i.codigo}</small>}</td>
+                  <td><input className="cel-num" type="number" step="0.001" min="0"
+                    defaultValue={i.quantidade_milesimos / 1000}
+                    onChange={(e) => editarItem(i.seq, { quantidade_milesimos: Math.round(Number(e.target.value) * 1000) })} /></td>
+                  <td><select value={i.unidade} onChange={(e) => editarItem(i.seq, { unidade: e.target.value })}>
+                    <option>UN</option><option>KG</option></select></td>
+                  <td><input className="cel-num" defaultValue={valorEdit(i.preco_unitario_centavos)}
+                    onChange={(e) => { const v = paraCentavos(e.target.value); if (v !== null) editarItem(i.seq, { preco_unitario_centavos: v }); }} /></td>
+                  <td><input className="cel-num" defaultValue={valorEdit(i.valor_total_centavos)}
+                    onChange={(e) => { const v = paraCentavos(e.target.value); if (v !== null) editarItem(i.seq, { valor_total_centavos: v }); }} />
                     {i.desconto_centavos > 0 && <small> (−{reais(i.desconto_centavos)})</small>}</td>
                   <td><Categorias lista={categorias.dados ?? []} valor={cats[i.seq] ?? ""}
                     aoMudar={(v) => setCats({ ...cats, [i.seq]: v })} /></td>

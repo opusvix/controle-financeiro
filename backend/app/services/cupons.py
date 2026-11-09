@@ -206,6 +206,9 @@ def ler_arquivo(nome: str, conteudo: bytes) -> dict:
             return normalizar_json(json.loads(conteudo.decode("utf-8")))
         except json.JSONDecodeError as e:
             raise CupomInvalido(f"JSON inválido: {e}") from e
+    from . import cupom_ocr        # importado aqui para não puxar o OCR no uso comum
+    if cupom_ocr.suporta(nome):    # foto ou PDF-imagem do cupom (ex.: pedido da Frescor)
+        return cupom_ocr.ler(nome, conteudo)
     return ler_sefaz_html(conteudo)
 
 
