@@ -1,2 +1,8 @@
 [build]
   publish = "site"
+  # Só reconstrói quando a landing (site/) ou esta configuração mudam. Nos demais
+  # pushes (alterações no app — a grande maioria), a build é cancelada antes de
+  # rodar, economizando os créditos/minutos de build do Netlify. Vale tanto para
+  # produção (main) quanto para os deploy previews dos PRs.
+  # Netlify: código de saída 0 = ignora a build; diferente de 0 = constrói.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- site/ netlify.toml"
