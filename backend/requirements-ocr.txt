@@ -1,0 +1,5 @@
+# Leitura de cupom por FOTO (OCR local, grátis e offline). OPCIONAL e pesado,
+# por isso fica fora do requirements.txt: o app comum e o .exe não precisam dele.
+# Instale uma vez com scripts\ler_cupom_por_foto.bat quando quiser ler fotos de
+# pedidos sem QR (ex.: Frescor). Os modelos de OCR vêm dentro do pacote (offline).
+rapidocr-onnxruntime>=1.2
