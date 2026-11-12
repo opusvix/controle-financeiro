@@ -31,9 +31,13 @@ const SECOES: Secao[] = [
             navegador e sem a “tela preta” do terminal). A primeira abertura leva alguns segundos.
           </li>
           <li>
-            Se o Windows mostrar um aviso azul <em>“O Windows protegeu o computador”</em>, clique em{" "}
-            <strong>Mais informações → Executar assim mesmo</strong>. Isso acontece porque o programa
-            é novo e ainda não tem assinatura paga; é seguro.
+            <strong>Aviso do Windows (normal na primeira vez):</strong> ao abrir, pode surgir uma tela
+            azul <em>“O Windows protegeu o computador”</em> com <em>“Fornecedor desconhecido”</em>.{" "}
+            <strong>Não é vírus</strong> — aparece só porque o programa é novo e ainda não tem uma
+            assinatura digital paga. Clique em <strong>Mais informações → Executar assim mesmo</strong>.
+            Para o aviso nem aparecer, antes dos dois cliques clique com o botão direito no{" "}
+            <code>.exe</code> → <strong>Propriedades</strong> → marque <strong>Desbloquear</strong> →{" "}
+            <strong>OK</strong>.
           </li>
         </ol>
         <p className="dica">
