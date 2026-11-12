@@ -23,13 +23,60 @@ from .main import criar_app
 
 TITULO = "Controle Financeiro"
 
-# Página mostrada na janela enquanto o usuário escolhe a pasta e o servidor sobe.
-_HTML_ESPERE = """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
-<style>html{background:#F4F2EF;color:#1c1813;font-family:Segoe UI,system-ui,sans-serif}
-@media(prefers-color-scheme:dark){html{background:#16130e;color:#f3eee6}}
-body{height:100vh;margin:0;display:grid;place-items:center;text-align:center}
-h1{font-size:22px;margin:0 0 8px}p{color:#6c6358;margin:0}</style></head>
-<body><div><h1>Controle Financeiro</h1><p id="m">Preparando…</p></div></body></html>"""
+
+def _html_pergunta(caminho: str) -> str:
+    """Tela da 1ª abertura: mostra a pasta sugerida EM TEXTO e um botão que a usa
+    num clique. Não abrimos o seletor nativo de cara porque, no Windows, ele
+    ignora a pasta sugerida e reabre no último lugar visto no Explorer — a
+    sugestão nunca aparecia. O seletor só abre se o usuário pedir 'outra pasta'."""
+    caminho_html = (caminho.replace("&", "&amp;").replace("<", "&lt;")
+                    .replace(">", "&gt;"))
+    return """<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+<style>
+:root{--bg:#F4F2EF;--cartao:#fff;--texto:#1c1813;--suave:#6c6358;
+--laranja:#F38433;--borda:#e4ddd3}
+@media(prefers-color-scheme:dark){:root{--bg:#16130e;--cartao:#211c15;
+--texto:#f3eee6;--suave:#b9ac9b;--borda:#3a3025}}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--texto);
+font-family:Segoe UI,system-ui,sans-serif;display:grid;place-items:center;padding:24px}
+main{max-width:520px;width:100%;background:var(--cartao);border:1px solid var(--borda);
+border-radius:16px;padding:32px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+h1{font-size:22px;margin:0 0 14px}
+p{margin:0 0 14px;line-height:1.5;color:var(--suave)}
+.caminho{margin:18px 0}
+.caminho code{display:inline-block;background:var(--bg);border:1px solid var(--borda);
+border-radius:10px;padding:10px 14px;font-size:15px;color:var(--texto);word-break:break-all}
+.dica{font-size:14px}
+.botoes{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+button{font-size:16px;padding:13px 18px;border-radius:10px;cursor:pointer;
+border:1px solid var(--borda);background:var(--cartao);color:var(--texto)}
+button.primario{background:var(--laranja);border-color:var(--laranja);color:#111;font-weight:600}
+button:disabled{opacity:.6;cursor:default}
+.status{min-height:20px;margin:16px 0 0;font-size:14px}
+</style></head>
+<body><main>
+<h1>Onde guardar seus dados?</h1>
+<p>O Controle Financeiro vai guardar suas informações nesta pasta do seu computador:</p>
+<p class="caminho"><code>__CAMINHO__</code></p>
+<p class="dica">Pode confirmar — é o lugar recomendado. Se preferir outro local
+(um pen drive, por exemplo), escolha a segunda opção.</p>
+<div class="botoes">
+  <button id="ok" class="primario">Usar esta pasta</button>
+  <button id="outra">Escolher outra pasta…</button>
+</div>
+<p id="status" class="status"></p>
+</main>
+<script>
+const ok=document.getElementById('ok'),outra=document.getElementById('outra'),
+st=document.getElementById('status');
+function trava(m){ok.disabled=true;outra.disabled=true;st.textContent=m;}
+function solta(){ok.disabled=false;outra.disabled=false;st.textContent='';}
+ok.addEventListener('click',()=>{trava('Preparando…');window.pywebview.api.usar_sugerida();});
+outra.addEventListener('click',async()=>{trava('Abrindo o seletor…');
+  const escolheu=await window.pywebview.api.escolher_outra();
+  if(escolheu){st.textContent='Preparando…';}else{solta();}});
+</script></body></html>""".replace("__CAMINHO__", caminho_html)
 
 
 def _garantir_saida() -> None:
@@ -60,6 +107,45 @@ def iniciar_servidor(host: str, port: int) -> uvicorn.Server:
     return servidor
 
 
+class _PrimeiraVez:
+    """Ponte entre a tela da 1ª abertura (HTML) e o Python. Os botões da tela
+    chamam estes métodos via `window.pywebview.api.*`. Quando a pasta é definida,
+    grava a escolha, sobe o servidor e troca a tela pelo app."""
+
+    def __init__(self, host: str, port: int, base: str) -> None:
+        self.host, self.port, self.base = host, port, base
+        self.sugerida = pasta_dados.pasta_sugerida()
+        self.janela = None          # preenchido em main() logo após criar a janela
+        self.servidor: uvicorn.Server | None = None
+
+    def _abrir(self, pasta: Path) -> None:
+        try:
+            pasta.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pasta = self.sugerida
+            pasta.mkdir(parents=True, exist_ok=True)
+        pasta_dados.salvar_escolha(pasta)
+        pasta_dados.aplicar(pasta)
+        self.servidor = iniciar_servidor(self.host, self.port)  # criar_app() lê a pasta agora
+        if _esperar_servidor(self.base + "api/saude"):
+            self.janela.load_url(self.base)
+
+    def usar_sugerida(self) -> None:
+        """Botão 'Usar esta pasta': aceita a sugestão em um clique."""
+        self._abrir(self.sugerida)
+
+    def escolher_outra(self) -> bool:
+        """Botão 'Escolher outra pasta…': abre o seletor nativo (começando na
+        sugestão). Devolve False se o usuário cancelar, para a tela reabilitar."""
+        import webview
+        escolha = self.janela.create_file_dialog(webview.FOLDER_DIALOG,
+                                                 directory=str(self.sugerida))
+        if not escolha:
+            return False
+        self._abrir(Path(escolha[0]))
+        return True
+
+
 def main() -> None:
     _garantir_saida()
     host = os.environ.get("CF_HOST", "127.0.0.1")
@@ -87,32 +173,14 @@ def main() -> None:
         servidor.should_exit = True     # fecha o servidor junto com a janela
         return
 
-    # PRIMEIRA VEZ (app normal): pergunta onde guardar os dados, depois sobe o servidor.
-    janela = webview.create_window(titulo, html=_HTML_ESPERE,
-                                   width=1280, height=860, min_size=(900, 600))
-    estado: dict = {}
-
-    def preparar() -> None:
-        sugerida = pasta_dados.pasta_sugerida()
-        try:
-            sugerida.mkdir(parents=True, exist_ok=True)   # já deixa a sugestão pronta p/ "OK"
-        except OSError:
-            sugerida = Path.home()
-        escolha = janela.create_file_dialog(webview.FOLDER_DIALOG, directory=str(sugerida))
-        pasta = Path(escolha[0]) if escolha else sugerida   # cancelou -> usa a sugestão
-        try:
-            pasta.mkdir(parents=True, exist_ok=True)
-        except OSError:
-            pasta = sugerida
-        pasta_dados.salvar_escolha(pasta)
-        pasta_dados.aplicar(pasta)
-        estado["servidor"] = iniciar_servidor(host, port)   # criar_app() lê a pasta agora
-        if _esperar_servidor(base + "api/saude"):
-            janela.load_url(base)
-
-    webview.start(preparar)             # bloqueia até a janela fechar
-    if estado.get("servidor"):
-        estado["servidor"].should_exit = True
+    # PRIMEIRA VEZ (app normal): a tela mostra a pasta sugerida e o usuário confirma.
+    fluxo = _PrimeiraVez(host, port, base)
+    fluxo.janela = webview.create_window(
+        titulo, html=_html_pergunta(str(fluxo.sugerida)),
+        width=1280, height=860, min_size=(900, 600), js_api=fluxo)
+    webview.start()                     # bloqueia até a janela fechar
+    if fluxo.servidor:
+        fluxo.servidor.should_exit = True
 
 
 if __name__ == "__main__":
