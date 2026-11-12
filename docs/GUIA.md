@@ -28,9 +28,12 @@ tudo roda no seu próprio computador.
    É nessa pasta que o programa cria os dados e os backups.
 3. **Dê dois cliques** no arquivo. Abre uma janela própria do programa (sem navegador
    e sem a "tela preta" do terminal). A primeira abertura leva alguns segundos.
-4. Se o Windows mostrar o aviso azul *"O Windows protegeu o computador"*, clique em
-   **Mais informações → Executar assim mesmo**. Isso acontece porque o programa é novo
-   e ainda não tem assinatura paga; é seguro.
+4. **Aviso do Windows (normal na primeira vez):** ao abrir, o Windows pode mostrar uma
+   tela azul *"O Windows protegeu o computador"*, dizendo *"Fornecedor desconhecido"*.
+   **Não é vírus** — aparece só porque o programa é novo e ainda não tem uma assinatura
+   digital paga. É só clicar em **Mais informações → Executar assim mesmo**.
+   - *Para o aviso nem aparecer:* antes de dar os dois cliques, clique com o botão direito
+     no `.exe` → **Propriedades** → marque **Desbloquear** (no rodapé da janela) → **OK**.
 
 > **Requisito:** Windows 10 ou 11 atualizado (já trazem o componente de janela
 > "WebView2" da Microsoft, que o programa usa para desenhar a tela). Para fechar,
