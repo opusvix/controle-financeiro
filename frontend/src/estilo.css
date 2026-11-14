@@ -20,7 +20,8 @@ button.link { background: none; border: none; color: var(--laranja-texto); paddi
 input, select { background: var(--fundo); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; width: 100%; }
 
 .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
-.menu { background: var(--painel); padding: 24px 12px; display: flex; flex-direction: column; gap: 4px; }
+.menu { background: var(--painel); padding: 24px 12px; display: flex; flex-direction: column; gap: 4px;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .menu .marca { font-weight: 700; font-size: 20px; color: var(--laranja-texto); padding: 0 12px 24px; line-height: 1.1; }
 .menu a { color: var(--suave); text-decoration: none; padding: 10px 12px; border-radius: 8px; }
 .menu a.active { color: var(--texto); background: var(--painel-2); border-left: 3px solid var(--laranja); }
@@ -128,7 +129,9 @@ legend { color: var(--suave); font-size: 14px; margin-bottom: 6px; width: 100%; 
 .linha-form button { white-space: nowrap; }
 
 @media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; } .menu { flex-direction: row; overflow-x: auto; padding: 8px; }
+  .app { grid-template-columns: 1fr; } .menu { flex-direction: row; overflow-x: auto; padding: 8px;
+    position: static; height: auto; }
+  .menu .btn-tema { margin-top: 0; }
   .menu .marca { display: none; } .grade-2 { grid-template-columns: 1fr; } main { padding: 16px; }
 }
 button.bloco { width: 100%; margin-top: 4px; }
