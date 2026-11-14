@@ -110,6 +110,11 @@ def iniciar_servidor(host: str, port: int) -> uvicorn.Server:
 
 # ---------------------------------------------------------------------------
 # Memória da janela: lembrar posição e tamanho entre uma abertura e outra.
+#
+# Importante (pywebview 6): o evento 'closed' roda num thread que o app NÃO
+# aguarda, então o processo pode encerrar antes de gravar. Por isso salvamos no
+# 'closing' (síncrono, com a janela ainda viva), lendo janela.width/height/x/y
+# — que são propriedades lidas em tempo real da janela nesta versão.
 # ---------------------------------------------------------------------------
 ARQUIVO_JANELA = "janela.json"   # guardado junto dos dados do usuário
 
@@ -117,24 +122,6 @@ ARQUIVO_JANELA = "janela.json"   # guardado junto dos dados do usuário
 def _arquivo_janela() -> Path:
     """Onde fica a geometria salva: na mesma pasta dos dados (CF_PASTA_DADOS)."""
     return config_mod.carregar().pasta_dados / ARQUIVO_JANELA
-
-
-def _posicao_visivel(x: int, y: int, w: int, h: int) -> bool:
-    """Evita reabrir a janela fora da tela (ex.: um monitor que foi desconectado).
-    Exige um pedaço visível em alguma tela. Sem conseguir a info das telas,
-    confia no valor salvo (retorna True)."""
-    try:
-        import webview
-        telas = webview.screens or []
-        if not telas:
-            return True
-        for t in telas:
-            if (x < t.x + t.width - 80 and x + w > t.x + 80
-                    and y < t.y + t.height - 40 and y + h > t.y + 40):
-                return True
-        return False
-    except Exception:
-        return True
 
 
 def _ler_geometria() -> dict:
@@ -149,49 +136,65 @@ def _ler_geometria() -> dict:
         out: dict = {"width": w, "height": h}
         if "x" in geo and "y" in geo:
             x, y = int(geo["x"]), int(geo["y"])
-            if _posicao_visivel(x, y, w, h):
+            if -32000 < x < 32000 and -32000 < y < 32000:
                 out["x"], out["y"] = x, y
         return out
     except Exception:
         return {}
 
 
-def _salvar_geometria(janela, estado: dict) -> None:
-    """Grava posição/tamanho atuais para a próxima abertura (silencioso em erro)."""
+def _salvar_geometria(janela) -> None:
+    """Grava posição/tamanho ATUAIS lendo direto da janela. Silencioso em erro."""
     try:
-        largura = int(estado.get("width") or getattr(janela, "width", 0) or 0)
-        altura = int(estado.get("height") or getattr(janela, "height", 0) or 0)
-        if largura < 1 or altura < 1:
+        w, h = int(janela.width), int(janela.height)
+        x, y = int(janela.x), int(janela.y)
+        if w < 1 or h < 1:
             return
-        geo: dict = {"width": largura, "height": altura}
-        x = estado.get("x", getattr(janela, "x", None))
-        y = estado.get("y", getattr(janela, "y", None))
-        if x is not None and y is not None:
-            geo["x"], geo["y"] = int(x), int(y)
         arq = _arquivo_janela()
         arq.parent.mkdir(parents=True, exist_ok=True)
-        arq.write_text(json.dumps(geo), encoding="utf-8")
+        arq.write_text(json.dumps({"width": w, "height": h, "x": x, "y": y}),
+                       encoding="utf-8")
     except Exception:
         pass
 
 
-def _lembrar_geometria(janela, inicial: dict | None = None) -> None:
-    """Acompanha mover/redimensionar e salva ao fechar a janela."""
-    estado: dict = dict(inicial or {})
+def _rescatar_para_tela(janela) -> None:
+    """Se a janela abriu fora de todas as telas (ex.: um monitor que foi
+    desconectado), recentraliza na primeira tela. Roda no evento 'shown', quando
+    webview.screens() já está disponível. Silencioso em erro."""
+    try:
+        import webview
+        telas = webview.screens() or []
+        if not telas:
+            return
+        x, y = int(janela.x), int(janela.y)
+        w, h = int(janela.width), int(janela.height)
+        for t in telas:
+            if (x < t.x + t.width - 80 and x + w > t.x + 80
+                    and y < t.y + t.height - 40 and y + h > t.y + 40):
+                return                      # visível em alguma tela: nada a fazer
+        t = telas[0]
+        janela.move(t.x + max(0, (t.width - w) // 2),
+                    t.y + max(0, (t.height - h) // 2))
+    except Exception:
+        pass
 
-    def _ao_redimensionar(largura, altura):
-        estado["width"], estado["height"] = int(largura), int(altura)
 
-    def _ao_mover(x, y):
-        estado["x"], estado["y"] = int(x), int(y)
-
+def _lembrar_geometria(janela) -> None:
+    """Salva a geometria ao fechar (evento 'closing', síncrono) e resgata a
+    janela para a tela quando ela aparece (evento 'shown')."""
     def _ao_fechar():
-        _salvar_geometria(janela, estado)
+        _salvar_geometria(janela)
+
+    def _ao_mostrar():
+        _rescatar_para_tela(janela)
 
     try:
-        janela.events.resized += _ao_redimensionar
-        janela.events.moved += _ao_mover
-        janela.events.closed += _ao_fechar
+        janela.events.closing += _ao_fechar
+    except Exception:
+        pass
+    try:
+        janela.events.shown += _ao_mostrar
     except Exception:
         pass
 
@@ -262,7 +265,7 @@ def main() -> None:
             titulo, base,
             width=geo.get("width", 1280), height=geo.get("height", 860),
             x=geo.get("x"), y=geo.get("y"), min_size=(900, 600))
-        _lembrar_geometria(janela, geo)
+        _lembrar_geometria(janela)
         webview.start()                 # bloqueia até a janela fechar
         servidor.should_exit = True     # fecha o servidor junto com a janela
         return
