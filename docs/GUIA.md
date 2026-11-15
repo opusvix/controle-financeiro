@@ -9,10 +9,11 @@ dentro do app, no menu **Ajuda**.
 - [4. Lançar transações e parcelas](#4-lançar-transações-e-parcelas)
 - [5. Cartões de crédito e faturas](#5-cartões-de-crédito-e-faturas)
 - [6. Cupons fiscais e controle de preços](#6-cupons-fiscais-e-controle-de-preços)
-- [7. Conciliação (banco e fatura)](#7-conciliação-banco-e-fatura)
-- [8. Dashboard e relatórios](#8-dashboard-e-relatórios)
-- [9. Backup e segurança dos dados](#9-backup-e-segurança-dos-dados)
-- [10. Versão de demonstração](#10-versão-de-demonstração)
+- [7. Carregar contas em PDF (luz, água, plano)](#7-carregar-contas-em-pdf-luz-água-plano)
+- [8. Conciliação (banco e fatura)](#8-conciliação-banco-e-fatura)
+- [9. Dashboard e relatórios](#9-dashboard-e-relatórios)
+- [10. Backup e segurança dos dados](#10-backup-e-segurança-dos-dados)
+- [11. Versão de demonstração](#11-versão-de-demonstração)
 
 ---
 
@@ -105,7 +106,26 @@ barato.
 - Em **Preços** você acompanha a variação do preço do mesmo produto ao longo do tempo —
   útil para decidir onde comprar.
 
-## 7. Conciliação (banco e fatura)
+## 7. Carregar contas em PDF (luz, água, plano)
+
+A tela **Contas em PDF** lê as faturas das contas da casa — luz (EDP Escelsa e Solar),
+água (CESAN) e plano (Unimed) — e preenche sozinha a **ficha** de cada conta: consumo,
+bandeira, multa, m³ e número de vidas. É essa ficha que alimenta os painéis de consumo.
+
+- **📁 Escolher pasta:** aponte a pasta onde guarda as contas (ex.: `Contas\2026`) e o app
+  lê todos os PDFs de dentro de uma vez.
+- **📄 Escolher arquivos:** ou mande um ou poucos PDFs avulsos.
+- Se algum PDF for protegido (EDP Solar, Claro), informe a **senha** no campo próprio —
+  várias, separadas por `;`.
+- O app mostra cada fatura com o que leu e se achou o lançamento pago que ela preenche.
+  Confira, marque as que quer gravar e clique em **Gravar fichas**.
+
+Uma conta só é preenchida se já existe no app um **lançamento pago de mesmo valor**, perto
+do vencimento. Se faltar, lance a despesa primeiro em **Transações**. Por segurança, o
+navegador não varre uma pasta sozinho pelo caminho: você escolhe a pasta no seletor e o app
+lê os PDFs dela — funciona igual pelo atalho (navegador) e pelo programa (`.exe`).
+
+## 8. Conciliação (banco e fatura)
 
 **Conciliação** compara o que está no app com o extrato do banco (ou com a fatura do
 cartão), para você não esquecer nenhum lançamento.
@@ -116,7 +136,7 @@ cartão), para você não esquecer nenhum lançamento.
 - Nada é gravado até você clicar em **Aplicar**. Marcar "conferido" é só o visto de que
   bateu — não mexe no saldo.
 
-## 8. Dashboard e relatórios
+## 9. Dashboard e relatórios
 
 O **Dashboard** é o resumo do mês: receitas, despesas, saldo e para onde o dinheiro foi.
 A tela **Relatórios** aprofunda por período, com taxa de poupança e fixas × variáveis.
@@ -124,7 +144,7 @@ A tela **Relatórios** aprofunda por período, com taxa de poupança e fixas × 
 - Troque o mês no seletor do topo.
 - Em Relatórios dá para exportar em Excel (4 abas) ou PDF.
 
-## 9. Backup e segurança dos dados
+## 10. Backup e segurança dos dados
 
 Seus dados ficam só no seu computador, num arquivo chamado `financeiro.db`, na pasta do
 programa. Ninguém da internet acessa.
@@ -134,7 +154,7 @@ programa. Ninguém da internet acessa.
 - Em **Configurações** você pode fazer um backup na hora.
 - Para trocar de computador, leve a pasta inteira (o arquivo `.exe` e a pasta `data`).
 
-## 10. Versão de demonstração
+## 11. Versão de demonstração
 
 Existe uma versão só para experimentar, com dados de uma família fictícia. Ela mostra o
 selo laranja **"Demonstração"** no menu e tem o botão **"Reiniciar demonstração"**, que

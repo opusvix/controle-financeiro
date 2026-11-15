@@ -251,6 +251,18 @@ export type ConciliacaoFatura = {
             so_fatura: number; so_app: number; pagamentos: number };
 };
 
+export type FaturaPdf = {
+  emissor: string; tipo: string; referencia: string; vencimento: string; total_centavos: number;
+  ficha: Record<string, number | string | null>;
+  historico: [string, number | null, number | null][];
+  itens: [string, string, number][]; arquivo: string;
+};
+export type ContaPdfLida = {
+  arquivo: string; status: "ok" | "senha" | "erro" | "sem_leitor"; mensagem: string | null;
+  fatura: FaturaPdf | null;
+  lancamento: { id: number; data: string; descricao: string; valor_centavos: number; ja_tem_ficha: boolean } | null;
+};
+
 const comArquivo = (arquivo: File): RequestInit => {
   const f = new FormData();
   f.append("arquivo", arquivo);
@@ -312,6 +324,14 @@ export const api = {
                                      valor_banco?: number | null }) =>
     chamar<{ conferidos: number; ajustados: number; criados: number; valor_banco_gravado: boolean }>(
       "/api/conciliacao/fatura/aplicar", enviar("POST", body)),
+  analisarContasPdf: (arquivos: File[], senha: string) => {
+    const f = new FormData();
+    arquivos.forEach((a) => f.append("arquivos", a));
+    if (senha) f.append("senha", senha);
+    return chamar<{ contas: ContaPdfLida[] }>("/api/contas-pdf/analisar", { method: "POST", body: f });
+  },
+  gravarContasPdf: (itens: { fatura: FaturaPdf; transacao_id: number }[]) =>
+    chamar<{ gravadas: number }>("/api/contas-pdf/gravar", enviar("POST", { itens })),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),
   instituicoes: () => chamar<Instituicao[]>("/api/instituicoes"),

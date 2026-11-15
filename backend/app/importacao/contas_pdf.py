@@ -250,6 +250,36 @@ def achar_lancamento(con: sqlite3.Connection, f: Fatura) -> sqlite3.Row | None:
          (venc + timedelta(days=40)).isoformat(), f.vencimento)).fetchone()
 
 
+def aplicar_ficha(con: sqlite3.Connection, t: sqlite3.Row, f: Fatura) -> None:
+    """Grava no lançamento `t` a ficha da fatura `f`: ficha, itens do plano e o vencimento.
+
+    Não grava o histórico de consumo (série dos meses) — isso é `gravar_historico`.
+    """
+    contas_casa.gravar(con, t["id"], {**f.ficha, "arquivo": f.arquivo})
+    if f.itens:
+        with con:
+            con.execute("DELETE FROM plano_item WHERE transacao_id = ?", (t["id"],))
+            con.executemany(
+                "INSERT OR REPLACE INTO plano_item (transacao_id, beneficiario, item, valor_centavos) "
+                "VALUES (?, ?, ?, ?)", [(t["id"], n, i, v) for n, i, v in f.itens])
+    if not t["vencimento"] and t["pago"] and t["data"] != f.vencimento:
+        with con:
+            con.execute("UPDATE transacao SET vencimento = ? WHERE id = ?", (f.vencimento, t["id"]))
+
+
+def gravar_historico(con: sqlite3.Connection, tipo: str,
+                     historico: list[tuple[str, float, int]]) -> None:
+    """Grava a série de consumo lida (uma fatura ou várias juntas): (AAAA-MM, consumo, valor)."""
+    linhas = [(tipo, ref, consumo, valor) for ref, consumo, valor in historico]
+    if linhas:
+        with con:
+            con.executemany(
+                "INSERT INTO conta_historico (tipo, referencia, consumo, valor_centavos) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT (tipo, referencia) DO UPDATE SET consumo = excluded.consumo, "
+                "valor_centavos = COALESCE(excluded.valor_centavos, conta_historico.valor_centavos)",
+                linhas)
+
+
 def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
              senha: str | None = None, diagnostico: bool = False) -> tuple[dict, str]:
     linhas, cont = [], {"lidas": 0, "gravadas": 0, "sem_lancamento": 0, "ignoradas": 0, "com_senha": 0}
@@ -293,16 +323,7 @@ def executar(con: sqlite3.Connection, pasta: Path, simular: bool = True,
         cont["gravadas"] += 1
         linhas.append(f"  ✓ {resumo}  → lançamento de {t['data'][8:]}/{t['data'][5:7]}")
         if not simular:
-            contas_casa.gravar(con, t["id"], {**fc, "arquivo": f.arquivo})
-            if f.itens:
-                with con:
-                    con.execute("DELETE FROM plano_item WHERE transacao_id = ?", (t["id"],))
-                    con.executemany(
-                        "INSERT OR REPLACE INTO plano_item (transacao_id, beneficiario, item, valor_centavos) "
-                        "VALUES (?, ?, ?, ?)", [(t["id"], n, i, v) for n, i, v in f.itens])
-            if not t["vencimento"] and t["pago"] and t["data"] != f.vencimento:
-                with con:
-                    con.execute("UPDATE transacao SET vencimento = ? WHERE id = ?", (f.vencimento, t["id"]))
+            aplicar_ficha(con, t, f)
     if not simular and historico:
         with con:
             con.executemany(

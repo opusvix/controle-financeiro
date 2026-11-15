@@ -174,8 +174,46 @@ const SECOES: Secao[] = [
     ),
   },
   {
+    id: "contas-pdf",
+    titulo: "7. Carregar contas em PDF (luz, água, plano)",
+    corpo: (
+      <>
+        <p>
+          A tela <strong>Contas em PDF</strong> lê as faturas das contas da casa — luz (EDP Escelsa e
+          Solar), água (CESAN) e plano (Unimed) — e preenche sozinha a <strong>ficha</strong> de cada
+          conta: consumo, bandeira, multa, m³ e número de vidas. É essa ficha que alimenta os painéis de
+          consumo das Contas.
+        </p>
+        <ol>
+          <li>
+            <strong>📁 Escolher pasta:</strong> aponte a pasta onde você guarda as contas (por exemplo{" "}
+            <code>Contas\2026</code>) e o app lê todos os PDFs de dentro de uma só vez.
+          </li>
+          <li>
+            <strong>📄 Escolher arquivos:</strong> ou mande um ou poucos PDFs avulsos.
+          </li>
+          <li>
+            Se algum PDF for protegido (a EDP Solar e a Claro costumam ser), informe a{" "}
+            <strong>senha</strong> no campo próprio — se forem várias, separe por <code>;</code>.
+          </li>
+          <li>
+            O app mostra cada fatura com o que leu e se achou o lançamento pago que ela preenche.
+            Confira, marque as que quer gravar e clique em <strong>Gravar fichas</strong>.
+          </li>
+        </ol>
+        <p className="dica">
+          Uma conta só é preenchida quando já existe no app um{" "}
+          <strong>lançamento pago de mesmo valor</strong>, perto do vencimento. Se faltar, lance a
+          despesa primeiro em <strong>Transações</strong>. Por segurança, o navegador não varre uma
+          pasta sozinho pelo caminho: você escolhe a pasta no seletor e o app lê os PDFs dela —
+          funciona igual pelo atalho (navegador) e pelo programa (<code>.exe</code>).
+        </p>
+      </>
+    ),
+  },
+  {
     id: "conciliacao",
-    titulo: "7. Conciliação (banco e fatura)",
+    titulo: "8. Conciliação (banco e fatura)",
     corpo: (
       <>
         <p>
@@ -198,7 +236,7 @@ const SECOES: Secao[] = [
   },
   {
     id: "relatorios",
-    titulo: "8. Dashboard e relatórios",
+    titulo: "9. Dashboard e relatórios",
     corpo: (
       <>
         <p>
@@ -215,7 +253,7 @@ const SECOES: Secao[] = [
   },
   {
     id: "backup",
-    titulo: "9. Backup e segurança dos dados",
+    titulo: "10. Backup e segurança dos dados",
     corpo: (
       <>
         <p>
@@ -238,7 +276,7 @@ const SECOES: Secao[] = [
   },
   {
     id: "demo",
-    titulo: "10. Versão de demonstração",
+    titulo: "11. Versão de demonstração",
     corpo: (
       <>
         <p>
