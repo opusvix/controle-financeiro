@@ -202,8 +202,9 @@ const SECOES: Secao[] = [
           </li>
           <li>
             <strong>Se faltar o lançamento</strong>, não precisa sair da tela: escolha a{" "}
-            <strong>conta que pagou</strong> (e, se quiser, a categoria) e o app <strong>cria a
-            despesa</strong> para você — datada no vencimento, já paga — e anexa a ficha nela.
+            <strong>conta</strong> (e, se quiser, a categoria) e o app <strong>cria a despesa</strong>{" "}
+            para você — datada no vencimento — e anexa a ficha nela. Marque <strong>“Já paga”</strong>{" "}
+            se a conta já foi paga; se ainda vai vencer, deixe desmarcada e ela fica em “a pagar”.
           </li>
         </ol>
         <p className="dica">

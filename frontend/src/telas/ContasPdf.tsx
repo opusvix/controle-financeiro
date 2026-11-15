@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Categoria, type ContaPdfLida, type FaturaPdf } from "../api";
 import { useDados } from "../componentes/useDados";
-import { dataBR, reais } from "../formato";
+import { dataBR, hojeISO, reais } from "../formato";
 
 /** Um número da ficha, ou null se não veio. */
 const num = (fc: FaturaPdf["ficha"], k: string) => (typeof fc[k] === "number" ? (fc[k] as number) : null);
@@ -35,12 +35,15 @@ function situacao(l: ContaPdfLida): { texto: string; ok: boolean } {
   return { texto: `✓ lançamento de ${dataBR(l.lancamento.data)}`, ok: true };
 }
 
-/** Dados para criar a despesa que falta: conta que pagou (obrigatória) e categoria (opcional). */
-type Criar = { conta_id: string; categoria_id: string };
+/** Dados para criar a despesa que falta: conta que pagou (obrigatória), categoria (opcional) e se já está paga. */
+type Criar = { conta_id: string; categoria_id: string; pago: boolean };
 
 /** Um item enviado para gravar: anexa a um lançamento existente ou cria a despesa que falta. */
 type ItemGravar = { fatura: FaturaPdf; transacao_id?: number;
-  criar?: { conta_id: number; categoria_id: number | null } };
+  criar?: { conta_id: number; categoria_id: number | null; pago: boolean } };
+
+/** Palpite de "já paga": se o vencimento já passou, provavelmente foi paga. */
+const pagaPorPadrao = (f: FaturaPdf) => f.vencimento <= hojeISO();
 
 export default function ContasPdf() {
   const contas = useDados(api.contas);
@@ -79,7 +82,7 @@ export default function ContasPdf() {
       const cr = criar[i];
       if (!cr?.conta_id) return [];
       return [{ fatura: l.fatura, criar: { conta_id: Number(cr.conta_id),
-        categoria_id: cr.categoria_id ? Number(cr.categoria_id) : null } }];
+        categoria_id: cr.categoria_id ? Number(cr.categoria_id) : null, pago: cr.pago } }];
     });
   }
 
@@ -96,9 +99,15 @@ export default function ContasPdf() {
     finally { setGravando(false); }
   }
 
+  /** Mexe nos dados de criação de uma linha, preservando o resto. */
+  function mudarCriar(i: number, campo: Partial<Criar>, padrao: boolean) {
+    const atual = criar[i] ?? { conta_id: "", categoria_id: "", pago: padrao };
+    setCriar({ ...criar, [i]: { ...atual, ...campo } });
+  }
+
   /** Escolhe a conta que pagou uma fatura sem lançamento (e já marca a linha para gravar). */
-  function escolherConta(i: number, conta_id: string) {
-    setCriar({ ...criar, [i]: { conta_id, categoria_id: criar[i]?.categoria_id ?? "" } });
+  function escolherConta(i: number, conta_id: string, padrao: boolean) {
+    mudarCriar(i, { conta_id }, padrao);
     setMarcadas({ ...marcadas, [i]: !!conta_id });
   }
 
@@ -176,25 +185,33 @@ export default function ContasPdf() {
                     <td>{l.fatura ? resumoFatura(l.fatura) : "—"}</td>
                     <td className={s.ok ? "aviso-ok" : "erro"}>
                       {s.texto}
-                      {semLancamento && (
-                        <div className="form espaco">
-                          <p className="suave">Não achei o pagamento no app. Escolha a conta que pagou e eu
-                            <strong> crio a despesa</strong> (datada no vencimento, já paga) junto com a ficha:</p>
-                          <div className="duas">
-                            <label>Pago com
-                              <select value={criar[i]?.conta_id ?? ""} onChange={(e) => escolherConta(i, e.target.value)}>
-                                <option value="">Escolha a conta…</option>
-                                {contas.dados?.filter((x) => x.ativa).map((x) =>
-                                  <option key={x.id} value={x.id}>{x.nome}</option>)}
-                              </select></label>
-                            <label>Categoria <small>(opcional)</small>
-                              <CategoriasDespesa lista={categorias.dados ?? []} valor={criar[i]?.categoria_id ?? ""}
-                                aoMudar={(v) => setCriar({ ...criar,
-                                  [i]: { conta_id: criar[i]?.conta_id ?? "", categoria_id: v } })} />
-                            </label>
+                      {semLancamento && l.fatura && (() => {
+                        const padrao = pagaPorPadrao(l.fatura);
+                        const pago = criar[i]?.pago ?? padrao;
+                        return (
+                          <div className="form espaco">
+                            <p className="suave">Não achei o pagamento no app. Escolha a conta e eu
+                              <strong> crio a despesa</strong> (datada no vencimento) junto com a ficha:</p>
+                            <div className="duas">
+                              <label>Conta
+                                <select value={criar[i]?.conta_id ?? ""} onChange={(e) => escolherConta(i, e.target.value, padrao)}>
+                                  <option value="">Escolha a conta…</option>
+                                  {contas.dados?.filter((x) => x.ativa).map((x) =>
+                                    <option key={x.id} value={x.id}>{x.nome}</option>)}
+                                </select></label>
+                              <label>Categoria <small>(opcional)</small>
+                                <CategoriasDespesa lista={categorias.dados ?? []} valor={criar[i]?.categoria_id ?? ""}
+                                  aoMudar={(v) => mudarCriar(i, { categoria_id: v }, padrao)} />
+                              </label>
+                            </div>
+                            <label className="chave"><input type="checkbox" checked={pago}
+                              onChange={(e) => mudarCriar(i, { pago: e.target.checked }, padrao)} />
+                              <span><strong>Já paga</strong> — {l.fatura.vencimento <= hojeISO()
+                                ? "o vencimento já passou, por isso sugeri marcada"
+                                : "o vencimento é futuro; deixe desmarcada se ainda vai pagar (fica em “a pagar”)"}</span></label>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </td>
                   </tr>
                 );

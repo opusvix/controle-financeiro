@@ -331,7 +331,7 @@ export const api = {
     return chamar<{ contas: ContaPdfLida[] }>("/api/contas-pdf/analisar", { method: "POST", body: f });
   },
   gravarContasPdf: (itens: { fatura: FaturaPdf; transacao_id?: number;
-                             criar?: { conta_id: number; categoria_id: number | null } }[]) =>
+                             criar?: { conta_id: number; categoria_id: number | null; pago: boolean } }[]) =>
     chamar<{ gravadas: number; criadas: number }>("/api/contas-pdf/gravar", enviar("POST", { itens })),
   atualizarIndices: () =>
     chamar<Record<string, { meses?: number; ultimo?: string | null; erro?: string }>>("/api/indices/atualizar", { method: "POST" }),

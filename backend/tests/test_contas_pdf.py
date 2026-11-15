@@ -132,15 +132,28 @@ def test_tela_cria_a_despesa_que_falta_e_anexa_a_ficha(cliente, monkeypatch):
     c0 = _subir(cliente, "2026-10-13-ESCELSA.pdf").json()["contas"][0]
     assert c0["lancamento"] is None
 
+    # por padrão a despesa criada fica A PAGAR (a conta pode estar a vencer; quem decide é o usuário)
     g = cliente.post("/api/contas-pdf/gravar", json={"itens": [
         {"fatura": c0["fatura"], "criar": {"conta_id": conta}}]}).json()
     assert g["gravadas"] == 1 and g["criadas"] == 1
-    # a despesa foi criada, paga, datada no vencimento, com a ficha anexada
     lista = cliente.get("/api/transacoes?competencia=2026-10").json()
     nova = next(x for x in lista if x["descricao"] == "EDP Escelsa" and x["valor_centavos"] == 10216)
-    assert nova["tipo"] == "despesa" and nova["pago"] == 1 and nova["conta_id"] == conta
+    assert nova["tipo"] == "despesa" and nova["pago"] == 0 and nova["conta_id"] == conta
+    assert nova["data"] == "2026-10-13"                     # datada no vencimento
     f = cliente.get(f"/api/transacoes/{nova['id']}/ficha").json()
     assert f["gravada"] and f["consumo"] == 224
+
+
+def test_tela_cria_despesa_ja_paga_quando_o_usuario_marca(cliente, monkeypatch):
+    conta = cliente.post("/api/contas", json={"nome": "Itaú", "tipo": "corrente",
+        "data_saldo_inicial": "2026-01-01"}).json()["id"]
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+    c0 = _subir(cliente, "ESCELSA.pdf").json()["contas"][0]
+    cliente.post("/api/contas-pdf/gravar", json={"itens": [
+        {"fatura": c0["fatura"], "criar": {"conta_id": conta, "pago": True}}]})
+    lista = cliente.get("/api/transacoes?competencia=2026-10").json()
+    nova = next(x for x in lista if x["descricao"] == "EDP Escelsa")
+    assert nova["pago"] == 1
 
 
 def test_tela_marca_pdf_protegido_por_senha(cliente, monkeypatch):

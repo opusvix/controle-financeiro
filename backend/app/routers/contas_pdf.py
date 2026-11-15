@@ -96,6 +96,7 @@ class CriarDespesa(BaseModel):
     """Criar a despesa que falta, direto pela tela, e já anexar a ficha nela."""
     conta_id: int
     categoria_id: int | None = None
+    pago: bool = False          # a conta pode estar a vencer; quem decide é o usuário
 
 
 class ItemGravar(BaseModel):
@@ -127,7 +128,7 @@ def gravar(dados: GravarIn, c=Depends(con)):
             if it.criar is not None:
                 ids = transacoes.criar(c, transacoes.NovaTransacao(
                     tipo="despesa", descricao=f.emissor, valor_centavos=f.total_centavos,
-                    data=date.fromisoformat(f.vencimento), pago=True,
+                    data=date.fromisoformat(f.vencimento), pago=it.criar.pago,
                     conta_id=it.criar.conta_id, categoria_id=it.criar.categoria_id))
                 t = c.execute("SELECT * FROM transacao WHERE id = ?", (ids[0],)).fetchone()
                 criadas += 1
