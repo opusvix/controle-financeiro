@@ -330,6 +330,9 @@ export const api = {
     if (senha) f.append("senha", senha);
     return chamar<{ contas: ContaPdfLida[] }>("/api/contas-pdf/analisar", { method: "POST", body: f });
   },
+  analisarContasPdfPasta: (pasta: string, senha: string) =>
+    chamar<{ contas: ContaPdfLida[]; pasta: string; total_pdf: number }>(
+      "/api/contas-pdf/analisar-pasta", enviar("POST", { pasta, senha })),
   gravarContasPdf: (itens: { fatura: FaturaPdf; transacao_id?: number;
                              criar?: { conta_id: number; categoria_id: number | null; pago: boolean } }[]) =>
     chamar<{ gravadas: number; criadas: number }>("/api/contas-pdf/gravar", enviar("POST", { itens })),

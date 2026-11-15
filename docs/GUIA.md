@@ -112,9 +112,10 @@ A tela **Contas em PDF** lê as faturas das contas da casa — luz (EDP Escelsa 
 água (CESAN) e plano (Unimed) — e preenche sozinha a **ficha** de cada conta: consumo,
 bandeira, multa, m³ e número de vidas. É essa ficha que alimenta os painéis de consumo.
 
-- **📁 Escolher pasta:** aponte a pasta onde guarda as contas (ex.: `Contas\2026`) e o app
-  lê todos os PDFs de dentro de uma vez.
-- **📄 Escolher arquivos:** ou mande um ou poucos PDFs avulsos.
+- **📁 Ler de uma pasta:** cole o caminho da pasta onde guarda as contas (ex.:
+  `D:\Documentos\Financeiro\Faturas Baixadas`) e o app lê todos os PDFs de dentro de uma vez.
+  Ele lembra a última pasta usada.
+- **📄 Escolher arquivos:** ou mande um ou poucos PDFs avulsos pelo seletor.
 - Se algum PDF for protegido (EDP Solar, Claro), informe a **senha** no campo próprio —
   várias, separadas por `;`.
 - O app mostra cada fatura com o que leu e se achou o lançamento pago que ela preenche.
