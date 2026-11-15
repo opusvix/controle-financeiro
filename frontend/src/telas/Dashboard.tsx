@@ -6,7 +6,7 @@ import PagarConta from "../componentes/PagarConta";
 import PainelAgua from "../componentes/PainelAgua";
 import PainelEnergia from "../componentes/PainelEnergia";
 import PainelPlano from "../componentes/PainelPlano";
-import Rosca from "../componentes/Rosca";
+import BarrasCategoria from "../componentes/BarrasCategoria";
 import SeletorMes from "../componentes/SeletorMes";
 import { useDados } from "../componentes/useDados";
 import { dataBR, hojeISO, mesAtual, reais } from "../formato";
@@ -41,11 +41,11 @@ export default function Dashboard() {
           <section className="grade-2">
             <div className="cartao-painel">
               <h3>Receitas por categoria</h3>
-              <Rosca fatias={p.receitas_por_categoria} />
+              <BarrasCategoria fatias={p.receitas_por_categoria} />
             </div>
             <div className="cartao-painel">
               <h3>Despesas por categoria</h3>
-              <Rosca fatias={p.despesas_por_categoria} />
+              <BarrasCategoria fatias={p.despesas_por_categoria} />
               <FixasVariaveis {...p.fixas_variaveis} />
             </div>
           </section>

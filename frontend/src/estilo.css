@@ -67,6 +67,7 @@ dt { color: var(--suave); } dd { margin: 0; text-align: right; }
 
 .rosca { position: relative; }
 .rosca-grafico { height: 260px; }
+.barras-grafico { height: 260px; }
 .rosca-centro { position: absolute; top: 130px; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
 .rosca-centro strong { display: block; font-size: 18px; } .rosca-centro span { color: var(--suave); font-size: 13px; }
 .legenda { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 14px; }
