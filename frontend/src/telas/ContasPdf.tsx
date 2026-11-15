@@ -45,16 +45,31 @@ type ItemGravar = { fatura: FaturaPdf; transacao_id?: number;
 /** Palpite de "já paga": se o vencimento já passou, provavelmente foi paga. */
 const pagaPorPadrao = (f: FaturaPdf) => f.vencimento <= hojeISO();
 
+/** Lê/guarda a última pasta usada (só conveniência; pode falhar em modo privado). */
+const PASTA_CHAVE = "contas-pdf-pasta";
+const lerPastaSalva = () => { try { return localStorage.getItem(PASTA_CHAVE) ?? ""; } catch { return ""; } };
+const salvarPasta = (p: string) => { try { localStorage.setItem(PASTA_CHAVE, p); } catch { /* ignora */ } };
+
 export default function ContasPdf() {
   const contas = useDados(api.contas);
   const categorias = useDados(api.categorias);
   const [senha, setSenha] = useState("");
+  const [pasta, setPasta] = useState(lerPastaSalva);
   const [lidas, setLidas] = useState<ContaPdfLida[] | null>(null);
   const [marcadas, setMarcadas] = useState<Record<number, boolean>>({});
   const [criar, setCriar] = useState<Record<number, Criar>>({});
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [lendo, setLendo] = useState(false);
   const [gravando, setGravando] = useState(false);
+
+  /** Mostra o resultado da análise (de arquivos ou de uma pasta) na tabela de conferência. */
+  function mostrar(contasLidas: ContaPdfLida[]) {
+    setLidas(contasLidas);
+    // Já deixo marcado o que achou lançamento e ainda não tem ficha.
+    setMarcadas(Object.fromEntries(contasLidas.map((l, i) =>
+      [i, l.status === "ok" && !!l.lancamento && !l.lancamento.ja_tem_ficha])));
+    if (!contasLidas.length) setMsg({ ok: false, texto: "Nenhum PDF reconhecido." });
+  }
 
   async function enviar(arquivos: FileList | null) {
     const pdfs = Array.from(arquivos ?? []).filter((f) => f.name.toLowerCase().endsWith(".pdf"));
@@ -63,13 +78,20 @@ export default function ContasPdf() {
       return;
     }
     setMsg(null); setLidas(null); setCriar({}); setLendo(true);
+    try { mostrar((await api.analisarContasPdf(pdfs, senha)).contas); }
+    catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
+    finally { setLendo(false); }
+  }
+
+  async function lerDaPasta() {
+    const p = pasta.trim();
+    if (!p) return setMsg({ ok: false, texto: "Cole o caminho da pasta das contas." });
+    setMsg(null); setLidas(null); setCriar({}); setLendo(true);
     try {
-      const r = await api.analisarContasPdf(pdfs, senha);
-      setLidas(r.contas);
-      // Já deixo marcado o que achou lançamento e ainda não tem ficha.
-      setMarcadas(Object.fromEntries(r.contas.map((l, i) =>
-        [i, l.status === "ok" && !!l.lancamento && !l.lancamento.ja_tem_ficha])));
-      if (!r.contas.length) setMsg({ ok: false, texto: "Nenhum PDF reconhecido." });
+      const r = await api.analisarContasPdfPasta(p, senha);
+      salvarPasta(p);
+      if (!r.total_pdf) setMsg({ ok: false, texto: `A pasta não tem nenhum PDF: ${r.pasta}` });
+      mostrar(r.contas);
     } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
     finally { setLendo(false); }
   }
@@ -134,12 +156,14 @@ export default function ContasPdf() {
 
       <section className="passos">
         <div className="cartao-painel">
-          <h3>📁 Escolher pasta</h3>
-          <p className="suave">Aponte a pasta das contas (ex.: <code>Contas\2026</code>). O app lê todos
-            os <code>.pdf</code> de dentro de uma vez.</p>
-          {/* webkitdirectory não é tipado no React; ligo pelo ref para o seletor virar "escolher pasta". */}
-          <input type="file" ref={(el) => el && el.setAttribute("webkitdirectory", "")}
-            onChange={(e) => { enviar(e.target.files); e.target.value = ""; }} />
+          <h3>📁 Ler de uma pasta</h3>
+          <p className="suave">Cole o caminho da pasta das contas (ex.:{" "}
+            <code>D:\Documentos\Financeiro\Faturas Baixadas</code>) e o app lê todos os{" "}
+            <code>.pdf</code> de dentro de uma vez.</p>
+          <input type="text" value={pasta} placeholder="D:\...\Faturas"
+            onChange={(e) => setPasta(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") lerDaPasta(); }} />
+          <footer><button className="primario" disabled={lendo} onClick={lerDaPasta}>Ler PDFs da pasta</button></footer>
         </div>
         <div className="cartao-painel">
           <h3>📄 Escolher arquivos</h3>

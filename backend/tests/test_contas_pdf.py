@@ -163,6 +163,20 @@ def test_tela_marca_pdf_protegido_por_senha(cliente, monkeypatch):
     assert _subir(cliente, "SOLAR.pdf").json()["contas"][0]["status"] == "senha"
 
 
+def test_tela_le_todos_os_pdfs_de_uma_pasta(cliente, monkeypatch, tmp_path):
+    (tmp_path / "2026-10-13-ESCELSA.pdf").write_bytes(b"%PDF")
+    (tmp_path / "leia-me.txt").write_text("não é PDF", encoding="utf-8")   # ignorado
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+    r = cliente.post("/api/contas-pdf/analisar-pasta", json={"pasta": str(tmp_path)}).json()
+    assert r["total_pdf"] == 1
+    assert r["contas"][0]["status"] == "ok" and r["contas"][0]["fatura"]["referencia"] == "2026-09"
+
+
+def test_analisar_pasta_inexistente_da_erro_claro(cliente):
+    r = cliente.post("/api/contas-pdf/analisar-pasta", json={"pasta": str("/nao/existe/mesmo-123")})
+    assert r.status_code == 422 and "não encontrei a pasta" in r.json()["detail"].lower()
+
+
 def test_abre_pdf_com_senha_aes256(tmp_path):
     """A EDP Solar protege o PDF com AES-256: precisa da biblioteca cryptography."""
     import pytest

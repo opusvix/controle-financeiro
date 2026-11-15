@@ -186,11 +186,12 @@ const SECOES: Secao[] = [
         </p>
         <ol>
           <li>
-            <strong>📁 Escolher pasta:</strong> aponte a pasta onde você guarda as contas (por exemplo{" "}
-            <code>Contas\2026</code>) e o app lê todos os PDFs de dentro de uma só vez.
+            <strong>📁 Ler de uma pasta:</strong> cole o caminho da pasta onde você guarda as contas
+            (por exemplo <code>D:\Documentos\Financeiro\Faturas Baixadas</code>) e o app lê todos os
+            PDFs de dentro de uma só vez. Ele lembra a última pasta que você usou.
           </li>
           <li>
-            <strong>📄 Escolher arquivos:</strong> ou mande um ou poucos PDFs avulsos.
+            <strong>📄 Escolher arquivos:</strong> ou mande um ou poucos PDFs avulsos pelo seletor.
           </li>
           <li>
             Se algum PDF for protegido (a EDP Solar e a Claro costumam ser), informe a{" "}
@@ -208,9 +209,8 @@ const SECOES: Secao[] = [
           </li>
         </ol>
         <p className="dica">
-          Por segurança, o navegador não varre uma pasta sozinho pelo caminho: você escolhe a pasta no
-          seletor e o app lê os PDFs dela — funciona igual pelo atalho (navegador) e pelo programa
-          (<code>.exe</code>).
+          Como o app roda no seu próprio computador, ele consegue abrir a pasta que você indicar e ler
+          os PDFs de lá. Funciona igual pelo atalho (navegador) e pelo programa (<code>.exe</code>).
         </p>
       </>
     ),

@@ -42,9 +42,34 @@ def _fatura_json(f: contas_pdf.Fatura) -> dict:
             "itens": [list(i) for i in f.itens], "arquivo": f.arquivo}
 
 
+def _analisar_um(c, nome: str, ler) -> dict:
+    """Lê uma fatura (a função `ler` devolve Fatura|None ou levanta erro) e monta o resultado da tela."""
+    try:
+        f = ler()
+    except PermissionError:
+        return {"arquivo": nome, "status": "senha", "mensagem": None, "fatura": None, "lancamento": None}
+    except Exception as e:                            # um PDF ruim não derruba a leitura dos outros
+        return {"arquivo": nome, "status": "erro", "mensagem": str(e), "fatura": None, "lancamento": None}
+    if f is None:
+        return {"arquivo": nome, "status": "sem_leitor", "mensagem": None, "fatura": None, "lancamento": None}
+    t = contas_pdf.achar_lancamento(c, f)
+    lancamento = None
+    if t is not None:
+        ja = c.execute("SELECT 1 FROM conta_ficha WHERE transacao_id = ?", (t["id"],)).fetchone()
+        lancamento = {"id": t["id"], "data": t["data"], "descricao": t["descricao"],
+                      "valor_centavos": t["valor_centavos"], "ja_tem_ficha": ja is not None}
+    return {"arquivo": nome, "status": "ok", "mensagem": None,
+            "fatura": _fatura_json(f), "lancamento": lancamento}
+
+
+def _ordenar(contas: list[dict]) -> None:
+    """Para a tela: primeiro os que acharam lançamento, depois o resto."""
+    contas.sort(key=lambda x: (x["status"] != "ok", x["lancamento"] is None, x["arquivo"]))
+
+
 @router.post("/analisar")
 async def analisar(arquivos: list[UploadFile], senha: str = Form(""), c=Depends(con)):
-    """Não grava nada: lê cada PDF e, para cada um, procura o lançamento já pago que ele preenche.
+    """Não grava nada: lê cada PDF enviado e procura o lançamento já pago que ele preenche.
 
     `senha` (opcional) atende os PDFs protegidos (EDP Solar, Claro); várias separadas por ";".
     """
@@ -52,32 +77,36 @@ async def analisar(arquivos: list[UploadFile], senha: str = Form(""), c=Depends(
     for a in arquivos:
         nome = a.filename or "arquivo.pdf"
         if not nome.lower().endswith(".pdf"):
-            continue                                  # a pasta pode ter outros arquivos; só PDF interessa
-        try:
-            f = _ler_bytes(nome, await a.read(), senha or None)
-        except PermissionError:
-            contas.append({"arquivo": nome, "status": "senha", "mensagem": None,
-                           "fatura": None, "lancamento": None})
-            continue
-        except Exception as e:                        # um PDF ruim não derruba a leitura dos outros
-            contas.append({"arquivo": nome, "status": "erro", "mensagem": str(e),
-                           "fatura": None, "lancamento": None})
-            continue
-        if f is None:
-            contas.append({"arquivo": nome, "status": "sem_leitor", "mensagem": None,
-                           "fatura": None, "lancamento": None})
-            continue
-        t = contas_pdf.achar_lancamento(c, f)
-        lancamento = None
-        if t is not None:
-            ja = c.execute("SELECT 1 FROM conta_ficha WHERE transacao_id = ?", (t["id"],)).fetchone()
-            lancamento = {"id": t["id"], "data": t["data"], "descricao": t["descricao"],
-                          "valor_centavos": t["valor_centavos"], "ja_tem_ficha": ja is not None}
-        contas.append({"arquivo": nome, "status": "ok", "mensagem": None,
-                       "fatura": _fatura_json(f), "lancamento": lancamento})
-    # Ordena para a tela: primeiro os que acharam lançamento, depois o resto.
-    contas.sort(key=lambda x: (x["status"] != "ok", x["lancamento"] is None, x["arquivo"]))
+            continue                                  # a seleção pode ter outros arquivos; só PDF interessa
+        conteudo = await a.read()
+        contas.append(_analisar_um(c, nome, lambda n=nome, b=conteudo: _ler_bytes(n, b, senha or None)))
+    _ordenar(contas)
     return {"contas": contas}
+
+
+class PastaIn(BaseModel):
+    pasta: str
+    senha: str = ""
+
+
+@router.post("/analisar-pasta")
+def analisar_pasta(dados: PastaIn, c=Depends(con)):
+    """Lê todos os PDFs de uma pasta do próprio computador (o servidor é local).
+
+    É o jeito confiável de "escolher a pasta" nos dois modos (navegador e .exe): o seletor nativo
+    de pasta do navegador é instável, então aqui a pessoa informa o caminho e o app varre a pasta.
+    """
+    caminho = dados.pasta.strip().strip('"').strip("'")
+    if not caminho:
+        raise HTTPException(422, "Informe o caminho da pasta.")
+    pasta = Path(caminho)
+    if not pasta.is_dir():
+        raise HTTPException(422, f"Não encontrei a pasta: {caminho}")
+    senha = dados.senha or None
+    pdfs = sorted(p for p in pasta.iterdir() if p.is_file() and p.suffix.lower() == ".pdf")
+    contas = [_analisar_um(c, p.name, lambda p=p: contas_pdf.ler(p, senha)) for p in pdfs]
+    _ordenar(contas)
+    return {"contas": contas, "pasta": str(pasta), "total_pdf": len(pdfs)}
 
 
 class FaturaIn(BaseModel):
