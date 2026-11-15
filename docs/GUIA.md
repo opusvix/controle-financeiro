@@ -119,11 +119,12 @@ bandeira, multa, m³ e número de vidas. É essa ficha que alimenta os painéis 
   várias, separadas por `;`.
 - O app mostra cada fatura com o que leu e se achou o lançamento pago que ela preenche.
   Confira, marque as que quer gravar e clique em **Gravar fichas**.
+- **Se faltar o lançamento**, escolha a **conta que pagou** (e, se quiser, a categoria) e o
+  app **cria a despesa** para você — datada no vencimento, já paga — e anexa a ficha nela.
 
-Uma conta só é preenchida se já existe no app um **lançamento pago de mesmo valor**, perto
-do vencimento. Se faltar, lance a despesa primeiro em **Transações**. Por segurança, o
-navegador não varre uma pasta sozinho pelo caminho: você escolhe a pasta no seletor e o app
-lê os PDFs dela — funciona igual pelo atalho (navegador) e pelo programa (`.exe`).
+Por segurança, o navegador não varre uma pasta sozinho pelo caminho: você escolhe a pasta no
+seletor e o app lê os PDFs dela — funciona igual pelo atalho (navegador) e pelo programa
+(`.exe`).
 
 ## 8. Conciliação (banco e fatura)
 

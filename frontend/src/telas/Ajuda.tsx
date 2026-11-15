@@ -200,13 +200,16 @@ const SECOES: Secao[] = [
             O app mostra cada fatura com o que leu e se achou o lançamento pago que ela preenche.
             Confira, marque as que quer gravar e clique em <strong>Gravar fichas</strong>.
           </li>
+          <li>
+            <strong>Se faltar o lançamento</strong>, não precisa sair da tela: escolha a{" "}
+            <strong>conta que pagou</strong> (e, se quiser, a categoria) e o app <strong>cria a
+            despesa</strong> para você — datada no vencimento, já paga — e anexa a ficha nela.
+          </li>
         </ol>
         <p className="dica">
-          Uma conta só é preenchida quando já existe no app um{" "}
-          <strong>lançamento pago de mesmo valor</strong>, perto do vencimento. Se faltar, lance a
-          despesa primeiro em <strong>Transações</strong>. Por segurança, o navegador não varre uma
-          pasta sozinho pelo caminho: você escolhe a pasta no seletor e o app lê os PDFs dela —
-          funciona igual pelo atalho (navegador) e pelo programa (<code>.exe</code>).
+          Por segurança, o navegador não varre uma pasta sozinho pelo caminho: você escolhe a pasta no
+          seletor e o app lê os PDFs dela — funciona igual pelo atalho (navegador) e pelo programa
+          (<code>.exe</code>).
         </p>
       </>
     ),

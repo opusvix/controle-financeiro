@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type ContaPdfLida, type FaturaPdf } from "../api";
+import { api, type Categoria, type ContaPdfLida, type FaturaPdf } from "../api";
+import { useDados } from "../componentes/useDados";
 import { dataBR, reais } from "../formato";
 
 /** Um número da ficha, ou null se não veio. */
@@ -34,10 +35,20 @@ function situacao(l: ContaPdfLida): { texto: string; ok: boolean } {
   return { texto: `✓ lançamento de ${dataBR(l.lancamento.data)}`, ok: true };
 }
 
+/** Dados para criar a despesa que falta: conta que pagou (obrigatória) e categoria (opcional). */
+type Criar = { conta_id: string; categoria_id: string };
+
+/** Um item enviado para gravar: anexa a um lançamento existente ou cria a despesa que falta. */
+type ItemGravar = { fatura: FaturaPdf; transacao_id?: number;
+  criar?: { conta_id: number; categoria_id: number | null } };
+
 export default function ContasPdf() {
+  const contas = useDados(api.contas);
+  const categorias = useDados(api.categorias);
   const [senha, setSenha] = useState("");
   const [lidas, setLidas] = useState<ContaPdfLida[] | null>(null);
   const [marcadas, setMarcadas] = useState<Record<number, boolean>>({});
+  const [criar, setCriar] = useState<Record<number, Criar>>({});
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [lendo, setLendo] = useState(false);
   const [gravando, setGravando] = useState(false);
@@ -48,7 +59,7 @@ export default function ContasPdf() {
       setMsg({ ok: false, texto: "Não achei nenhum arquivo .pdf no que você escolheu." });
       return;
     }
-    setMsg(null); setLidas(null); setLendo(true);
+    setMsg(null); setLidas(null); setCriar({}); setLendo(true);
     try {
       const r = await api.analisarContasPdf(pdfs, senha);
       setLidas(r.contas);
@@ -60,23 +71,38 @@ export default function ContasPdf() {
     finally { setLendo(false); }
   }
 
+  /** Itens válidos para gravar: os marcados que têm lançamento, ou os sem lançamento com conta escolhida. */
+  function montarItens(): ItemGravar[] {
+    return (lidas ?? []).flatMap<ItemGravar>((l, i) => {
+      if (!marcadas[i] || !l.fatura) return [];
+      if (l.lancamento) return [{ fatura: l.fatura, transacao_id: l.lancamento.id }];
+      const cr = criar[i];
+      if (!cr?.conta_id) return [];
+      return [{ fatura: l.fatura, criar: { conta_id: Number(cr.conta_id),
+        categoria_id: cr.categoria_id ? Number(cr.categoria_id) : null } }];
+    });
+  }
+
   async function gravar() {
-    if (!lidas) return;
-    const itens = lidas
-      .map((l, i) => ({ l, i }))
-      .filter(({ l, i }) => marcadas[i] && l.fatura && l.lancamento)
-      .map(({ l }) => ({ fatura: l.fatura!, transacao_id: l.lancamento!.id }));
-    if (!itens.length) return setMsg({ ok: false, texto: "Marque ao menos uma fatura para gravar." });
+    const itens = montarItens();
+    if (!itens.length) return setMsg({ ok: false, texto: "Marque ao menos uma fatura (e, se for criar a despesa, escolha a conta)." });
     setGravando(true);
     try {
       const r = await api.gravarContasPdf(itens);
-      setMsg({ ok: true, texto: `Pronto: ${r.gravadas} ficha(s) gravada(s). Veja o consumo nos painéis das Contas.` });
-      setLidas(null); setMarcadas({});
+      const extra = r.criadas ? ` (${r.criadas} despesa(s) criada(s))` : "";
+      setMsg({ ok: true, texto: `Pronto: ${r.gravadas} ficha(s) gravada(s)${extra}. Veja o consumo nos painéis das Contas.` });
+      setLidas(null); setMarcadas({}); setCriar({});
     } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
     finally { setGravando(false); }
   }
 
-  const paraGravar = lidas?.filter((_, i) => marcadas[i]).length ?? 0;
+  /** Escolhe a conta que pagou uma fatura sem lançamento (e já marca a linha para gravar). */
+  function escolherConta(i: number, conta_id: string) {
+    setCriar({ ...criar, [i]: { conta_id, categoria_id: criar[i]?.categoria_id ?? "" } });
+    setMarcadas({ ...marcadas, [i]: !!conta_id });
+  }
+
+  const paraGravar = montarItens().length;
 
   return (
     <>
@@ -91,8 +117,9 @@ export default function ContasPdf() {
           <strong>Gravar fichas</strong>.
         </p>
         <p className="dica">
-          Uma fatura só é preenchida se já existe no app um <strong>lançamento pago de mesmo valor</strong>,
-          perto do vencimento. Se faltar, lance a despesa primeiro em <Link to="/transacoes">Transações</Link>.
+          O app procura um <strong>lançamento pago de mesmo valor</strong>, perto do vencimento, para
+          preencher. Se não achar, você pode <strong>criar a despesa</strong> aqui mesmo (escolhendo a
+          conta que pagou) ou lançar antes em <Link to="/transacoes">Transações</Link>.
         </p>
       </section>
 
@@ -136,7 +163,8 @@ export default function ContasPdf() {
             <tbody>
               {lidas.map((l, i) => {
                 const s = situacao(l);
-                const podeMarcar = l.status === "ok" && !!l.lancamento;
+                const semLancamento = l.status === "ok" && !l.lancamento;
+                const podeMarcar = l.status === "ok" && (!!l.lancamento || !!criar[i]?.conta_id);
                 return (
                   <tr key={`${l.arquivo}-${i}`}>
                     <td><input type="checkbox" disabled={!podeMarcar} checked={!!marcadas[i]}
@@ -146,7 +174,28 @@ export default function ContasPdf() {
                     <td>{l.fatura ? dataBR(l.fatura.vencimento) : "—"}</td>
                     <td>{l.fatura ? reais(l.fatura.total_centavos) : "—"}</td>
                     <td>{l.fatura ? resumoFatura(l.fatura) : "—"}</td>
-                    <td className={s.ok ? "aviso-ok" : "erro"}>{s.texto}</td>
+                    <td className={s.ok ? "aviso-ok" : "erro"}>
+                      {s.texto}
+                      {semLancamento && (
+                        <div className="form espaco">
+                          <p className="suave">Não achei o pagamento no app. Escolha a conta que pagou e eu
+                            <strong> crio a despesa</strong> (datada no vencimento, já paga) junto com a ficha:</p>
+                          <div className="duas">
+                            <label>Pago com
+                              <select value={criar[i]?.conta_id ?? ""} onChange={(e) => escolherConta(i, e.target.value)}>
+                                <option value="">Escolha a conta…</option>
+                                {contas.dados?.filter((x) => x.ativa).map((x) =>
+                                  <option key={x.id} value={x.id}>{x.nome}</option>)}
+                              </select></label>
+                            <label>Categoria <small>(opcional)</small>
+                              <CategoriasDespesa lista={categorias.dados ?? []} valor={criar[i]?.categoria_id ?? ""}
+                                aoMudar={(v) => setCriar({ ...criar,
+                                  [i]: { conta_id: criar[i]?.conta_id ?? "", categoria_id: v } })} />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -161,5 +210,22 @@ export default function ContasPdf() {
         </section>
       )}
     </>
+  );
+}
+
+/** Seletor de categoria de despesa (mãe + subcategorias), igual ao da tela de Cupons. */
+function CategoriasDespesa({ lista, valor, aoMudar }:
+    { lista: Categoria[]; valor: string; aoMudar: (v: string) => void }) {
+  const maes = lista.filter((c) => c.pai_id === null && c.tipo === "despesa");
+  return (
+    <select value={valor} onChange={(e) => aoMudar(e.target.value)}>
+      <option value="">—</option>
+      {maes.map((m) => (
+        <optgroup key={m.id} label={m.nome}>
+          <option value={m.id}>{m.nome} (geral)</option>
+          {lista.filter((c) => c.pai_id === m.id).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+        </optgroup>
+      ))}
+    </select>
   );
 }

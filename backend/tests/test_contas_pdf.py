@@ -124,6 +124,25 @@ def test_tela_sem_lancamento_e_nao_pdf(cliente, monkeypatch):
     assert cliente.post("/api/contas-pdf/analisar", files=arquivos).json()["contas"] == []
 
 
+def test_tela_cria_a_despesa_que_falta_e_anexa_a_ficha(cliente, monkeypatch):
+    conta = cliente.post("/api/contas", json={"nome": "Itaú", "tipo": "corrente",
+        "data_saldo_inicial": "2026-01-01"}).json()["id"]
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+    # nenhum lançamento de R$ 102,16 existe ainda
+    c0 = _subir(cliente, "2026-10-13-ESCELSA.pdf").json()["contas"][0]
+    assert c0["lancamento"] is None
+
+    g = cliente.post("/api/contas-pdf/gravar", json={"itens": [
+        {"fatura": c0["fatura"], "criar": {"conta_id": conta}}]}).json()
+    assert g["gravadas"] == 1 and g["criadas"] == 1
+    # a despesa foi criada, paga, datada no vencimento, com a ficha anexada
+    lista = cliente.get("/api/transacoes?competencia=2026-10").json()
+    nova = next(x for x in lista if x["descricao"] == "EDP Escelsa" and x["valor_centavos"] == 10216)
+    assert nova["tipo"] == "despesa" and nova["pago"] == 1 and nova["conta_id"] == conta
+    f = cliente.get(f"/api/transacoes/{nova['id']}/ficha").json()
+    assert f["gravada"] and f["consumo"] == 224
+
+
 def test_tela_marca_pdf_protegido_por_senha(cliente, monkeypatch):
     def pede_senha(caminho, senha=None):
         raise PermissionError("protegido por senha")

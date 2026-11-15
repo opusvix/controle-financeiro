@@ -7,6 +7,7 @@ memória, num arquivo temporário apagado logo depois.
 from __future__ import annotations
 
 import tempfile
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
@@ -14,7 +15,7 @@ from pydantic import BaseModel
 
 from ..deps import con
 from ..importacao import contas_pdf
-from ..services import contas_casa
+from ..services import transacoes
 from ..services.transacoes import RegraViolada
 
 router = APIRouter(prefix="/api/contas-pdf", tags=["contas-pdf"])
@@ -91,9 +92,16 @@ class FaturaIn(BaseModel):
     arquivo: str = ""
 
 
+class CriarDespesa(BaseModel):
+    """Criar a despesa que falta, direto pela tela, e já anexar a ficha nela."""
+    conta_id: int
+    categoria_id: int | None = None
+
+
 class ItemGravar(BaseModel):
     fatura: FaturaIn
-    transacao_id: int
+    transacao_id: int | None = None       # anexar a este lançamento já existente
+    criar: CriarDespesa | None = None     # ou criar a despesa que falta
 
 
 class GravarIn(BaseModel):
@@ -102,12 +110,13 @@ class GravarIn(BaseModel):
 
 @router.post("/gravar")
 def gravar(dados: GravarIn, c=Depends(con)):
-    """Grava a ficha de cada fatura confirmada no lançamento escolhido (e o histórico de consumo)."""
-    gravadas = 0
+    """Grava a ficha de cada fatura confirmada. Se o lançamento faltar, cria a despesa antes.
+
+    Cada item traz ou `transacao_id` (lançamento já existente) ou `criar` (a conta que pagou e,
+    opcional, a categoria): aí lançamos uma despesa paga de mesmo valor, datada no vencimento.
+    """
+    gravadas = criadas = 0
     for it in dados.itens:
-        t = c.execute("SELECT * FROM transacao WHERE id = ?", (it.transacao_id,)).fetchone()
-        if t is None:
-            raise HTTPException(422, f"Lançamento {it.transacao_id} não encontrado.")
         p = it.fatura
         f = contas_pdf.Fatura(
             emissor=p.emissor, tipo=p.tipo, referencia=p.referencia, vencimento=p.vencimento,
@@ -115,9 +124,20 @@ def gravar(dados: GravarIn, c=Depends(con)):
             historico=[tuple(h) for h in p.historico], itens=[tuple(i) for i in p.itens],
             arquivo=p.arquivo)
         try:
+            if it.criar is not None:
+                ids = transacoes.criar(c, transacoes.NovaTransacao(
+                    tipo="despesa", descricao=f.emissor, valor_centavos=f.total_centavos,
+                    data=date.fromisoformat(f.vencimento), pago=True,
+                    conta_id=it.criar.conta_id, categoria_id=it.criar.categoria_id))
+                t = c.execute("SELECT * FROM transacao WHERE id = ?", (ids[0],)).fetchone()
+                criadas += 1
+            else:
+                t = c.execute("SELECT * FROM transacao WHERE id = ?", (it.transacao_id,)).fetchone()
+                if t is None:
+                    raise HTTPException(422, f"Lançamento {it.transacao_id} não encontrado.")
             contas_pdf.aplicar_ficha(c, t, f)
         except RegraViolada as e:
             raise HTTPException(422, str(e)) from e
         contas_pdf.gravar_historico(c, f.tipo, f.historico)
         gravadas += 1
-    return {"gravadas": gravadas}
+    return {"gravadas": gravadas, "criadas": criadas}
