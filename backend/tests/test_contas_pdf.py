@@ -80,6 +80,89 @@ def test_pdf_nao_entendido_guarda_o_texto_para_diagnostico(tmp_path, monkeypatch
     assert (tmp_path / "_texto" / "x-EDP-SOLAR.txt").read_text(encoding="utf-8").startswith("Solar")
 
 
+def _subir(cliente, nome, conteudo=b"%PDF", senha=None):
+    arquivos = [("arquivos", (nome, conteudo, "application/pdf"))]
+    dados = {"senha": senha} if senha else None
+    return cliente.post("/api/contas-pdf/analisar", files=arquivos, data=dados)
+
+
+def test_tela_analisa_e_grava_a_ficha(cliente, monkeypatch):
+    conta = cliente.post("/api/contas", json={"nome": "Itaú", "tipo": "corrente",
+        "data_saldo_inicial": "2026-01-01"}).json()["id"]
+    t = cliente.post("/api/transacoes", json={"tipo": "despesa", "descricao": "EDP ESCELSA",
+        "valor_centavos": 10216, "data": "2026-10-16", "conta_id": conta}).json()[0]
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+
+    r = _subir(cliente, "2026-10-13-ESCELSA.pdf").json()
+    assert len(r["contas"]) == 1
+    c0 = r["contas"][0]
+    assert c0["status"] == "ok" and c0["fatura"]["referencia"] == "2026-09"
+    assert c0["fatura"]["emissor"] == "EDP Escelsa" and c0["fatura"]["ficha"]["consumo"] == 224
+    assert c0["lancamento"]["id"] == t["id"] and c0["lancamento"]["ja_tem_ficha"] is False
+    # analisar não grava nada
+    assert cliente.get(f"/api/transacoes/{t['id']}/ficha").json()["gravada"] is False
+
+    g = cliente.post("/api/contas-pdf/gravar",
+                     json={"itens": [{"fatura": c0["fatura"], "transacao_id": t["id"]}]}).json()
+    assert g["gravadas"] == 1
+    f = cliente.get(f"/api/transacoes/{t['id']}/ficha").json()
+    assert f["gravada"] and f["consumo"] == 224 and f["cip_centavos"] == 2791
+    assert f["arquivo"] == "2026-10-13-ESCELSA.pdf"
+    lista = cliente.get("/api/transacoes?competencia=2026-10").json()
+    assert next(x for x in lista if x["id"] == t["id"])["vencimento"] == "2026-10-13"
+    # depois de gravada, a tela avisa que já tem ficha
+    assert _subir(cliente, "2026-10-13-ESCELSA.pdf").json()["contas"][0]["lancamento"]["ja_tem_ficha"] is True
+
+
+def test_tela_sem_lancamento_e_nao_pdf(cliente, monkeypatch):
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+    # não há lançamento de R$ 102,16 no app: lê a fatura, mas sem lançamento para preencher
+    r = _subir(cliente, "ESCELSA.pdf").json()
+    assert r["contas"][0]["status"] == "ok" and r["contas"][0]["lancamento"] is None
+    # arquivo que não é PDF é ignorado (a pasta pode ter outros arquivos)
+    arquivos = [("arquivos", ("leia-me.txt", b"nada", "text/plain"))]
+    assert cliente.post("/api/contas-pdf/analisar", files=arquivos).json()["contas"] == []
+
+
+def test_tela_cria_a_despesa_que_falta_e_anexa_a_ficha(cliente, monkeypatch):
+    conta = cliente.post("/api/contas", json={"nome": "Itaú", "tipo": "corrente",
+        "data_saldo_inicial": "2026-01-01"}).json()["id"]
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+    # nenhum lançamento de R$ 102,16 existe ainda
+    c0 = _subir(cliente, "2026-10-13-ESCELSA.pdf").json()["contas"][0]
+    assert c0["lancamento"] is None
+
+    # por padrão a despesa criada fica A PAGAR (a conta pode estar a vencer; quem decide é o usuário)
+    g = cliente.post("/api/contas-pdf/gravar", json={"itens": [
+        {"fatura": c0["fatura"], "criar": {"conta_id": conta}}]}).json()
+    assert g["gravadas"] == 1 and g["criadas"] == 1
+    lista = cliente.get("/api/transacoes?competencia=2026-10").json()
+    nova = next(x for x in lista if x["descricao"] == "EDP Escelsa" and x["valor_centavos"] == 10216)
+    assert nova["tipo"] == "despesa" and nova["pago"] == 0 and nova["conta_id"] == conta
+    assert nova["data"] == "2026-10-13"                     # datada no vencimento
+    f = cliente.get(f"/api/transacoes/{nova['id']}/ficha").json()
+    assert f["gravada"] and f["consumo"] == 224
+
+
+def test_tela_cria_despesa_ja_paga_quando_o_usuario_marca(cliente, monkeypatch):
+    conta = cliente.post("/api/contas", json={"nome": "Itaú", "tipo": "corrente",
+        "data_saldo_inicial": "2026-01-01"}).json()["id"]
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", lambda caminho, senha=None: AMOSTRA)
+    c0 = _subir(cliente, "ESCELSA.pdf").json()["contas"][0]
+    cliente.post("/api/contas-pdf/gravar", json={"itens": [
+        {"fatura": c0["fatura"], "criar": {"conta_id": conta, "pago": True}}]})
+    lista = cliente.get("/api/transacoes?competencia=2026-10").json()
+    nova = next(x for x in lista if x["descricao"] == "EDP Escelsa")
+    assert nova["pago"] == 1
+
+
+def test_tela_marca_pdf_protegido_por_senha(cliente, monkeypatch):
+    def pede_senha(caminho, senha=None):
+        raise PermissionError("protegido por senha")
+    monkeypatch.setattr(contas_pdf, "texto_do_pdf", pede_senha)
+    assert _subir(cliente, "SOLAR.pdf").json()["contas"][0]["status"] == "senha"
+
+
 def test_abre_pdf_com_senha_aes256(tmp_path):
     """A EDP Solar protege o PDF com AES-256: precisa da biblioteca cryptography."""
     import pytest
