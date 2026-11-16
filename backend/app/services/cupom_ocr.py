@@ -235,7 +235,16 @@ def _ocr(imagem) -> list[dict]:
         from rapidocr_onnxruntime import RapidOCR
     except ImportError as e:
         raise CupomInvalido(_INSTALAR) from e
-    resultado, _ = RapidOCR()(imagem)
+    try:
+        resultado, _ = RapidOCR()(imagem)
+    except Exception as e:        # noqa: BLE001 - iniciar/rodar o motor pode falhar de vários modos
+        # Acontece no .exe quando o pacote de OCR foi empacotado SEM os modelos (.onnx):
+        # RapidOCR() levanta FileNotFoundError. Vira mensagem clara, não "Erro 500".
+        raise CupomInvalido(
+            "O leitor de cupom por foto (OCR) não pôde ser iniciado nesta versão do app "
+            f"({type(e).__name__}). Se você acabou de ligar o OCR, gere o aplicativo de novo; "
+            "ou, enquanto isso, faça a leitura abrindo o app pelo navegador (atalho)."
+        ) from e
     dets = []
     for caixa, texto, _score in (resultado or []):
         xs = [p[0] for p in caixa]
