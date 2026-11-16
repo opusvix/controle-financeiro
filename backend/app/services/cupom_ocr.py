@@ -70,7 +70,8 @@ def _codigo(texto: str) -> str:
 
 
 # Linhas do corpo do cupom.
-_NOME = re.compile(r"^([O0o\d]{3,4})\s+([A-Za-zÀ-Ÿ].*)$")          # "0103 CENOURA"
+# Código de 2 a 4 dígitos (o OCR às vezes come zeros à esquerda) colado OU separado do nome.
+_NOME = re.compile(r"^([O0o\d]{2,4})\s*([A-Za-zÀ-Ÿ].*)$")          # "0103 CENOURA" / "0103CENOURA"
 _QTD = re.compile(r"(\d+[.,]?\d{0,3})\s*(KG|UN)\s*(\d+[.,]\d{1,2})", re.I)  # "0,775KG4,99"
 _DINHEIRO = re.compile(r"^\d{1,3}[.,]\d{2}$")                       # "3,86"
 _EMISSAO = re.compile(r"Emiss[aã]o:?\s*(\d{2})/(\d{2})/(\d{4})\s*(\d{2}:\d{2})?", re.I)
@@ -103,22 +104,37 @@ def montar_cupom(dets: list[dict]) -> dict:
     qtds = sorted((d for d in reg if _QTD.search(d["t"].replace(" ", "")) and d["x"] <= col_dir),
                   key=lambda d: d["y"])
 
+    if not totais:
+        raise CupomInvalido("Não reconheci os itens do cupom. Tire a foto reta, com boa "
+                            "luz e o cupom inteiro no quadro, e tente de novo.")
+
+    # Cada TOTAL da coluna da direita é um item (os totais somam o VALOR TOTAL). Para não
+    # PERDER um item quando o OCR erra o nome, ancoramos no total e casamos com o nome mais
+    # próximo logo acima (ou na mesma linha). Antes usávamos zip(nomes, totais), que, ao
+    # faltar um nome, desalinhava tudo e cortava o último item (ex.: a COUVE sumia).
+    # Total sem nome legível vira item com descrição em branco, para você completar na
+    # revisão — o item nunca some do cupom.
+    livres = list(nomes)
     itens: list[dict] = []
-    for seq, (nome, total) in enumerate(zip(nomes, totais), start=1):
-        m = _NOME.match(nome["t"])
+    for seq, total in enumerate(totais, start=1):
+        cand = [n for n in livres if total["y"] - 250 < n["y"] <= total["y"] + 45]
+        nome = max(cand, key=lambda n: n["y"]) if cand else None
+        descricao, codigo = "", None
+        if nome is not None:
+            livres.remove(nome)                       # cada nome serve a um único total
+            m = _NOME.match(nome["t"])
+            descricao = re.sub(r"\s+", " ", m.group(2)).strip()
+            codigo = _codigo(m.group(1)).zfill(4)     # "94" -> "0094" (o OCR come zeros)
         itens.append({
             "seq": seq,
-            "descricao": re.sub(r"\s+", " ", m.group(2)).strip(),
-            "codigo": _codigo(m.group(1)),
+            "descricao": descricao or "(sem nome — confira)",
+            "codigo": codigo,
             "valor_total_centavos": _centavos(total["t"]),
             "quantidade_milesimos": None,   # preenchido abaixo, se casar
             "unidade": None,
             "preco_unitario_centavos": None,
             "desconto_centavos": 0,
         })
-    if not itens:
-        raise CupomInvalido("Não reconheci os itens do cupom. Tire a foto reta, com boa "
-                            "luz e o cupom inteiro no quadro, e tente de novo.")
 
     # Casa cada linha de quantidade ao item cujo total = qtd × preço unitário.
     usados: set[int] = set()
