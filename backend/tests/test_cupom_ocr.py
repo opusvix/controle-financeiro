@@ -81,6 +81,40 @@ def test_emitente_numero_e_emissao_saem_do_cabecalho():
     assert cupom["emissao"] == "2026-11-09T10:22"
 
 
+def test_ancora_no_total_nao_perde_item_quando_falta_um_nome():
+    # Caso real da Frescor: o último item (COUVE) tem nome numa linha e a quantidade na
+    # linha de baixo; e o OCR perdeu o NOME do 2º item (só veio o total dele). Antes, o
+    # pareamento por ordem (zip) cortava a COUVE. Agora cada TOTAL vira um item.
+    dets = [
+        CABECALHO,
+        _d("0103 CENOURA", 300, 200), _d("0,775KG4,99", 320, 230), _d("3,87", 1500, 215),
+        # 2º item: nome não lido pelo OCR, só o total (11,47) aparece
+        _d("1,000KG11,47", 320, 330), _d("11,47", 1500, 315),
+        _d("0140 COUVE", 300, 430), _d("2,000UN1,99", 320, 470), _d("3,98", 1500, 465),
+        _d("VALOR TOTAL:", 300, 560), _d("19,32", 1500, 560),
+    ]
+    cupom = cupom_ocr.montar_cupom(dets)
+    assert len(cupom["itens"]) == 3                          # nenhum item some
+    assert cupom["itens"][0]["descricao"] == "CENOURA"
+    assert "confira" in cupom["itens"][1]["descricao"]       # 2º: nome em branco p/ revisar
+    assert cupom["itens"][1]["valor_total_centavos"] == 1147
+    assert cupom["itens"][2]["descricao"] == "COUVE"         # a COUVE volta
+    assert cupom["itens"][2]["codigo"] == "0140"
+    assert cupom["itens"][2]["valor_total_centavos"] == 398
+    assert sum(i["valor_total_centavos"] for i in cupom["itens"]) == 1932
+
+
+def test_codigo_com_zero_comido_pelo_ocr_vira_quatro_digitos():
+    dets = [
+        CABECALHO,
+        _d("94 PEPINO", 300, 200), _d("0,260KG4,99", 320, 230), _d("1,29", 1500, 215),
+        _d("VALOR TOTAL:", 300, 400), _d("1,29", 1500, 400),
+    ]
+    cupom = cupom_ocr.montar_cupom(dets)
+    assert cupom["itens"][0]["codigo"] == "0094"             # "94" -> "0094"
+    assert cupom["itens"][0]["descricao"] == "PEPINO"
+
+
 def test_imagem_vazia_recusada():
     with pytest.raises(CupomInvalido):
         cupom_ocr.montar_cupom([])
