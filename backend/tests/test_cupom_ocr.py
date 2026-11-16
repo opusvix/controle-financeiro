@@ -104,3 +104,22 @@ def test_sem_pacote_de_ocr_a_mensagem_ensina_a_instalar(monkeypatch):
     with pytest.raises(CupomInvalido) as e:
         cupom_ocr._ocr(object())
     assert "ler_cupom_por_foto.bat" in str(e.value)
+
+
+def test_motor_de_ocr_que_nao_inicia_vira_mensagem_clara(monkeypatch):
+    # Pacote presente, mas o motor não inicia (ex.: no .exe faltam os modelos .onnx:
+    # RapidOCR() levanta FileNotFoundError). Tem de virar mensagem clara, não "Erro 500".
+    import types
+
+    falso = types.ModuleType("rapidocr_onnxruntime")
+
+    class RapidOCR:
+        def __init__(self, *a, **k):
+            raise FileNotFoundError("config.yaml")
+
+    falso.RapidOCR = RapidOCR
+    monkeypatch.setitem(sys.modules, "rapidocr_onnxruntime", falso)
+    with pytest.raises(CupomInvalido) as e:
+        cupom_ocr._ocr(object())
+    assert "ler_cupom_por_foto.bat" not in str(e.value)   # não é o caso "não instalado"
+    assert "FileNotFoundError" in str(e.value)             # dá a pista técnica do que faltou
