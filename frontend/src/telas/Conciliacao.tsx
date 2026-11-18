@@ -5,6 +5,11 @@ import { useDados } from "../componentes/useDados";
 import { dataBR, reais } from "../formato";
 import ConciliacaoFatura from "./ConciliacaoFatura";
 
+/** Lê/guarda a última pasta de extratos usada (só conveniência; pode falhar em modo privado). */
+const PASTA_CHAVE = "conciliacao-conta-pasta";
+const lerPastaSalva = () => { try { return localStorage.getItem(PASTA_CHAVE) ?? ""; } catch { return ""; } };
+const salvarPasta = (p: string) => { try { localStorage.setItem(PASTA_CHAVE, p); } catch { /* ignora */ } };
+
 /**
  * Conciliação bancária: sobe um extrato OFX de uma conta e cruza com os lançamentos
  * já cadastrados. Mostra quatro baldes — casado, divergência, só no banco, só no app —
@@ -33,18 +38,36 @@ export default function Conciliacao() {
   const [feito, setFeito] = useState<string | null>(null);
   const [modo, setModo] = useState<"conta" | "cartao">("conta");
   const [tolerancia, setTolerancia] = useState(5);
+  const [pasta, setPasta] = useState(lerPastaSalva);
+
+  // Mostra o resultado (de upload ou de uma pasta): pré-marca casados e já traz a categoria sugerida.
+  function mostrarResultado(r: Resultado) {
+    setRes(r);
+    setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
+    const sugeridas: Record<string, number | ""> = {};
+    r.so_banco.forEach((b) => { if (b.categoria_sugerida) sugeridas[b.fitid] = b.categoria_sugerida; });
+    setLancar(sugeridas); setDescr({}); setDescrApp({});
+  }
 
   async function analisar(files = arquivos, tol = tolerancia) {
     if (!contaId || !files.length) return;
     setCarregando(true); setErro(null); setFeito(null);
     try {
-      const r = await api.analisarConciliacao(files, Number(contaId), tol);
-      setRes(r);
-      setConferir(new Set(r.casados.map((c) => c.app.id)));   // casados vêm pré-marcados
-      // Categoria sugerida pelo histórico já vem escolhida (você revisa antes de aplicar).
-      const sugeridas: Record<string, number | ""> = {};
-      r.so_banco.forEach((b) => { if (b.categoria_sugerida) sugeridas[b.fitid] = b.categoria_sugerida; });
-      setLancar(sugeridas); setDescr({}); setDescrApp({});
+      mostrarResultado(await api.analisarConciliacao(files, Number(contaId), tol));
+    } catch (e) { setErro((e as Error).message); setRes(null); }
+    finally { setCarregando(false); }
+  }
+
+  // Lê todos os .ofx de uma pasta do próprio PC (o servidor é local) e guarda a pasta usada.
+  async function analisarDaPasta() {
+    if (!contaId) { setErro("Escolha a conta primeiro."); return; }
+    const p = pasta.trim();
+    if (!p) { setErro("Cole o caminho da pasta dos extratos."); return; }
+    setCarregando(true); setErro(null); setFeito(null);
+    try {
+      const r = await api.analisarConciliacaoPasta(p, Number(contaId), tolerancia);
+      salvarPasta(p); setArquivos([]);
+      mostrarResultado(r);
     } catch (e) { setErro((e as Error).message); setRes(null); }
     finally { setCarregando(false); }
   }
@@ -117,6 +140,16 @@ export default function Conciliacao() {
         </label>
         {arquivos.length > 1 && <span className="dica">{arquivos.length} arquivos selecionados.</span>}
         {carregando && <span className="dica">Lendo o extrato…</span>}
+      </div>
+
+      <div className="cartao-painel espaco conc-pasta">
+        <label>📁 Ou leia de uma pasta <small>(o app guarda a última e lê todos os .ofx de lá)</small>
+          <input type="text" value={pasta} placeholder="D:\...\Extratos" disabled={!contaId}
+            onChange={(e) => setPasta(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") analisarDaPasta(); }} />
+        </label>
+        <button className="primario" disabled={!contaId || carregando} onClick={analisarDaPasta}>
+          Ler extratos da pasta</button>
       </div>
 
       <p className="dica">

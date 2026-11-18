@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -28,6 +29,36 @@ async def analisar(arquivos: list[UploadFile] = File(...), conta_id: int = Form(
     except conciliacao.OFXInvalido as e:
         raise HTTPException(422, str(e)) from e
     return {**resultado, "arquivos": [a.filename for a in arquivos]}
+
+
+class PastaIn(BaseModel):
+    pasta: str
+    conta_id: int
+    tolerancia_dias: int = 5
+
+
+@router.post("/analisar-pasta")
+def analisar_pasta(dados: PastaIn, c=Depends(con)):
+    """Lê todos os .ofx de uma pasta do próprio computador (o servidor é local), como o
+    `analisar` por upload — mas aqui a pessoa informa o caminho UMA vez e a tela guarda a
+    última pasta usada, para não ter de procurar o extrato toda vez.
+    """
+    caminho = dados.pasta.strip().strip('"').strip("'")
+    if not caminho:
+        raise HTTPException(422, "Informe o caminho da pasta dos extratos.")
+    pasta = Path(caminho)
+    if not pasta.is_dir():
+        raise HTTPException(422, f"Não encontrei a pasta: {caminho}")
+    ofxs = sorted(p for p in pasta.iterdir() if p.is_file() and p.suffix.lower() == ".ofx")
+    if not ofxs:
+        raise HTTPException(422, f"A pasta não tem nenhum extrato .ofx: {pasta}")
+    try:
+        conteudo = b"\n".join(p.read_bytes() for p in ofxs)
+        linhas = conciliacao.ler_ofx(conteudo)
+        resultado = conciliacao.conciliar(c, dados.conta_id, linhas, dados.tolerancia_dias)
+    except conciliacao.OFXInvalido as e:
+        raise HTTPException(422, str(e)) from e
+    return {**resultado, "arquivos": [p.name for p in ofxs], "pasta": str(pasta)}
 
 
 class CriarLinha(BaseModel):

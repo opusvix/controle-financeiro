@@ -307,6 +307,9 @@ export const api = {
     f.append("tolerancia_dias", String(tolerancia_dias));
     return chamar<Conciliacao>("/api/conciliacao/analisar", { method: "POST", body: f });
   },
+  analisarConciliacaoPasta: (pasta: string, conta_id: number, tolerancia_dias = 5) =>
+    chamar<Conciliacao>("/api/conciliacao/analisar-pasta",
+      enviar("POST", { pasta, conta_id, tolerancia_dias })),
   aplicarConciliacao: (body: { conta_id: number; conferir_ids: number[]; criar: CriarDoExtrato[];
                                renomear?: { id: number; descricao: string }[] }) =>
     chamar<{ conferidos: number; criados: number; renomeados: number }>(
