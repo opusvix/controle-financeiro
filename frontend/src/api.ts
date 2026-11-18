@@ -371,6 +371,9 @@ export const api = {
   salvarFiltro: (nome: string, criterios: FiltroTransacoes) =>
     chamar<FiltroSalvo>("/api/filtros", enviar("POST", { nome, criterios })),
   apagarFiltro: (id: number) => chamar<void>(`/api/filtros/${id}`, { method: "DELETE" }),
+  sugestoesDescricao: (termo: string, tipo: string) =>
+    chamar<{ descricao: string; categoria_id: number | null }[]>(
+      `/api/transacoes/sugestoes-descricao?termo=${encodeURIComponent(termo)}&tipo=${encodeURIComponent(tipo)}`),
   criarTransacao: (d: Record<string, unknown>) =>
     chamar<Transacao[]>("/api/transacoes", enviar("POST", d)),
   editarTransacao: (id: number, d: Record<string, unknown>) =>
