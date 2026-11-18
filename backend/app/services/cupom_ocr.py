@@ -92,15 +92,30 @@ def montar_cupom(dets: list[dict]) -> dict:
 
     # Região dos itens: do cabeçalho ("Total"/"Unit") até o "VALOR TOTAL".
     y_ini = max([d["y"] for d in dets if d["t"].strip().lower() in ("total", "unit")] + [0.0])
-    vt = [d for d in dets if "VALOR TOTAL" in d["t"].upper()]
+    vt = [d for d in dets if _eh_valor_total(d["t"])]
     y_fim = min([d["y"] for d in vt] + [max(d["y"] for d in dets) + 1])
     reg = [d for d in dets if y_ini < d["y"] < y_fim]
+
+    # O VALOR TOTAL fica na coluna da direita, na MESMA linha do rótulo "VALOR TOTAL:".
+    # Às vezes o centro da caixa dele cai um tiquinho ACIMA do rótulo e escapa para dentro
+    # da região dos itens, virando um "item fantasma" cujo total é o próprio valor do cupom
+    # (a soma dos itens dobra). Localizamos esse token e o tiramos dos totais de item —
+    # junto com qualquer dinheiro na mesma linha do VALOR TOTAL (linha de pagamento torta).
+    tot_tok = _token_total(dets, vt[0], col_dir) if vt else None
+
+    def _total_de_item(d: dict) -> bool:
+        if not (_DINHEIRO.match(d["t"]) and d["x"] > col_dir):
+            return False
+        if tot_tok is not None and d is tot_tok:
+            return False
+        if any(abs(d["y"] - v["y"]) < 35 for v in vt):   # mesma linha do VALOR TOTAL
+            return False
+        return True
 
     nomes = sorted((d for d in reg if _NOME.match(d["t"])
                     and not _QTD.search(d["t"].replace(" ", ""))),   # não é linha de quantidade
                    key=lambda d: d["y"])
-    totais = sorted((d for d in reg if _DINHEIRO.match(d["t"]) and d["x"] > col_dir),
-                    key=lambda d: d["y"])
+    totais = sorted((d for d in reg if _total_de_item(d)), key=lambda d: d["y"])
     qtds = sorted((d for d in reg if _QTD.search(d["t"].replace(" ", "")) and d["x"] <= col_dir),
                   key=lambda d: d["y"])
 
@@ -159,7 +174,7 @@ def montar_cupom(dets: list[dict]) -> dict:
                       preco_unitario_centavos=it["valor_total_centavos"])
 
     bruto = sum(it["valor_total_centavos"] for it in itens)
-    total_cupom = _centavos(_perto_de(dets, vt[0], col_dir)) if vt else None
+    total_cupom = _centavos(tot_tok["t"]) if tot_tok else None
 
     return {
         "origem": "foto",
@@ -176,11 +191,17 @@ def montar_cupom(dets: list[dict]) -> dict:
     }
 
 
-def _perto_de(dets: list[dict], ref: dict, col_dir: float) -> str:
-    """Token de dinheiro da coluna da direita mais próximo (em y) de `ref`."""
+def _eh_valor_total(texto: str) -> bool:
+    """Rótulo do total do cupom ('VALOR TOTAL:'), tolerante a ruído do OCR."""
+    t = re.sub(r"[^A-ZÇ]", "", texto.upper())
+    return "VALORTOTAL" in t or t.startswith("VALORTOTA")
+
+
+def _token_total(dets: list[dict], ref: dict, col_dir: float) -> dict | None:
+    """Caixa de dinheiro da coluna da direita mais próxima (em y) de `ref` (o VALOR TOTAL)."""
     cand = [d for d in dets if _DINHEIRO.match(d["t"]) and d["x"] > col_dir
             and abs(d["y"] - ref["y"]) < 70]
-    return min(cand, key=lambda d: abs(d["y"] - ref["y"]))["t"] if cand else "0"
+    return min(cand, key=lambda d: abs(d["y"] - ref["y"])) if cand else None
 
 
 def _emitente(dets: list[dict]) -> dict:
