@@ -281,6 +281,8 @@ export type Orcamento = {
 export const api = {
   lerQR: (arquivo: File) => chamar<{ notas: NotaQR[] }>("/api/nfce/qr", comArquivo(arquivo)),
   lerCupom: (arquivo: File) => chamar<CupomLido>("/api/cupons/ler", comArquivo(arquivo)),
+  lerCupomDaPasta: (pasta: string, arquivo: string) =>
+    chamar<CupomLido>("/api/cupons/ler-da-pasta", enviar("POST", { pasta, arquivo })),
   lancarCupom: (d: Record<string, unknown>) =>
     chamar<{ transacao_id: number | null; valor_centavos: number; itens: number; so_precos: boolean }>(
       "/api/cupons/lancar", enviar("POST", d)),
@@ -307,6 +309,12 @@ export const api = {
     f.append("tolerancia_dias", String(tolerancia_dias));
     return chamar<Conciliacao>("/api/conciliacao/analisar", { method: "POST", body: f });
   },
+  analisarConciliacaoPasta: (pasta: string, conta_id: number, tolerancia_dias = 5) =>
+    chamar<Conciliacao>("/api/conciliacao/analisar-pasta",
+      enviar("POST", { pasta, conta_id, tolerancia_dias })),
+  listarArquivos: (pasta: string, extensoes: string[]) =>
+    chamar<{ pasta: string; arquivos: string[] }>("/api/arquivos/listar",
+      enviar("POST", { pasta, extensoes })),
   aplicarConciliacao: (body: { conta_id: number; conferir_ids: number[]; criar: CriarDoExtrato[];
                                renomear?: { id: number; descricao: string }[] }) =>
     chamar<{ conferidos: number; criados: number; renomeados: number }>(
@@ -318,6 +326,9 @@ export const api = {
     f.append("competencia", competencia);
     return chamar<ConciliacaoFatura>("/api/conciliacao/fatura/analisar", { method: "POST", body: f });
   },
+  analisarConciliacaoFaturaPasta: (pasta: string, arquivo: string, cartao_id: number, competencia: string) =>
+    chamar<ConciliacaoFatura>("/api/conciliacao/fatura/analisar-pasta",
+      enviar("POST", { pasta, arquivo, cartao_id, competencia })),
   aplicarConciliacaoFatura: (body: { cartao_id: number; competencia: string; conferir_ids: number[];
                                      criar: CriarDoExtrato[];
                                      ajustar?: { id: number; valor_centavos: number }[];

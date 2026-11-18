@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ..deps import con
-from ..services import cupons
+from ..services import cupons, pasta_local
 from ..services.transacoes import RegraViolada
 
 router = APIRouter(prefix="/api/cupons", tags=["cupons"])
@@ -21,6 +21,23 @@ async def ler(arquivo: UploadFile, c=Depends(con)):
     except cupons.CupomInvalido as e:
         raise HTTPException(422, str(e)) from e
     return {**cupons.preparar(c, cupom), "arquivo": arquivo.filename}
+
+
+class PastaIn(BaseModel):
+    pasta: str
+    arquivo: str
+
+
+@router.post("/ler-da-pasta")
+def ler_da_pasta(dados: PastaIn, c=Depends(con)):
+    """Lê UM cupom (foto/PDF) escolhido de uma pasta do próprio PC. A tela guarda a última pasta."""
+    nome, conteudo = pasta_local.ler_arquivo(
+        dados.pasta, dados.arquivo, [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".pdf"])
+    try:
+        cupom = cupons.ler_arquivo(nome, conteudo)
+    except cupons.CupomInvalido as e:
+        raise HTTPException(422, str(e)) from e
+    return {**cupons.preparar(c, cupom), "arquivo": nome}
 
 
 class LancarIn(BaseModel):

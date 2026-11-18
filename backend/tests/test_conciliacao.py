@@ -156,3 +156,31 @@ def test_endpoint_varios_arquivos_sem_duplicar(cliente):
         "conta_id": conta, "conferir_ids": [],
         "criar": [{"data": "2026-11-05", "valor_centavos": 100000, "descricao": "SALARIO"}]})
     assert ap.status_code == 200 and ap.json()["criados"] == 1
+
+
+def test_endpoint_analisar_pasta_le_todos_os_ofx(cliente, tmp_path):
+    """'Ler de uma pasta': varre os .ofx do caminho (servidor local) — mesmo resultado do upload."""
+    con = cliente.app.state.con
+    conta = _conta(con)
+    (tmp_path / "extrato.ofx").write_bytes(OFX.encode("latin-1"))
+    (tmp_path / "leiame.txt").write_text("nao e ofx")    # ignorado: não é .ofx
+    r = cliente.post("/api/conciliacao/analisar-pasta",
+                     json={"pasta": str(tmp_path), "conta_id": conta, "tolerancia_dias": 3})
+    assert r.status_code == 200
+    corpo = r.json()
+    assert corpo["resumo"]["linhas_extrato"] == 4
+    assert corpo["arquivos"] == ["extrato.ofx"] and corpo["pasta"] == str(tmp_path)
+
+
+def test_endpoint_analisar_pasta_sem_ofx_avisa(cliente, tmp_path):
+    conta = _conta(cliente.app.state.con)
+    r = cliente.post("/api/conciliacao/analisar-pasta",
+                     json={"pasta": str(tmp_path), "conta_id": conta})
+    assert r.status_code == 422 and ".ofx" in r.json()["detail"]
+
+
+def test_endpoint_analisar_pasta_inexistente_avisa(cliente, tmp_path):
+    conta = _conta(cliente.app.state.con)
+    r = cliente.post("/api/conciliacao/analisar-pasta",
+                     json={"pasta": str(tmp_path / "nao-existe"), "conta_id": conta})
+    assert r.status_code == 422
