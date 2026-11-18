@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ..deps import con
-from ..services import conciliacao, conciliacao_fatura, fatura_leitor
+from ..services import conciliacao, conciliacao_fatura, fatura_leitor, pasta_local
 from ..services.transacoes import RegraViolada
 
 router = APIRouter(prefix="/api/conciliacao", tags=["conciliacao"])
@@ -105,6 +105,28 @@ async def analisar_fatura(arquivo: UploadFile = File(...), cartao_id: int = Form
     except RegraViolada as e:
         raise HTTPException(422, str(e)) from e
     return {**resultado, "arquivo": arquivo.filename}
+
+
+class FaturaPastaIn(BaseModel):
+    pasta: str
+    arquivo: str
+    cartao_id: int
+    competencia: str
+
+
+@router.post("/fatura/analisar-pasta")
+def analisar_fatura_pasta(dados: FaturaPastaIn, c=Depends(con)):
+    """Lê UM arquivo de fatura (.csv/.pdf) escolhido de uma pasta do próprio PC e cruza
+    com a fatura da competência. A tela guarda a última pasta usada."""
+    nome, conteudo = pasta_local.ler_arquivo(dados.pasta, dados.arquivo, [".csv", ".pdf"])
+    try:
+        lido = fatura_leitor.ler(nome, conteudo, dados.competencia)
+        resultado = conciliacao_fatura.conciliar(c, dados.cartao_id, dados.competencia, lido)
+    except fatura_leitor.FaturaInvalida as e:
+        raise HTTPException(422, str(e)) from e
+    except RegraViolada as e:
+        raise HTTPException(422, str(e)) from e
+    return {**resultado, "arquivo": nome, "pasta": dados.pasta}
 
 
 class CriarLinhaFatura(BaseModel):

@@ -321,6 +321,16 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .conc-pasta { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
 .conc-pasta label { display: grid; gap: 6px; color: var(--suave); font-size: 13px; flex: 1; min-width: 260px; }
 .conc-pasta input[type=text] { width: 100%; }
+.sel-pasta { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: end; }
+.sel-pasta label { display: grid; gap: 6px; color: var(--suave); font-size: 13px; flex: 1; min-width: 260px; }
+.sel-pasta input[type=text] { width: 100%; }
+.sel-pasta-erro { flex-basis: 100%; margin: 0; }
+.sel-pasta-lista { flex-basis: 100%; list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 8px; }
+.sel-pasta-arq { background: var(--painel-2); border: 1px solid var(--borda); color: var(--texto);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.sel-pasta-arq:hover:not(:disabled) { border-color: var(--laranja); }
+.sel-pasta-arq:disabled { opacity: .5; cursor: default; }
 .conc-aplicar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
   gap: 14px; margin: 16px 0 40px; }
 .conc-aplicar .dica { margin: 0; }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api, type Categoria, type ConciliacaoFatura as Resultado } from "../api";
 import SeletorCategoria from "../componentes/SeletorCategoria";
 import SeletorMes from "../componentes/SeletorMes";
+import SeletorPasta from "../componentes/SeletorPasta";
 import { useDados } from "../componentes/useDados";
 import { dataBR, mesAtual, paraCentavos, reais } from "../formato";
 
@@ -28,15 +29,28 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
   const [aplicando, setAplicando] = useState(false);
   const [feito, setFeito] = useState<string | null>(null);
 
+  function mostrarResultado(r: Resultado) {
+    setRes(r);
+    setConferir(new Set(r.casados.map((c) => c.app.id)));
+    setLancar(new Set(r.so_fatura.map((l) => l.chave)));   // por padrão, lança o que falta
+    setCat({}); setAjuste({});
+  }
+
   async function analisar(file = arquivo, cartao = cartaoId, comp = competencia) {
     if (!cartao || !comp || !file) return;
     setCarregando(true); setErro(null); setFeito(null);
     try {
-      const r = await api.analisarConciliacaoFatura(file, Number(cartao), comp);
-      setRes(r);
-      setConferir(new Set(r.casados.map((c) => c.app.id)));
-      setLancar(new Set(r.so_fatura.map((l) => l.chave)));   // por padrão, lança o que falta
-      setCat({}); setAjuste({});
+      mostrarResultado(await api.analisarConciliacaoFatura(file, Number(cartao), comp));
+    } catch (e) { setErro((e as Error).message); setRes(null); }
+    finally { setCarregando(false); }
+  }
+
+  // Lê UM arquivo de fatura escolhido de uma pasta (a tela guarda a última).
+  async function analisarDaPasta(pasta: string, nome: string) {
+    if (!cartaoId || !competencia) { setErro("Escolha o cartão e a competência primeiro."); return; }
+    setArquivo(null); setCarregando(true); setErro(null); setFeito(null);
+    try {
+      mostrarResultado(await api.analisarConciliacaoFaturaPasta(pasta, nome, Number(cartaoId), competencia));
     } catch (e) { setErro((e as Error).message); setRes(null); }
     finally { setCarregando(false); }
   }
@@ -96,6 +110,10 @@ export default function ConciliacaoFatura({ categorias, aoCriarCategoria }: {
         </label>
         {carregando && <span className="dica">Lendo a fatura…</span>}
       </div>
+
+      <SeletorPasta chave="conciliacao-fatura-pasta" extensoes={[".csv", ".pdf"]}
+        rotulo="📁 Ou leia de uma pasta" disabled={!cartaoId} ocupado={carregando}
+        aoEscolher={analisarDaPasta} />
 
       <p className="dica">
         Suba a fatura: <b>CSV</b> do C6 (Faturas → Exportar) ou <b>PDF</b> do Banco do Brasil ou do

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Categoria, type CupomLido } from "../api";
+import SeletorPasta from "../componentes/SeletorPasta";
 import { useDados } from "../componentes/useDados";
 import { dataBR, paraCentavos, reais } from "../formato";
 
@@ -31,19 +32,28 @@ export default function Cupons() {
     } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
   }
 
+  function mostrarCupom(r: CupomLido) {
+    setLido(r);
+    setCats(Object.fromEntries(r.cupom.itens.map((i) => [i.seq, i.categoria_sugerida ? String(i.categoria_sugerida) : ""])));
+    setData(r.cupom.emissao ? r.cupom.emissao.slice(0, 10) : "");
+    setDescricao(r.cupom.emitente.nome);
+    setSoPrecos(!!r.despesa_parecida);   // a despesa já está no app: só os preços
+    const p = r.pagamento_sugerido;
+    setPagoCom(p?.cartao_id ? `cartao:${p.cartao_id}` : p?.conta_id ? `conta:${p.conta_id}` : "");
+  }
+
   async function enviarPagina(f: File | undefined) {
     if (!f) return;
     setMsg(null); setLido(null);
-    try {
-      const r = await api.lerCupom(f);
-      setLido(r);
-      setCats(Object.fromEntries(r.cupom.itens.map((i) => [i.seq, i.categoria_sugerida ? String(i.categoria_sugerida) : ""])));
-      setData(r.cupom.emissao ? r.cupom.emissao.slice(0, 10) : "");
-      setDescricao(r.cupom.emitente.nome);
-      setSoPrecos(!!r.despesa_parecida);   // a despesa já está no app: só os preços
-      const p = r.pagamento_sugerido;
-      setPagoCom(p?.cartao_id ? `cartao:${p.cartao_id}` : p?.conta_id ? `conta:${p.conta_id}` : "");
-    } catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
+    try { mostrarCupom(await api.lerCupom(f)); }
+    catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
+  }
+
+  // Lê UM cupom (foto/PDF) escolhido de uma pasta (a tela guarda a última).
+  async function lerDaPasta(pasta: string, nome: string) {
+    setMsg(null); setLido(null);
+    try { mostrarCupom(await api.lerCupomDaPasta(pasta, nome)); }
+    catch (e) { setMsg({ ok: false, texto: (e as Error).message }); }
   }
 
   async function lancar() {
@@ -106,6 +116,8 @@ export default function Cupons() {
           <p className="suave">Pedido impresso sem QR (ex.: Frescor): mande a foto (.jpg/.png) ou o PDF. O app lê os
             itens sozinho e você confere/corrige antes de salvar.</p>
           <input type="file" accept="image/*,.pdf" onChange={(e) => enviarPagina(e.target.files?.[0])} />
+          <SeletorPasta chave="cupom-foto-pasta" extensoes={[".jpg", ".jpeg", ".png", ".webp", ".bmp", ".pdf"]}
+            rotulo="📁 Ou leia de uma pasta" ocupado={ocupado} aoEscolher={lerDaPasta} />
           <p className="suave"><small>Primeira vez? Rode uma vez <code>scripts\ler_cupom_por_foto.bat</code> para ligar a
             leitura por foto (grátis e offline).</small></p>
         </div>
