@@ -71,6 +71,12 @@ export default function Cupons() {
     setLido((l) => l && { ...l, cupom: { ...l.cupom, itens: l.cupom.itens.map((i) => (i.seq === seq ? { ...i, ...campo } : i)) } });
   }
 
+  /** Descarta uma linha que o leitor criou errada (ex.: pegou o VALOR TOTAL como item). */
+  function removerItem(seq: number) {
+    setLido((l) => l && { ...l, cupom: { ...l.cupom, itens: l.cupom.itens.filter((i) => i.seq !== seq) } });
+    setCats((cs) => { const n = { ...cs }; delete n[seq]; return n; });
+  }
+
   const c = lido?.cupom;
   // Conferência AO VIVO: recalcula enquanto o João corrige os itens.
   const somaItens = c ? c.itens.reduce((s, i) => s + i.valor_total_centavos - i.desconto_centavos, 0) : 0;
@@ -120,7 +126,8 @@ export default function Cupons() {
               : `Atenção: itens somam ${reais(somaItens)}, mas o cupom diz ${reais(c.valor_pagar_centavos)} (diferença de ${reais(Math.abs(somaItens - c.valor_pagar_centavos))}).`}
           </p>
           {c.origem === "foto" && <p className="dica">Li o cupom por foto. Confira os itens abaixo e
-            <b> corrija o que o leitor errou</b> (nome, quantidade ou valor) antes de salvar.</p>}
+            <b> corrija o que o leitor errou</b> (nome, quantidade ou valor) antes de salvar. Se ele criar
+            uma linha errada (como o próprio total), use o <b>🗑</b> no fim da linha para descartá-la.</p>}
           <fieldset className="modo-cupom">
             <label className="chave"><input type="radio" checked={!soPrecos} onChange={() => setSoPrecos(false)} />
               <span><b>Lançar como despesa</b> · compra nova, ainda não está no app</span></label>
@@ -146,7 +153,7 @@ export default function Cupons() {
             {cartoes.dados?.length === 0 && <p className="suave">Nenhum cartão cadastrado ainda. <Link to="/cartoes">Cadastrar cartão de crédito</Link></p>}
           </div>}
           <table className="tabela cupom-itens">
-            <thead><tr><th>Item</th><th>Qtde.</th><th>Un.</th><th>Unit.</th><th>Total</th><th>Categoria</th></tr></thead>
+            <thead><tr><th>Item</th><th>Qtde.</th><th>Un.</th><th>Unit.</th><th>Total</th><th>Categoria</th><th aria-label="Descartar"></th></tr></thead>
             <tbody>
               {c.itens.map((i) => (
                 <tr key={`${lido.arquivo}-${i.seq}`}>
@@ -165,6 +172,8 @@ export default function Cupons() {
                     {i.desconto_centavos > 0 && <small> (−{reais(i.desconto_centavos)})</small>}</td>
                   <td><Categorias lista={categorias.dados ?? []} valor={cats[i.seq] ?? ""}
                     aoMudar={(v) => setCats({ ...cats, [i.seq]: v })} /></td>
+                  <td><button type="button" className="lixo-linha" title="Descartar esta linha"
+                    aria-label={`Descartar ${i.descricao || "linha"}`} onClick={() => removerItem(i.seq)}>🗑</button></td>
                 </tr>
               ))}
             </tbody>

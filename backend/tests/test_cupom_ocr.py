@@ -104,6 +104,38 @@ def test_ancora_no_total_nao_perde_item_quando_falta_um_nome():
     assert sum(i["valor_total_centavos"] for i in cupom["itens"]) == 1932
 
 
+def test_valor_total_na_mesma_linha_nao_vira_item_fantasma():
+    # Bug real (Frescor, nota 150907): o token do VALOR TOTAL (à direita) caiu um
+    # tiquinho ACIMA do rótulo e escapou para a coluna dos itens, virando um item
+    # "(sem nome)" cujo total era o próprio valor do cupom -> a soma dobrava
+    # (itens somavam 76,96 para um cupom de 38,48). Não pode mais acontecer.
+    dets = [
+        CABECALHO,
+        _d("0230 ALHO DESCASCADO", 300, 200), _d("1UN12,50", 320, 230), _d("12,50", 1500, 215),
+        _d("0230 ALHO DESCASCADO", 300, 300), _d("1UN12,50", 320, 330), _d("12,50", 1500, 315),
+        _d("0059 MEIANCIA", 300, 400), _d("3,380KG3,99", 320, 430), _d("13,48", 1500, 415),
+        # rótulo em y=503; o VALOR (38,48) veio 3px acima, em y=500
+        _d("VALOR TOTAL:", 300, 503), _d("38,48", 1500, 500),
+    ]
+    cupom = cupom_ocr.montar_cupom(dets)
+    assert len(cupom["itens"]) == 3                       # sem item fantasma
+    assert all("confira" not in i["descricao"] for i in cupom["itens"])
+    assert cupom["valor_pagar_centavos"] == 3848
+    assert sum(i["valor_total_centavos"] for i in cupom["itens"]) == 3848
+
+
+def test_rotulo_valor_total_com_ruido_do_ocr_ainda_e_reconhecido():
+    # OCR às vezes engole o espaço/pontuação do rótulo: "VALORTOTAL" ainda conta.
+    dets = [
+        CABECALHO,
+        _d("0103 CENOURA", 300, 200), _d("0,775KG4,99", 320, 230), _d("3,87", 1500, 215),
+        _d("VALORTOTAL", 300, 403), _d("3,87", 1500, 400),
+    ]
+    cupom = cupom_ocr.montar_cupom(dets)
+    assert len(cupom["itens"]) == 1 and cupom["itens"][0]["descricao"] == "CENOURA"
+    assert cupom["valor_pagar_centavos"] == 387
+
+
 def test_codigo_com_zero_comido_pelo_ocr_vira_quatro_digitos():
     dets = [
         CABECALHO,
