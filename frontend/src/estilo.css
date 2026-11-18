@@ -382,3 +382,12 @@ fieldset.ficha-conta legend { color: var(--suave); padding: 0 6px; font-size: 13
 .guia-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 12px; }
 .guia-dl dt { color: var(--laranja-texto); font-weight: 600; }
 .guia-dl dd { margin: 0; text-align: left; }
+
+/* Autocompletar da Descrição (estilo Mobills) */
+.autocompletar { position: relative; }
+.autocompletar-lista { position: absolute; top: 100%; left: 0; right: 0; z-index: 30; margin: 4px 0 0;
+  padding: 4px; list-style: none; background: var(--painel); border: 1px solid var(--borda);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.28); max-height: 240px; overflow-y: auto; }
+.autocompletar-item { display: block; width: 100%; text-align: left; background: transparent; border: 0;
+  border-radius: 6px; padding: 8px 10px; color: var(--texto); font-size: 15px; }
+.autocompletar-item.ativo, .autocompletar-item:hover { background: var(--painel-2); }

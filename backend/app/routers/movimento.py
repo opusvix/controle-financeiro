@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from ..deps import con
 from ..services import (agua, contas_casa, energia, fatura_cartao, indices, orcamento, painel,
-                        plano, precos, relatorio_export, relatorios, transacoes)
+                        plano, precos, relatorio_export, relatorios, sugestoes, transacoes)
 
 router = APIRouter(prefix="/api", tags=["movimento"])
 COMPETENCIA = r"^\d{4}-(0[1-9]|1[0-2])$"
@@ -139,6 +139,17 @@ def apagar_filtro(id_: int, c=Depends(con)):
     with c:
         if c.execute("DELETE FROM filtro_salvo WHERE id = ?", (id_,)).rowcount == 0:
             raise HTTPException(404, "Filtro não encontrado")
+
+
+@router.get("/transacoes/sugestoes-descricao")
+def sugestoes_descricao(
+    termo: str = Query(min_length=1, max_length=120),
+    tipo: str = Query(default="despesa"),
+    c=Depends(con),
+):
+    """Autocompletar da Descrição: descrições já usadas que combinam com o que foi digitado,
+    as mais frequentes/recentes primeiro, cada uma com a categoria que costuma levar."""
+    return sugestoes.descricoes(c, tipo, termo)
 
 
 @router.post("/transacoes", status_code=201)

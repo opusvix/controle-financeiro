@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type FiltroTransacoes as Filtro, type Transacao } from "../api";
+import CampoDescricao from "../componentes/CampoDescricao";
 import EditarTransacao from "../componentes/EditarTransacao";
 import FiltroTransacoes from "../componentes/FiltroTransacoes";
 import SeletorCategoria from "../componentes/SeletorCategoria";
@@ -284,8 +285,9 @@ function FormTransacao({ tipo, aoFechar, aoSalvar }: {
           <label>{tipo === "despesa_cartao" ? "Data da compra" : "Data"}
             <input type="date" value={f.data} onChange={(e) => muda("data", e.target.value)} /></label>
         </div>
-        <label>Descrição<input value={f.descricao} onChange={(e) => muda("descricao", e.target.value)}
-          placeholder={tipo === "transferencia" ? "Ex.: Aplicação no CDB" : "Ex.: SUPERMERCADO PERIM"} /></label>
+        <CampoDescricao tipo={tipo} valor={f.descricao} aoMudar={(v) => muda("descricao", v)}
+          placeholder={tipo === "transferencia" ? "Ex.: Aplicação no CDB" : "Ex.: SUPERMERCADO PERIM"}
+          aoEscolherCategoria={usaCategoria ? (id) => setF((x) => (x.categoria_id ? x : { ...x, categoria_id: String(id) })) : undefined} />
         {usaCategoria && <SeletorCategoria categorias={categorias.filter((c) => c.tipo === tipoCategoria)}
           valor={f.categoria_id} aoMudar={(v) => muda("categoria_id", v)} tipo={tipoCategoria} />}
         {usaConta && (
